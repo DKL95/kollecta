@@ -29,6 +29,8 @@ tuyo, no la foto de un idol real como si fuera tu foto de perfil.
 | `covers/` | Banner grande de `group-detail.html` (opcional, formato ancho) | mismo nombre que en `groups/`, ej. `bts.jpg` |
 | `collection/` | Piezas de "Mi colección" (`js/data.js` → `myCollection`) | `1.jpg` … `8.jpg` (según el orden del arreglo) |
 | `avatars/` | Foto de perfil del usuario actual (`js/data.js` → `currentUser.avatarImg`) | el nombre que pongas en `avatarImg`, ej. `derek-luna.jpg` |
+| `banners/` | Banner/portada de `profile.html` (`js/data.js` → `currentUser.bannerImg`) | el nombre que pongas en `bannerImg`, ej. `derek-luna.jpg`, formato ancho (ideal ~1200x300) |
+| `posts/` | Foto adjunta a una publicación del feed (`js/data.js` → `posts`) | el nombre que pongas en `img`, ej. `bts-jimin-face.jpg` |
 
 Formato recomendado: `.jpg` o `.png`, cuadrado (1:1) para `products/` y
 `collection/`, panorámico (ancho) para `covers/`. Si agregas más productos o

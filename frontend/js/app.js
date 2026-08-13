@@ -113,7 +113,7 @@ function postHtml(post) {
         <span class="more">⋯</span>
       </div>
       <p class="post-text">${post.text}</p>
-      ${post.media ? `<div class="post-media ${categoryClass(post.mediaType || "Photocard")}"></div>` : ""}
+      ${post.media ? `<div class="post-media ${categoryClass(post.mediaType || "Photocard")}">${photoLayer(post.img, post.text)}</div>` : ""}
       <div class="post-actions">
         <button class="post-action-btn like-btn ${post.liked ? "liked" : ""}" data-liked="${post.liked}">
           <span class="ic">${icon(post.liked ? "heartFilled" : "heart", 16)}</span> <span class="count">${post.likes}</span>
@@ -159,7 +159,7 @@ function initHome() {
     .slice(0, 4)
     .map((g) => `
       <div class="mini-row">
-        <span class="avatar" style="background:${g.color};">${g.initials}</span>
+        <span class="avatar" style="background:${g.color}; position:relative; overflow:hidden;">${g.initials}${photoLayer(g.img, g.name)}</span>
         <div class="info"><div class="n">${g.name}</div><div class="s">${g.fandom}</div></div>
         <button class="btn btn-secondary btn-sm">Seguir</button>
       </div>`)
@@ -363,6 +363,14 @@ function initProfile() {
   if (!grid) return;
   grid.innerHTML = KOLLECTA_DATA.myCollection.map(collectionItemHtml).join("");
 
+  const coverEl = document.getElementById("profile-cover");
+  if (coverEl && KOLLECTA_DATA.currentUser.bannerImg) {
+    coverEl.insertAdjacentHTML(
+      "afterbegin",
+      `<img class="cover-photo" src="${KOLLECTA_DATA.currentUser.bannerImg}" alt="Portada de ${KOLLECTA_DATA.currentUser.name}" loading="lazy" onerror="this.remove()" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />`
+    );
+  }
+
   const coverAvatar = document.getElementById("profile-cover-avatar");
   if (coverAvatar) coverAvatar.insertAdjacentHTML("beforeend", photoLayer(KOLLECTA_DATA.currentUser.avatarImg, KOLLECTA_DATA.currentUser.name));
 
@@ -402,7 +410,7 @@ function initGroupDetail() {
   const gdCover = document.getElementById("gd-cover");
   gdCover.style.background = g.color;
   gdCover.style.position = "relative";
-  const coverImgSrc = g.img ? g.img.replace("/groups/", "/covers/") : null;
+  const coverImgSrc = g.img ? g.img.replace("/groups/", "/covers/") : null; // [ AQUI VA UNA IMAGEN ] (formato ancho, mismo nombre que en groups/)
   const existingCoverImg = gdCover.querySelector(".cover-photo");
   if (existingCoverImg) existingCoverImg.remove();
   if (coverImgSrc) {

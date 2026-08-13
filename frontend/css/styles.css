@@ -483,7 +483,6 @@ p { margin: 0; }
   padding: 28px;
   flex: 1;
   width: 100%;
-  max-width: 1180px;
 }
 .page-header {
   display: flex;
@@ -581,6 +580,12 @@ p { margin: 0; }
   height: 100%;
   object-fit: cover;
 }
+/* Fotos de publicaciones se muestran completas dentro de su recuadro en vez
+   de recortarse para llenarlo (producto/colección/galería siguen a "cover"). */
+.post-media .thumb-photo {
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.18);
+}
 .thumb .tag {
   position: absolute;
   top: 10px;
@@ -624,10 +629,45 @@ p { margin: 0; }
 .group-card .meta { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
 .group-card .follow-btn { margin-top: 14px; width: 100%; }
 
-.collection-item { padding: 0; }
+.collection-item { padding: 0; position: relative; transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.35s ease; }
 .collection-item .body { padding: 12px 14px; }
 .collection-item .title { font-size: 13.5px; font-weight: 700; }
 .collection-item .meta { font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
+.collection-item:hover {
+  transform: translateY(-8px) scale(1.045);
+  border-color: var(--border-strong);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 26px 6px rgba(255, 79, 163, 0.4),
+    0 0 50px 14px rgba(155, 92, 255, 0.32),
+    0 22px 40px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+.collection-item .thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, #fff 0 2px, transparent 3px),
+    radial-gradient(circle, var(--gold) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle, var(--cyan) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle, #fff 0 1.5px, transparent 2.5px);
+  background-repeat: no-repeat;
+  background-position: 18% 28%, 78% 22%, 65% 68%, 32% 78%;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.3s ease, transform 0.45s ease;
+  pointer-events: none;
+}
+.collection-item:hover .thumb::after {
+  opacity: 1;
+  transform: scale(1);
+  animation: sparkle-twinkle 1.3s ease-in-out infinite;
+}
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
 
 /* ---------- Feed / posts ---------- */
 .composer {
@@ -650,9 +690,17 @@ p { margin: 0; }
 }
 .composer-actions { display: flex; gap: 8px; margin-top: 12px; }
 
+#feed-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  #feed-list { grid-template-columns: 1fr; }
+}
 .post {
   padding: 18px;
-  margin-bottom: 16px;
 }
 .post-head { display: flex; align-items: center; gap: 12px; }
 .post-head .avatar { width: 42px; height: 42px; }
@@ -663,7 +711,7 @@ p { margin: 0; }
 .post-text { margin: 12px 0; font-size: 14px; line-height: 1.55; color: var(--text); }
 .post-media {
   border-radius: var(--radius-md);
-  height: 220px;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -718,21 +766,23 @@ p { margin: 0; }
 
 /* ---------- Profile ---------- */
 .profile-cover {
-  height: 180px;
+  height: 220px;
   border-radius: var(--radius-lg);
   position: relative;
-  margin-bottom: 62px;
-  overflow: hidden;
+  margin-bottom: 116px;
+}
+.profile-cover .cover-photo {
+  border-radius: inherit;
 }
 .profile-cover .cover-avatar {
   position: absolute;
-  bottom: -40px;
+  bottom: -90px;
   left: 32px;
-  width: 100px;
-  height: 100px;
+  width: 190px;
+  height: 190px;
   border-radius: 50%;
-  border: 5px solid var(--bg);
-  font-size: 30px;
+  border: 7px solid var(--bg);
+  font-size: 52px;
 }
 .profile-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .profile-head h2 { font-size: 22px; }
