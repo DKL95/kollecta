@@ -28,19 +28,22 @@ const CATEGORY_SLUGS = {
 function categoryClass(type) {
   return `thumb--${CATEGORY_SLUGS[type] || "photocard"}`;
 }
+function categoryIconHtml(type, size) {
+  return `<span class="category-icon">${icon(CATEGORY_ICON[type] || "card", size || 32)}</span>`;
+}
 
 function productCardHtml(p) {
   const priceHtml =
     p.mode === "Intercambio"
-      ? `<span class="price" style="color:var(--cyan);">🔁 Intercambio</span>`
+      ? `<span class="price price--trade">${icon("repeat", 14)} Intercambio</span>`
       : `<span class="price">${money(p.price)} <small>MXN</small></span>`;
   return `
     <a class="card product-card" href="product.html?id=${p.id}">
       <div class="thumb ${categoryClass(p.type)}">
-        <span>${p.emoji}</span>
+        ${categoryIconHtml(p.type)}
         ${photoLayer(p.img, p.title)}
         <span class="tag pill ${p.mode === "Intercambio" ? "cyan" : "pink"}">${p.tag}</span>
-        <span class="fav">🤍</span>
+        <span class="fav">${icon("heart", 14)}</span>
       </div>
       <div class="body">
         <div class="group-name">${p.group}</div>
@@ -66,7 +69,7 @@ function groupCardHtml(g, following) {
       </a>
       <div class="meta">${g.fandom} · debut ${g.debut}</div>
       <button class="btn ${following ? "btn-secondary" : "btn-primary"} btn-sm follow-btn" data-group="${g.name}">
-        ${following ? "✓ Siguiendo" : "+ Seguir"}
+        ${following ? icon("checkCircle", 14) + " Siguiendo" : icon("plus", 14) + " Seguir"}
       </button>
     </div>`;
 }
@@ -74,8 +77,8 @@ function groupCardHtml(g, following) {
 function collectionItemHtml(item) {
   return `
     <div class="card collection-item product-card">
-      <div class="thumb ${categoryClass(item.type)}" style="font-size:34px;">
-        <span>${item.emoji}</span>
+      <div class="thumb ${categoryClass(item.type)}">
+        ${categoryIconHtml(item.type, 28)}
         ${photoLayer(item.img, item.title)}
       </div>
       <div class="body">
@@ -92,9 +95,9 @@ function friendRowHtml(f) {
       <span class="avatar" style="position:relative;">${f.initials}</span>
       <div class="info">
         <div class="n">${f.name}</div>
-        <div class="s">${f.mutual} amigos en común ${f.online ? "· 🟢 en línea" : ""}</div>
+        <div class="s">${f.mutual} amigos en común ${f.online ? `<span class="status-dot"></span> en línea` : ""}</div>
       </div>
-      <button class="icon-btn" style="width:32px;height:32px;font-size:13px;">💬</button>
+      <button class="icon-btn" style="width:32px;height:32px;">${icon("chat", 14)}</button>
     </div>`;
 }
 
@@ -110,14 +113,14 @@ function postHtml(post) {
         <span class="more">⋯</span>
       </div>
       <p class="post-text">${post.text}</p>
-      ${post.media ? `<div class="post-media" style="background: var(--gradient-card);">${post.media}</div>` : ""}
+      ${post.media ? `<div class="post-media ${categoryClass(post.mediaType || "Photocard")}"></div>` : ""}
       <div class="post-actions">
         <button class="post-action-btn like-btn ${post.liked ? "liked" : ""}" data-liked="${post.liked}">
-          <span class="ic">${post.liked ? "❤️" : "🤍"}</span> <span class="count">${post.likes}</span>
+          <span class="ic">${icon(post.liked ? "heartFilled" : "heart", 16)}</span> <span class="count">${post.likes}</span>
         </button>
-        <button class="post-action-btn"><span>💬</span> ${post.comments}</button>
-        <button class="post-action-btn"><span>🔁</span> ${post.shares}</button>
-        <button class="post-action-btn"><span>📤</span> Compartir</button>
+        <button class="post-action-btn">${icon("comment", 16)} ${post.comments}</button>
+        <button class="post-action-btn">${icon("repeat", 16)} ${post.shares}</button>
+        <button class="post-action-btn">${icon("share", 16)} Compartir</button>
       </div>
     </article>`;
 }
@@ -129,12 +132,14 @@ function initHome() {
 
   const composerAvatar = document.getElementById("composer-avatar");
   if (composerAvatar) composerAvatar.insertAdjacentHTML("beforeend", photoLayer(KOLLECTA_DATA.currentUser.avatarImg, KOLLECTA_DATA.currentUser.name));
+  document.getElementById("composer-photo-btn").innerHTML = `${icon("camera", 15)} Foto`;
+  document.getElementById("composer-tag-btn").innerHTML = `${icon("tag", 15)} Etiquetar grupo`;
 
   function renderFeed(filter) {
     const posts = KOLLECTA_DATA.posts.filter((p) => filter === "Todos" || p.tag === filter);
     feedList.innerHTML =
       posts.map(postHtml).join("") ||
-      `<div class="empty-state"><div class="emoji">🫙</div>No hay publicaciones de ${filter} todavía.</div>`;
+      `<div class="empty-state">${icon("folder", 32)}<p>No hay publicaciones de ${filter} todavía.</p></div>`;
 
     feedList.querySelectorAll(".like-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -144,7 +149,7 @@ function initHome() {
         const count = parseInt(countEl.textContent, 10);
         btn.dataset.liked = (!liked).toString();
         btn.classList.toggle("liked", !liked);
-        icEl.textContent = !liked ? "❤️" : "🤍";
+        icEl.innerHTML = icon(!liked ? "heartFilled" : "heart", 16);
         countEl.textContent = liked ? count - 1 : count + 1;
       });
     });
@@ -201,7 +206,7 @@ function initMarketplace() {
     const items = KOLLECTA_DATA.products.filter(
       (p) => (activeGroup === "Todos" || p.group === activeGroup) && (activeMode === "Todos" || p.mode === activeMode)
     );
-    grid.innerHTML = items.map(productCardHtml).join("") || `<div class="empty-state"><div class="emoji">🔍</div>Sin resultados con estos filtros.</div>`;
+    grid.innerHTML = items.map(productCardHtml).join("") || `<div class="empty-state">${icon("search", 32)}<p>Sin resultados con estos filtros.</p></div>`;
     document.getElementById("market-count").textContent = `${items.length} artículo${items.length === 1 ? "" : "s"} encontrado${items.length === 1 ? "" : "s"}`;
   }
 
@@ -239,15 +244,15 @@ function initProductDetail() {
   document.getElementById("pd-badges").innerHTML = `<span class="pill pink">${p.tag}</span><span class="pill purple">${p.type}</span>`;
   galleryMain.className = `gallery-main ${categoryClass(p.type)}`;
   galleryMain.style.position = "relative";
-  galleryMain.innerHTML = `<span>${p.emoji}</span>${photoLayer(p.img, p.title)}`;
-  document.getElementById("pd-gallery-thumbs").innerHTML = [p.emoji, "🃏", "📦", "🔖"]
-    .map((e, i) => `<div class="thumb-sm card ${i === 0 ? "active" : ""}" style="background: var(--gradient-card);">${e}</div>`)
+  galleryMain.innerHTML = `${categoryIconHtml(p.type, 56)}${photoLayer(p.img, p.title)}`;
+  document.getElementById("pd-gallery-thumbs").innerHTML = [CATEGORY_ICON[p.type] || "card", "package", "tag"]
+    .map((name, i) => `<div class="thumb-sm card ${categoryClass(p.type)} ${i === 0 ? "active" : ""}">${icon(name, 20)}</div>`)
     .join("");
 
   const priceBlock = document.getElementById("pd-price-block");
   priceBlock.innerHTML =
     p.mode === "Intercambio"
-      ? `<span class="amount" style="color:var(--cyan); font-size:22px;">🔁 Disponible para intercambio</span>`
+      ? `<span class="amount" style="color:var(--cyan); font-size:22px; display:inline-flex; align-items:center; gap:8px;">${icon("repeat", 20)} Disponible para intercambio</span>`
       : `<span class="amount">${money(p.price)}</span><span style="color:var(--text-faint); font-size:13px;">MXN</span>`;
 
   document.getElementById("pd-desc").textContent =
@@ -257,13 +262,16 @@ function initProductDetail() {
 
   document.getElementById("pd-opt-venta").classList.toggle("active", p.mode !== "Intercambio");
   document.getElementById("pd-opt-trade").classList.toggle("active", p.mode === "Intercambio");
-  document.getElementById("pd-add-cart").textContent = p.mode === "Intercambio" ? "🔁 Proponer intercambio" : "🧺 Agregar al carrito";
+  document.getElementById("pd-add-cart").innerHTML =
+    p.mode === "Intercambio" ? `${icon("repeat", 16)} Proponer intercambio` : `${icon("basket", 16)} Agregar al carrito`;
+  document.getElementById("pd-message").innerHTML = `${icon("chat", 16)} Enviar mensaje`;
+  document.getElementById("pd-fav-btn").innerHTML = icon("heart", 16);
 
   document.getElementById("pd-seller").innerHTML = `
     <span class="avatar">${p.sellerInit}</span>
     <div class="info">
       <div class="n">@${p.seller}</div>
-      <div class="s">⭐ 4.8 · 56 ventas completadas</div>
+      <div class="s">${icon("starFilled", 12)} 4.8 · 56 ventas completadas</div>
     </div>
     <a href="profile.html" class="btn btn-secondary btn-sm">Ver perfil</a>`;
 
@@ -283,14 +291,15 @@ function initSell() {
   function syncPreview() {
     document.getElementById("preview-title").textContent = document.getElementById("s-title").value || "Título de tu artículo";
     document.getElementById("preview-group").textContent = document.getElementById("s-group").value;
-    const emojiMap = { Photocard: "🃏", Álbum: "💿", Lightstick: "🔮", Ropa: "🧥", Poster: "🖼️", Accesorio: "🔑" };
-    document.getElementById("preview-emoji").textContent = emojiMap[document.getElementById("s-type").value] || "🎁";
+    const type = document.getElementById("s-type").value;
+    document.getElementById("preview-icon").innerHTML = icon(CATEGORY_ICON[type] || "card", 32);
+    document.getElementById("preview-thumb").className = `thumb ${categoryClass(type)}`;
     const mode = toggle.querySelector(".opt.active").dataset.mode;
     const priceEl = document.getElementById("preview-price");
     const modeTag = document.getElementById("preview-mode");
     modeTag.textContent = mode;
     if (mode === "Intercambio") {
-      priceEl.innerHTML = `🔁 Intercambio`;
+      priceEl.innerHTML = `${icon("repeat", 14)} Intercambio`;
       modeTag.className = "tag pill cyan";
     } else {
       const price = document.getElementById("s-price").value || 0;
@@ -329,6 +338,9 @@ function initCollection() {
   const grid = document.getElementById("collection-grid");
   if (!grid) return;
 
+  document.getElementById("collection-stats-btn").innerHTML = `${icon("package", 14)} Ver estadísticas`;
+  document.getElementById("collection-add-btn").innerHTML = `${icon("plus", 14)} Agregar pieza`;
+
   function render(filter) {
     const items = KOLLECTA_DATA.myCollection.filter((i) => filter === "Todos" || i.group === filter);
     grid.innerHTML = items.map(collectionItemHtml).join("");
@@ -353,6 +365,10 @@ function initProfile() {
 
   const coverAvatar = document.getElementById("profile-cover-avatar");
   if (coverAvatar) coverAvatar.insertAdjacentHTML("beforeend", photoLayer(KOLLECTA_DATA.currentUser.avatarImg, KOLLECTA_DATA.currentUser.name));
+
+  document.getElementById("verified-pill").innerHTML = `${icon("checkCircle", 13)} Vendedor verificado`;
+  document.getElementById("edit-profile-btn").innerHTML = `${icon("pencil", 14)} Editar perfil`;
+  document.getElementById("profile-publish-btn").innerHTML = `${icon("plus", 14)} Publicar`;
 }
 
 /* -------------------------------------------------------------- page: groups */
@@ -407,13 +423,13 @@ function initGroupDetail() {
   const products = KOLLECTA_DATA.products.filter((p) => p.group === g.name);
   document.getElementById("gd-listings").textContent = products.length;
   document.getElementById("gd-products-grid").innerHTML =
-    products.map(productCardHtml).join("") || `<div class="empty-state"><div class="emoji">📦</div>Aún no hay merch de ${g.name} publicado.</div>`;
+    products.map(productCardHtml).join("") || `<div class="empty-state">${icon("package", 32)}<p>Aún no hay merch de ${g.name} publicado.</p></div>`;
 
   const followBtn = document.getElementById("gd-follow-btn");
   let following = false;
   followBtn.addEventListener("click", () => {
     following = !following;
-    followBtn.textContent = following ? "✓ Siguiendo" : "+ Seguir grupo";
+    followBtn.innerHTML = following ? `${icon("checkCircle", 16)} Siguiendo` : `${icon("plus", 16)} Seguir grupo`;
     followBtn.className = following ? "btn btn-secondary" : "btn btn-primary";
   });
 }
@@ -423,26 +439,29 @@ function initMessages() {
   const list = document.getElementById("thread-list");
   if (!list) return;
 
+  const attachBtn = document.getElementById("chat-attach-btn");
+  if (attachBtn) attachBtn.innerHTML = icon("paperclip", 16);
+
   let activeIdx = 0;
 
   const chatScripts = [
     [
-      { mine: false, text: "Hola! Vi tu photocard de Jimin, ¿sigue disponible?" },
-      { mine: true, text: "¡Hola! Sí, todavía la tengo 🙌" },
+      { mine: false, text: "Hola, vi tu photocard de Jimin, ¿sigue disponible?" },
+      { mine: true, text: "¡Hola! Sí, todavía la tengo." },
       { mine: false, text: "¿Aceptas $250 en vez de $280?" },
-      { mine: true, text: "Te la dejo en $265 y va con funda protectora 😊" },
+      { mine: true, text: "Te la dejo en $265 y va con funda protectora." },
     ],
     [
       { mine: false, text: "Va el intercambio, te mando la mía primero." },
-      { mine: true, text: "Perfecto, en cuanto la reciba te mando la mía 🔁" },
+      { mine: true, text: "Perfecto, en cuanto la reciba te mando la mía." },
     ],
     [
-      { mine: false, text: "Nos vemos el sábado en la reunión 🍊" },
-      { mine: true, text: "Ahí estaré! Llevo mi colección de SEVENTEEN" },
+      { mine: false, text: "Nos vemos el sábado en la reunión." },
+      { mine: true, text: "Ahí estaré, llevo mi colección de SEVENTEEN." },
     ],
     [
-      { mine: false, text: "Gracias! ya llegó el paquete 📦" },
-      { mine: true, text: "Qué bueno! Espero disfrutes tu photocard 💜" },
+      { mine: false, text: "Gracias, ya llegó el paquete." },
+      { mine: true, text: "Qué bueno, espero disfrutes tu photocard." },
     ],
     [{ mine: false, text: "Escribiendo…" }],
   ];
@@ -477,7 +496,7 @@ function initMessages() {
       <span class="avatar">${t.initials}</span>
       <div>
         <div class="n">${t.name}</div>
-        <div class="status">${t.online ? "🟢 En línea" : "Desconectado"}</div>
+        <div class="status">${t.online ? `<span class="status-dot"></span> En línea` : "Desconectado"}</div>
       </div>`;
     const body = document.getElementById("chat-body");
     body.innerHTML = chatScripts[activeIdx]
@@ -523,7 +542,7 @@ function initCart() {
       .map(
         (item, i) => `
       <div class="card cart-row">
-        <div class="thumb-sm" style="background: var(--gradient-card);">${item.p.emoji}</div>
+        <div class="thumb-sm ${categoryClass(item.p.type)}">${icon(CATEGORY_ICON[item.p.type] || "card", 22)}</div>
         <div class="info">
           <div class="t">${item.p.title}</div>
           <div class="s">${item.p.group} · @${item.p.seller}</div>
@@ -566,7 +585,7 @@ function initNotifications() {
     .map(
       (n) => `
     <div class="notif-row ${n.unread ? "unread" : ""}">
-      <div class="ic-badge" style="background: var(--gradient-card);">${n.icon}</div>
+      <div class="ic-badge">${icon(n.icon, 18)}</div>
       <div>
         <div class="txt">${n.text}</div>
         <div class="time">${n.time}</div>
@@ -589,7 +608,7 @@ function initSearch() {
       <span class="avatar" style="width:68px;height:68px;font-size:20px;">${f.initials}</span>
       <h4>${f.name}</h4>
       <div class="meta">${f.handle}</div>
-      <button class="btn btn-primary btn-sm follow-btn">+ Seguir</button>
+      <button class="btn btn-primary btn-sm follow-btn">${icon("plus", 14)} Seguir</button>
     </div>`
     )
     .join("");

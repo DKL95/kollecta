@@ -365,6 +365,8 @@ p { margin: 0; }
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  font-weight: 900;
+  color: #100a1e;
 }
 .nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-group .nav-label {
@@ -386,7 +388,8 @@ p { margin: 0; }
   font-size: 14.5px;
   position: relative;
 }
-.nav-link .ic { width: 20px; text-align: center; font-size: 16px; }
+.nav-link .ic { width: 20px; display: inline-flex; align-items: center; justify-content: center; }
+.icon { display: inline-flex; flex-shrink: 0; vertical-align: middle; }
 .nav-link:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
 .nav-link.active {
   background: linear-gradient(90deg, rgba(255, 79, 163, 0.16), rgba(155, 92, 255, 0.08));
@@ -570,6 +573,7 @@ p { margin: 0; }
 .thumb--ropa { background: linear-gradient(155deg, rgba(61, 220, 151, 0.28), rgba(79, 216, 255, 0.2)); }
 .thumb--poster { background: linear-gradient(155deg, rgba(155, 92, 255, 0.34), rgba(255, 79, 163, 0.2)); }
 .thumb--accesorio { background: linear-gradient(155deg, rgba(255, 92, 114, 0.28), rgba(255, 209, 102, 0.2)); }
+.category-icon { display: inline-flex; color: rgba(255, 255, 255, 0.55); position: relative; }
 .thumb-photo {
   position: absolute;
   inset: 0;
@@ -609,6 +613,8 @@ p { margin: 0; }
 .product-card .price-row { display: flex; align-items: center; justify-content: space-between; }
 .product-card .price { font-size: 16px; font-weight: 900; color: var(--gold); }
 .product-card .price small { font-size: 11px; color: var(--text-faint); font-weight: 600; }
+.price--trade { display: inline-flex; align-items: center; gap: 5px; color: var(--cyan); }
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 3px; }
 .product-card .seller { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--text-dim); }
 .product-card .seller .avatar { width: 20px; height: 20px; font-size: 9px; }
 
@@ -661,9 +667,19 @@ p { margin: 0; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 42px;
   margin-bottom: 12px;
   gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.post-media::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1.5px);
+  background-size: 16px 16px;
+  opacity: 0.3;
+  pointer-events: none;
 }
 .post-actions {
   display: flex;
@@ -835,14 +851,15 @@ p { margin: 0; }
 /* ---------- Notifications ---------- */
 .notif-row { display: flex; gap: 14px; padding: 16px; border-bottom: 1px solid var(--border); }
 .notif-row.unread { background: rgba(155, 92, 255, 0.06); }
-.notif-row .ic-badge { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.notif-row .ic-badge { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--gradient-card); color: var(--pink); }
 .notif-row .txt { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
 .notif-row .txt b { color: var(--text); }
 .notif-row .time { font-size: 11.5px; color: var(--text-faint); margin-top: 4px; }
 
 /* ---------- Empty / misc ---------- */
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); }
-.empty-state .emoji { font-size: 44px; margin-bottom: 14px; }
+.empty-state .icon { margin-bottom: 14px; opacity: 0.5; }
+.empty-state p { margin-top: 4px; }
 .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .section-title h3 { font-size: 16px; }
 .see-all { font-size: 12.5px; font-weight: 700; color: var(--cyan); }

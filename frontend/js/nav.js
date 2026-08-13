@@ -8,36 +8,36 @@ const NAV_SECTIONS = [
   {
     label: "Menú",
     items: [
-      { key: "home", label: "Inicio", icon: "🏠", href: "home.html" },
-      { key: "search", label: "Buscar", icon: "🔍", href: "search.html" },
-      { key: "notifications", label: "Notificaciones", icon: "🔔", href: "notifications.html", count: 3 },
-      { key: "messages", label: "Mensajes", icon: "💬", href: "messages.html", count: 3 },
+      { key: "home", label: "Inicio", icon: "home", href: "home.html" },
+      { key: "search", label: "Buscar", icon: "search", href: "search.html" },
+      { key: "notifications", label: "Notificaciones", icon: "bell", href: "notifications.html", count: 3 },
+      { key: "messages", label: "Mensajes", icon: "chat", href: "messages.html", count: 3 },
     ],
   },
   {
     label: "Marketplace",
     items: [
-      { key: "marketplace", label: "Explorar merch", icon: "🛍️", href: "marketplace.html" },
-      { key: "sell", label: "Vender / Intercambiar", icon: "➕", href: "sell.html" },
-      { key: "cart", label: "Carrito", icon: "🧺", href: "cart.html" },
+      { key: "marketplace", label: "Explorar merch", icon: "bag", href: "marketplace.html" },
+      { key: "sell", label: "Vender / Intercambiar", icon: "plus", href: "sell.html" },
+      { key: "cart", label: "Carrito", icon: "basket", href: "cart.html" },
     ],
   },
   {
     label: "Comunidad",
     items: [
-      { key: "collection", label: "Mi colección", icon: "🗂️", href: "collection.html" },
-      { key: "groups", label: "Grupos", icon: "⭐", href: "groups.html" },
-      { key: "profile", label: "Mi perfil", icon: "👤", href: "profile.html" },
+      { key: "collection", label: "Mi colección", icon: "folder", href: "collection.html" },
+      { key: "groups", label: "Grupos", icon: "star", href: "groups.html" },
+      { key: "profile", label: "Mi perfil", icon: "user", href: "profile.html" },
     ],
   },
 ];
 
 const BOTTOM_NAV_ITEMS = [
-  { key: "home", label: "Inicio", icon: "🏠", href: "home.html" },
-  { key: "marketplace", label: "Tienda", icon: "🛍️", href: "marketplace.html" },
-  { key: "sell", label: "Vender", icon: "➕", href: "sell.html" },
-  { key: "messages", label: "Chats", icon: "💬", href: "messages.html" },
-  { key: "profile", label: "Perfil", icon: "👤", href: "profile.html" },
+  { key: "home", label: "Inicio", icon: "home", href: "home.html" },
+  { key: "marketplace", label: "Tienda", icon: "bag", href: "marketplace.html" },
+  { key: "sell", label: "Vender", icon: "plus", href: "sell.html" },
+  { key: "messages", label: "Chats", icon: "chat", href: "messages.html" },
+  { key: "profile", label: "Perfil", icon: "user", href: "profile.html" },
 ];
 
 const PUBLIC_PAGES = ["login", "register"];
@@ -72,7 +72,7 @@ function renderSidebar() {
         .map(
           (item) => `
         <a class="nav-link ${active === item.key ? "active" : ""}" href="${item.href}">
-          <span class="ic">${item.icon}</span>
+          <span class="ic">${icon(item.icon, 18)}</span>
           <span>${item.label}</span>
           ${item.count ? `<span class="count">${item.count}</span>` : ""}
         </a>`
@@ -83,14 +83,14 @@ function renderSidebar() {
 
   mount.innerHTML = `
     <a class="brand-lockup" href="home.html">
-      <span class="mark">💜</span>
+      <span class="mark">K</span>
       <span>Kollect<span class="gradient-text">A</span></span>
     </a>
     ${sectionsHtml}
     <div class="sidebar-cta">
       <h4>¿Nueva pieza en tu colección?</h4>
       <p>Publícala en segundos y encuentra comprador o intercambio.</p>
-      <a class="btn btn-primary btn-sm btn-block" href="sell.html">+ Publicar merch</a>
+      <a class="btn btn-primary btn-sm btn-block" href="sell.html">Publicar merch</a>
     </div>
     <div class="sidebar-user">
       ${userAvatarHtml(38, 13)}
@@ -98,7 +98,7 @@ function renderSidebar() {
         <div class="name">${user.name}</div>
         <div class="handle">${user.handle}</div>
       </div>
-      <button id="logout-btn" title="Cerrar sesión">⏻</button>
+      <button id="logout-btn" title="Cerrar sesión">${icon("power", 16)}</button>
     </div>
   `;
 
@@ -123,12 +123,12 @@ function renderTopbar() {
       ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
     </div>
     <label class="search-box">
-      <span>🔍</span>
+      <span>${icon("search", 16)}</span>
       <input type="text" placeholder="Buscar grupos, merch o personas…" />
     </label>
     <div class="topbar-actions">
-      <a class="icon-btn" href="notifications.html" title="Notificaciones">🔔<span class="badge-dot"></span></a>
-      <a class="icon-btn" href="cart.html" title="Carrito">🧺</a>
+      <a class="icon-btn" href="notifications.html" title="Notificaciones">${icon("bell", 18)}<span class="badge-dot"></span></a>
+      <a class="icon-btn" href="cart.html" title="Carrito">${icon("basket", 18)}</a>
       <a href="profile.html">${userAvatarHtml(38, 13)}</a>
     </div>
   `;
@@ -141,7 +141,7 @@ function renderBottomNav() {
   mount.innerHTML = BOTTOM_NAV_ITEMS.map(
     (item) => `
     <a href="${item.href}" class="${active === item.key ? "active" : ""}">
-      <span>${item.icon}</span>
+      ${icon(item.icon, 18)}
       <span>${item.label}</span>
     </a>`
   ).join("");
