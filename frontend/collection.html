@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KollectA — Mi colección</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="collection" data-title="Mi colección" data-subtitle="76 artículos · valor estimado $12,430 MXN">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page" style="max-width:1180px;">
+        <div class="page-header">
+          <div>
+            <h2>🗂️ Mi colección</h2>
+            <div class="sub">Tu vitrina personal — visible para tus seguidores en tu perfil</div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-secondary btn-sm">📊 Ver estadísticas</button>
+            <a href="sell.html" class="btn btn-primary btn-sm">+ Agregar pieza</a>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom:26px;">
+          <div class="card side-card" style="text-align:center;">
+            <div class="eyebrow">Piezas</div>
+            <h3 style="font-size:26px; margin-top:6px;">76</h3>
+          </div>
+          <div class="card side-card" style="text-align:center;">
+            <div class="eyebrow">Grupos distintos</div>
+            <h3 style="font-size:26px; margin-top:6px;">8</h3>
+          </div>
+          <div class="card side-card" style="text-align:center;">
+            <div class="eyebrow">Intercambios hechos</div>
+            <h3 style="font-size:26px; margin-top:6px;">34</h3>
+          </div>
+          <div class="card side-card" style="text-align:center;">
+            <div class="eyebrow">Valor estimado</div>
+            <h3 style="font-size:26px; margin-top:6px;" class="gradient-text">$12,430</h3>
+          </div>
+        </div>
+
+        <div class="filter-row" id="collection-filters">
+          <span class="chip active" data-filter="Todos">Todos</span>
+          <span class="chip" data-filter="BTS">BTS</span>
+          <span class="chip" data-filter="BLACKPINK">BLACKPINK</span>
+          <span class="chip" data-filter="Stray Kids">Stray Kids</span>
+          <span class="chip" data-filter="SEVENTEEN">SEVENTEEN</span>
+          <span class="chip" data-filter="ITZY">ITZY</span>
+          <span class="chip" data-filter="aespa">aespa</span>
+        </div>
+
+        <div class="grid grid-4" id="collection-grid"></div>
+      </main>
+
+      <nav class="bottom-nav" id="bottom-nav"></nav>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

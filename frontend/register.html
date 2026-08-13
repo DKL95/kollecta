@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KollectA — Crear cuenta</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="register">
+  <div class="auth-shell">
+    <div class="auth-visual">
+      <div class="brand">💜 Kollect<span>A</span></div>
+      <div>
+        <div class="headline">Tu próxima photocard favorita está a un intercambio de distancia.</div>
+        <div class="sub">Crea tu perfil de coleccionista, arma tu vitrina y conéctate con fans de tus grupos favoritos.</div>
+        <div class="auth-mock-cards">
+          <div class="auth-mock-card">⭐ Sigue<br />grupos</div>
+          <div class="auth-mock-card">🗂️ Presume<br />tu colección</div>
+          <div class="auth-mock-card">🤝 Haz<br />amigos</div>
+        </div>
+      </div>
+      <div style="font-size:12.5px; font-weight:700; opacity:.8;">© 2026 KollectA — Proyecto académico, Programación Web II</div>
+    </div>
+
+    <div class="auth-form-side">
+      <form class="auth-form" id="register-form">
+        <div class="top-links">
+          <span style="font-size:13px; color:var(--text-faint);">¿Ya tienes cuenta? <a href="index.html" style="color:var(--cyan); font-weight:700;">Inicia sesión</a></span>
+        </div>
+        <h1>Crea tu cuenta ✨</h1>
+        <p class="lead">Empieza a coleccionar, comprar, vender e intercambiar en minutos.</p>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="name">Nombre</label>
+            <input type="text" id="name" placeholder="Tu nombre" required />
+          </div>
+          <div class="field">
+            <label for="username">Usuario</label>
+            <input type="text" id="username" placeholder="@usuario" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="email">Correo electrónico</label>
+          <input type="email" id="email" placeholder="tucorreo@ejemplo.com" required />
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" placeholder="Mínimo 8 caracteres" required />
+        </div>
+        <div class="field">
+          <label for="bias">Grupo favorito (bias)</label>
+          <select id="bias">
+            <option>BTS</option>
+            <option>BLACKPINK</option>
+            <option>TWICE</option>
+            <option>Stray Kids</option>
+            <option>SEVENTEEN</option>
+            <option>NewJeans</option>
+            <option>aespa</option>
+            <option>ATEEZ</option>
+            <option>ITZY</option>
+            <option>TXT</option>
+          </select>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="terms" checked />
+          <label for="terms" style="margin:0;">Acepto los términos y condiciones de la comunidad</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Crear mi cuenta</button>
+        <p class="auth-footer-note">Es un maquetado estático (mockup) — al registrarte se simula tu sesión con datos de ejemplo.</p>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script>
+    document.getElementById("register-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      localStorage.setItem("kollecta_auth", "1");
+      window.location.href = "home.html";
+    });
+  </script>
+</body>
+</html>

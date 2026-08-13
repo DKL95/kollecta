@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KollectA — Detalle de grupo</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="groups" data-title="Detalle de grupo" data-subtitle="">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page" style="max-width:1080px;">
+        <a href="groups.html" class="btn btn-ghost btn-sm" style="margin-bottom:16px;">← Volver a grupos</a>
+
+        <div class="profile-cover" id="gd-cover">
+          <span class="avatar cover-avatar" id="gd-avatar"></span>
+        </div>
+
+        <div class="profile-head">
+          <div>
+            <h2 id="gd-name"></h2>
+            <div class="handle" id="gd-meta"></div>
+          </div>
+          <button class="btn btn-primary" id="gd-follow-btn">+ Seguir grupo</button>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat"><b id="gd-members"></b><span>Integrantes</span></div>
+          <div class="stat"><b id="gd-debut"></b><span>Año de debut</span></div>
+          <div class="stat" id="gd-fans-stat"><b></b><span>Fans en KollectA</span></div>
+          <div class="stat"><b id="gd-listings"></b><span>Artículos en marketplace</span></div>
+        </div>
+
+        <div class="tabs">
+          <span class="tab active">Merch disponible</span>
+          <span class="tab">Fans destacados</span>
+          <span class="tab">Publicaciones de la comunidad</span>
+        </div>
+
+        <div class="grid grid-4" id="gd-products-grid"></div>
+      </main>
+
+      <nav class="bottom-nav" id="bottom-nav"></nav>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

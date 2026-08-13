@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KollectA — Marketplace</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="marketplace" data-title="Marketplace" data-subtitle="Compra, vende e intercambia merch oficial">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page" style="max-width:1180px;">
+        <div class="tabs">
+          <span class="tab active" data-mode="Todos">Todo</span>
+          <span class="tab" data-mode="Venta">En venta</span>
+          <span class="tab" data-mode="Intercambio">Para intercambio</span>
+        </div>
+
+        <div class="filter-row" id="market-filters">
+          <span class="chip active" data-filter="Todos">Todos los grupos</span>
+          <span class="chip" data-filter="BTS">BTS</span>
+          <span class="chip" data-filter="BLACKPINK">BLACKPINK</span>
+          <span class="chip" data-filter="TWICE">TWICE</span>
+          <span class="chip" data-filter="Stray Kids">Stray Kids</span>
+          <span class="chip" data-filter="SEVENTEEN">SEVENTEEN</span>
+          <span class="chip" data-filter="NewJeans">NewJeans</span>
+          <span class="chip" data-filter="aespa">aespa</span>
+          <span class="chip" data-filter="ATEEZ">ATEEZ</span>
+        </div>
+
+        <div class="page-header" style="margin-bottom:16px;">
+          <div class="sub" id="market-count">12 artículos encontrados</div>
+          <a href="sell.html" class="btn btn-primary btn-sm">+ Publicar merch</a>
+        </div>
+
+        <div class="grid grid-4" id="market-grid"></div>
+      </main>
+
+      <nav class="bottom-nav" id="bottom-nav"></nav>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

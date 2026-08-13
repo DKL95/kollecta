@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KollectA — Publicar merch</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="sell" data-title="Vender / Intercambiar" data-subtitle="Publica una pieza de tu colección">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page" style="max-width:920px;">
+        <div class="layout-2col">
+          <form class="card" style="padding:24px;" id="sell-form">
+            <div class="section-title"><h3>Datos del artículo</h3></div>
+
+            <div class="field">
+              <label for="s-title">Título</label>
+              <input type="text" id="s-title" placeholder="Ej. Photocard Jimin — 'Face' Album" required />
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="s-group">Grupo</label>
+                <select id="s-group">
+                  <option>BTS</option><option>BLACKPINK</option><option>TWICE</option>
+                  <option>Stray Kids</option><option>SEVENTEEN</option><option>NewJeans</option>
+                  <option>aespa</option><option>ATEEZ</option><option>ITZY</option><option>TXT</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="s-type">Categoría</label>
+                <select id="s-type">
+                  <option>Photocard</option><option>Álbum</option><option>Lightstick</option>
+                  <option>Ropa</option><option>Poster</option><option>Accesorio</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Fotos del artículo</label>
+              <div style="border:1.5px dashed var(--border-strong); border-radius:var(--radius-md); padding:28px; text-align:center; color:var(--text-faint); font-size:13px;">
+                📷 Arrastra tus fotos aquí o <span style="color:var(--cyan); font-weight:700;">selecciona archivos</span>
+                <div class="hint" style="margin-top:6px;">Sugerencia: mínimo 2 fotos (frente y detalle) — esto es solo un mockup visual.</div>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:8px;"><h3>Modalidad</h3></div>
+            <div class="trade-toggle" id="s-mode-toggle">
+              <div class="opt active" data-mode="Venta">💰 Venta</div>
+              <div class="opt" data-mode="Intercambio">🔁 Intercambio</div>
+              <div class="opt" data-mode="Ambos">✨ Ambos</div>
+            </div>
+
+            <div class="field-row" id="s-price-row">
+              <div class="field">
+                <label for="s-price">Precio (MXN)</label>
+                <input type="number" id="s-price" placeholder="0.00" />
+              </div>
+              <div class="field">
+                <label for="s-condition">Estado</label>
+                <select id="s-condition">
+                  <option>Nuevo / sellado</option><option>Como nuevo</option><option>Buen estado</option><option>Con desgaste visible</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field" id="s-trade-for" style="display:none;">
+              <label for="s-wants">¿Qué buscas a cambio?</label>
+              <input type="text" id="s-wants" placeholder="Ej. Photocard de Rosé, versión japonesa" />
+            </div>
+
+            <div class="field">
+              <label for="s-desc">Descripción</label>
+              <textarea id="s-desc" placeholder="Cuenta el estado del artículo, si viene con extras, etc."></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:8px;">
+              <button type="submit" class="btn btn-primary btn-block">Publicar artículo</button>
+              <button type="button" class="btn btn-secondary">Guardar borrador</button>
+            </div>
+          </form>
+
+          <div>
+            <div class="card side-card">
+              <h4>Vista previa</h4>
+              <div class="card product-card" style="cursor:default;">
+                <div class="thumb" id="preview-thumb" style="background: var(--gradient-card);">
+                  <span id="preview-emoji">🃏</span>
+                  <span class="tag pill pink" id="preview-mode">Venta</span>
+                </div>
+                <div class="body">
+                  <div class="group-name" id="preview-group">BTS</div>
+                  <div class="title" id="preview-title">Título de tu artículo</div>
+                  <div class="price-row">
+                    <span class="price" id="preview-price">$0 <small>MXN</small></span>
+                  </div>
+                  <div class="seller">
+                    <span class="avatar" style="width:20px;height:20px;font-size:9px;">RC</span>
+                    <span>@rena.bias</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card side-card">
+              <h4>Consejos para vender rápido</h4>
+              <p style="font-size:12.5px; color:var(--text-dim); line-height:1.6;">
+                📸 Usa buena iluminación y fotos del artículo real.<br/><br/>
+                🏷️ Sé honesto con el estado del artículo.<br/><br/>
+                💬 Responde rápido a los mensajes de interesados.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <nav class="bottom-nav" id="bottom-nav"></nav>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

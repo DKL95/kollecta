@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KollectA — Detalle de artículo</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="marketplace" data-title="Detalle de artículo" data-subtitle="Marketplace">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="page" style="max-width:1080px;">
+        <a href="marketplace.html" class="btn btn-ghost btn-sm" style="margin-bottom:16px;">← Volver al marketplace</a>
+
+        <div class="detail-grid">
+          <div>
+            <div class="gallery-main" id="pd-gallery-main"></div>
+            <div class="gallery-thumbs" id="pd-gallery-thumbs"></div>
+          </div>
+
+          <div>
+            <div class="group-name" id="pd-group" style="font-size:12px; color:var(--text-faint); font-weight:800; text-transform:uppercase; letter-spacing:0.5px;"></div>
+            <h2 id="pd-title" style="font-size:22px; margin-top:6px;"></h2>
+            <div class="badges-row" id="pd-badges" style="margin-top:10px;"></div>
+
+            <div class="price-block" id="pd-price-block"></div>
+
+            <div class="trade-toggle">
+              <div class="opt" id="pd-opt-venta">💰 Compra directa</div>
+              <div class="opt" id="pd-opt-trade">🔁 Propuesta de intercambio</div>
+            </div>
+
+            <p style="color:var(--text-dim); font-size:13.5px; line-height:1.6;" id="pd-desc"></p>
+
+            <div class="spec-list">
+              <div class="spec-row"><span>Categoría</span><span id="pd-type"></span></div>
+              <div class="spec-row"><span>Estado</span><span id="pd-condition"></span></div>
+              <div class="spec-row"><span>Envío</span><span>Nacional, 3-5 días hábiles</span></div>
+              <div class="spec-row"><span>Publicado</span><span>hace 3 días</span></div>
+            </div>
+
+            <div class="detail-actions">
+              <button class="btn btn-primary" id="pd-add-cart">🧺 Agregar al carrito</button>
+              <button class="btn btn-secondary" id="pd-message">💬 Enviar mensaje</button>
+              <button class="icon-btn" title="Guardar">🤍</button>
+            </div>
+
+            <div class="card seller-card" id="pd-seller"></div>
+          </div>
+        </div>
+      </main>
+
+      <nav class="bottom-nav" id="bottom-nav"></nav>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
