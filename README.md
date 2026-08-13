@@ -46,6 +46,7 @@ WEB2/
 │   ├── notifications.html  Notificaciones
 │   ├── search.html         Búsqueda global
 │   ├── css/styles.css      Sistema de diseño compartido (colores, componentes)
+│   ├── assets/img/         Fotos reales (vacío a propósito, ver assets/img/README.md)
 │   └── js/
 │       ├── data.js         Datos de ejemplo (usuarios, grupos, productos, posts)
 │       ├── nav.js          Sidebar / topbar / nav inferior + guard de sesión
@@ -85,6 +86,15 @@ No requiere instalación ni backend. Dos opciones:
    ```
 
 El login/registro es simulado: cualquier correo y contraseña te dejan entrar (guarda una bandera en `localStorage`).
+
+### Fotos reales
+
+Por defecto, el marketplace, los grupos y la colección muestran un emoji +
+degradado como marcador de posición — no se incluyen fotos oficiales de
+grupos/merch por derechos de autor. El código ya está listo para mostrar
+fotos reales en cuanto las agregues (sin tocar HTML/CSS/JS): ver
+[`frontend/assets/img/README.md`](frontend/assets/img/README.md) para la
+convención de nombres de archivo.
 
 ## Flujo de trabajo en Git
 

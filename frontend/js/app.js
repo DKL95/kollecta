@@ -13,6 +13,10 @@ function money(n) {
   return "$" + Number(n).toLocaleString("es-MX");
 }
 
+function photoLayer(src, alt) {
+  return src ? `<img class="thumb-photo" src="${src}" alt="${alt}" loading="lazy" onerror="this.remove()" />` : "";
+}
+
 function productCardHtml(p) {
   const priceHtml =
     p.mode === "Intercambio"
@@ -22,6 +26,7 @@ function productCardHtml(p) {
     <a class="card product-card" href="product.html?id=${p.id}">
       <div class="thumb" style="background: var(--gradient-card);">
         <span>${p.emoji}</span>
+        ${photoLayer(p.img, p.title)}
         <span class="tag pill ${p.mode === "Intercambio" ? "cyan" : "pink"}">${p.tag}</span>
         <span class="fav">🤍</span>
       </div>
@@ -41,7 +46,10 @@ function groupCardHtml(g, following) {
   return `
     <div class="card group-card">
       <a href="group-detail.html?group=${encodeURIComponent(g.name)}">
-        <span class="avatar" style="width:68px;height:68px;font-size:16px; background:${g.color};">${g.initials}</span>
+        <span class="avatar" style="width:68px;height:68px;font-size:16px; background:${g.color}; position:relative; overflow:hidden;">
+          ${g.initials}
+          ${g.img ? `<img src="${g.img}" alt="${g.name}" loading="lazy" onerror="this.remove()" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />` : ""}
+        </span>
         <h4>${g.name}</h4>
       </a>
       <div class="meta">${g.fandom} · debut ${g.debut}</div>
@@ -54,7 +62,10 @@ function groupCardHtml(g, following) {
 function collectionItemHtml(item) {
   return `
     <div class="card collection-item product-card">
-      <div class="thumb" style="background: var(--gradient-card); font-size:34px;">${item.emoji}</div>
+      <div class="thumb" style="background: var(--gradient-card); font-size:34px;">
+        <span>${item.emoji}</span>
+        ${photoLayer(item.img, item.title)}
+      </div>
       <div class="body">
         <div class="meta" style="text-transform:uppercase; font-size:10.5px; color:var(--text-faint); font-weight:800;">${item.group}</div>
         <div class="title">${item.title}</div>
@@ -212,7 +223,8 @@ function initProductDetail() {
   document.getElementById("pd-title").textContent = p.title;
   document.getElementById("pd-badges").innerHTML = `<span class="pill pink">${p.tag}</span><span class="pill purple">${p.type}</span>`;
   galleryMain.style.background = "var(--gradient-card)";
-  galleryMain.textContent = p.emoji;
+  galleryMain.style.position = "relative";
+  galleryMain.innerHTML = `<span>${p.emoji}</span>${photoLayer(p.img, p.title)}`;
   document.getElementById("pd-gallery-thumbs").innerHTML = [p.emoji, "🃏", "📦", "🔖"]
     .map((e, i) => `<div class="thumb-sm card ${i === 0 ? "active" : ""}" style="background: var(--gradient-card);">${e}</div>`)
     .join("");
@@ -353,9 +365,22 @@ function initGroupDetail() {
   const name = qs("group") || "BTS";
   const g = KOLLECTA_DATA.groups.find((x) => x.name === name) || KOLLECTA_DATA.groups[0];
 
-  document.getElementById("gd-cover").style.background = g.color;
-  document.getElementById("gd-avatar").textContent = g.initials;
+  const gdCover = document.getElementById("gd-cover");
+  gdCover.style.background = g.color;
+  gdCover.style.position = "relative";
+  const coverImgSrc = g.img ? g.img.replace("/groups/", "/covers/") : null;
+  const existingCoverImg = gdCover.querySelector(".cover-photo");
+  if (existingCoverImg) existingCoverImg.remove();
+  if (coverImgSrc) {
+    gdCover.insertAdjacentHTML(
+      "afterbegin",
+      `<img class="cover-photo" src="${coverImgSrc}" alt="${g.name}" loading="lazy" onerror="this.remove()" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />`
+    );
+  }
+  document.getElementById("gd-avatar").innerHTML = `${g.initials}${photoLayer(g.img, g.name)}`;
   document.getElementById("gd-avatar").style.background = "rgba(255,255,255,0.25)";
+  document.getElementById("gd-avatar").style.position = "relative";
+  document.getElementById("gd-avatar").style.overflow = "hidden";
   nameEl.textContent = g.name;
   document.getElementById("gd-meta").textContent = `${g.agency} · Fandom: ${g.fandom}`;
   document.getElementById("gd-members").textContent = g.members;
