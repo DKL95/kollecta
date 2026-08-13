@@ -6,10 +6,11 @@
 
 const KOLLECTA_DATA = {
   currentUser: {
-    name: "Renata Cavazos",
-    handle: "@rena.bias",
-    initials: "RC",
-    bio: "Coleccionista de photocards desde 2019 · ARMY & MIDZY · Monterrey, MX",
+    name: "Derek Luna",
+    handle: "@derek.once",
+    initials: "DL",
+    avatarImg: "assets/img/avatars/derek-luna.jpg",
+    bio: "Fan #1 de TWICE desde el debut 🩷 Bias: Chaeyoung (no acepto debate). Coleccionista de photocards desde 2019 · ONCE · Monterrey, MX",
     followers: 482,
     following: 213,
     items: 76,

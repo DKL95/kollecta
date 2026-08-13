@@ -14,7 +14,11 @@ no la encuentra, se queda con el emoji (sin errores, sin tocar código).
 Usa únicamente imágenes de las que tengas derecho de uso: fotos que tú tomes
 de tu propia colección, diseños originales del equipo, o material con
 licencia libre (CC0 / Unsplash / Pexels, etc.). Evita subir fotos oficiales
-de agencias, portadas de álbum o fotos promocionales de los idols.
+de agencias, portadas de álbum o fotos promocionales de los idols — aunque
+las encuentres reposteadas en Pinterest/Instagram, no dejan de tener dueño.
+
+Esto aplica también a `avatars/`: usa tu propia foto o un dibujo/avatar
+tuyo, no la foto de un idol real como si fuera tu foto de perfil.
 
 ## Convención de nombres
 
@@ -24,6 +28,7 @@ de agencias, portadas de álbum o fotos promocionales de los idols.
 | `groups/` | Avatar de cada grupo (`js/data.js` → `groups`) | `bts.jpg`, `blackpink.jpg`, `twice.jpg`, `stray-kids.jpg`, `seventeen.jpg`, `newjeans.jpg`, `aespa.jpg`, `ateez.jpg`, `itzy.jpg`, `txt.jpg` |
 | `covers/` | Banner grande de `group-detail.html` (opcional, formato ancho) | mismo nombre que en `groups/`, ej. `bts.jpg` |
 | `collection/` | Piezas de "Mi colección" (`js/data.js` → `myCollection`) | `1.jpg` … `8.jpg` (según el orden del arreglo) |
+| `avatars/` | Foto de perfil del usuario actual (`js/data.js` → `currentUser.avatarImg`) | el nombre que pongas en `avatarImg`, ej. `derek-luna.jpg` |
 
 Formato recomendado: `.jpg` o `.png`, cuadrado (1:1) para `products/` y
 `collection/`, panorámico (ancho) para `covers/`. Si agregas más productos o

@@ -199,6 +199,8 @@ p { margin: 0; }
   color: #100a1e;
   background: var(--gradient-brand);
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .field {

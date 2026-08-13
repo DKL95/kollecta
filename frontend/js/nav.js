@@ -42,6 +42,14 @@ const BOTTOM_NAV_ITEMS = [
 
 const PUBLIC_PAGES = ["login", "register"];
 
+function userAvatarHtml(size, fontSize) {
+  const user = KOLLECTA_DATA.currentUser;
+  const img = user.avatarImg
+    ? `<img src="${user.avatarImg}" alt="${user.name}" loading="lazy" onerror="this.remove()" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />`
+    : "";
+  return `<span class="avatar" style="width:${size}px;height:${size}px;font-size:${fontSize}px; position:relative; overflow:hidden;">${user.initials}${img}</span>`;
+}
+
 function kollectaAuthGate() {
   const page = document.body.dataset.page;
   if (PUBLIC_PAGES.includes(page)) return;
@@ -85,7 +93,7 @@ function renderSidebar() {
       <a class="btn btn-primary btn-sm btn-block" href="sell.html">+ Publicar merch</a>
     </div>
     <div class="sidebar-user">
-      <span class="avatar" style="width:38px;height:38px;font-size:13px;">${user.initials}</span>
+      ${userAvatarHtml(38, 13)}
       <div class="info">
         <div class="name">${user.name}</div>
         <div class="handle">${user.handle}</div>
@@ -121,9 +129,7 @@ function renderTopbar() {
     <div class="topbar-actions">
       <a class="icon-btn" href="notifications.html" title="Notificaciones">🔔<span class="badge-dot"></span></a>
       <a class="icon-btn" href="cart.html" title="Carrito">🧺</a>
-      <a href="profile.html">
-        <span class="avatar" style="width:38px;height:38px;font-size:13px;">${KOLLECTA_DATA.currentUser.initials}</span>
-      </a>
+      <a href="profile.html">${userAvatarHtml(38, 13)}</a>
     </div>
   `;
 }

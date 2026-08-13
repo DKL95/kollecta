@@ -115,6 +115,9 @@ function initHome() {
   const feedList = document.getElementById("feed-list");
   if (!feedList) return;
 
+  const composerAvatar = document.getElementById("composer-avatar");
+  if (composerAvatar) composerAvatar.insertAdjacentHTML("beforeend", photoLayer(KOLLECTA_DATA.currentUser.avatarImg, KOLLECTA_DATA.currentUser.name));
+
   function renderFeed(filter) {
     const posts = KOLLECTA_DATA.posts.filter((p) => filter === "Todos" || p.tag === filter);
     feedList.innerHTML =
@@ -335,6 +338,9 @@ function initProfile() {
   const grid = document.getElementById("profile-collection-grid");
   if (!grid) return;
   grid.innerHTML = KOLLECTA_DATA.myCollection.map(collectionItemHtml).join("");
+
+  const coverAvatar = document.getElementById("profile-cover-avatar");
+  if (coverAvatar) coverAvatar.insertAdjacentHTML("beforeend", photoLayer(KOLLECTA_DATA.currentUser.avatarImg, KOLLECTA_DATA.currentUser.name));
 }
 
 /* -------------------------------------------------------------- page: groups */
