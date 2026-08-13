@@ -17,6 +17,18 @@ function photoLayer(src, alt) {
   return src ? `<img class="thumb-photo" src="${src}" alt="${alt}" loading="lazy" onerror="this.remove()" />` : "";
 }
 
+const CATEGORY_SLUGS = {
+  Photocard: "photocard",
+  Álbum: "album",
+  Lightstick: "lightstick",
+  Ropa: "ropa",
+  Poster: "poster",
+  Accesorio: "accesorio",
+};
+function categoryClass(type) {
+  return `thumb--${CATEGORY_SLUGS[type] || "photocard"}`;
+}
+
 function productCardHtml(p) {
   const priceHtml =
     p.mode === "Intercambio"
@@ -24,7 +36,7 @@ function productCardHtml(p) {
       : `<span class="price">${money(p.price)} <small>MXN</small></span>`;
   return `
     <a class="card product-card" href="product.html?id=${p.id}">
-      <div class="thumb" style="background: var(--gradient-card);">
+      <div class="thumb ${categoryClass(p.type)}">
         <span>${p.emoji}</span>
         ${photoLayer(p.img, p.title)}
         <span class="tag pill ${p.mode === "Intercambio" ? "cyan" : "pink"}">${p.tag}</span>
@@ -62,7 +74,7 @@ function groupCardHtml(g, following) {
 function collectionItemHtml(item) {
   return `
     <div class="card collection-item product-card">
-      <div class="thumb" style="background: var(--gradient-card); font-size:34px;">
+      <div class="thumb ${categoryClass(item.type)}" style="font-size:34px;">
         <span>${item.emoji}</span>
         ${photoLayer(item.img, item.title)}
       </div>
@@ -225,7 +237,7 @@ function initProductDetail() {
   document.getElementById("pd-group").textContent = p.group;
   document.getElementById("pd-title").textContent = p.title;
   document.getElementById("pd-badges").innerHTML = `<span class="pill pink">${p.tag}</span><span class="pill purple">${p.type}</span>`;
-  galleryMain.style.background = "var(--gradient-card)";
+  galleryMain.className = `gallery-main ${categoryClass(p.type)}`;
   galleryMain.style.position = "relative";
   galleryMain.innerHTML = `<span>${p.emoji}</span>${photoLayer(p.img, p.title)}`;
   document.getElementById("pd-gallery-thumbs").innerHTML = [p.emoji, "🃏", "📦", "🔖"]

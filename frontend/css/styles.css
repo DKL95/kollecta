@@ -552,7 +552,24 @@ p { margin: 0; }
   font-size: 40px;
   position: relative;
   overflow: hidden;
+  background: var(--gradient-card);
 }
+.thumb::before,
+.gallery-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1.5px);
+  background-size: 16px 16px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.thumb--photocard { background: linear-gradient(155deg, rgba(255, 79, 163, 0.34), rgba(155, 92, 255, 0.22)); }
+.thumb--album { background: linear-gradient(155deg, rgba(79, 216, 255, 0.32), rgba(155, 92, 255, 0.22)); }
+.thumb--lightstick { background: linear-gradient(155deg, rgba(255, 209, 102, 0.32), rgba(255, 79, 163, 0.2)); }
+.thumb--ropa { background: linear-gradient(155deg, rgba(61, 220, 151, 0.28), rgba(79, 216, 255, 0.2)); }
+.thumb--poster { background: linear-gradient(155deg, rgba(155, 92, 255, 0.34), rgba(255, 79, 163, 0.2)); }
+.thumb--accesorio { background: linear-gradient(155deg, rgba(255, 92, 114, 0.28), rgba(255, 209, 102, 0.2)); }
 .thumb-photo {
   position: absolute;
   inset: 0;
@@ -721,6 +738,9 @@ p { margin: 0; }
   justify-content: center;
   font-size: 70px;
   margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  background: var(--gradient-card);
 }
 .gallery-thumbs { display: flex; gap: 10px; }
 .gallery-thumbs .thumb-sm {

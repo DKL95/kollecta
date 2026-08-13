@@ -46,14 +46,14 @@ const KOLLECTA_DATA = {
   ],
 
   myCollection: [
-    { title: "Photocard Suga — 'Proof'", group: "BTS", emoji: "🃏", value: 210, img: "assets/img/collection/1.jpg" },
-    { title: "Álbum 'Born Pink' Box Set", group: "BLACKPINK", emoji: "💿", value: 680, img: "assets/img/collection/2.jpg" },
-    { title: "Lightstick Ver.3", group: "BTS", emoji: "🔮", value: 950, img: "assets/img/collection/3.jpg" },
-    { title: "Photocard Ryujin — 'Cheshire'", group: "ITZY", emoji: "🃏", value: 175, img: "assets/img/collection/4.jpg" },
-    { title: "Hoodie 'Maniac' Tour", group: "Stray Kids", emoji: "🧥", value: 1100, img: "assets/img/collection/5.jpg" },
-    { title: "Poster 'Attacca' edición limitada", group: "SEVENTEEN", emoji: "🖼️", value: 240, img: "assets/img/collection/6.jpg" },
-    { title: "Keyring set Bang Chan", group: "Stray Kids", emoji: "🔑", value: 150, img: "assets/img/collection/7.jpg" },
-    { title: "Photocard Karina — 'Drama'", group: "aespa", emoji: "🃏", value: 300, img: "assets/img/collection/8.jpg" },
+    { title: "Photocard Suga — 'Proof'", group: "BTS", type: "Photocard", emoji: "🃏", value: 210, img: "assets/img/collection/1.jpg" },
+    { title: "Álbum 'Born Pink' Box Set", group: "BLACKPINK", type: "Álbum", emoji: "💿", value: 680, img: "assets/img/collection/2.jpg" },
+    { title: "Lightstick Ver.3", group: "BTS", type: "Lightstick", emoji: "🔮", value: 950, img: "assets/img/collection/3.jpg" },
+    { title: "Photocard Ryujin — 'Cheshire'", group: "ITZY", type: "Photocard", emoji: "🃏", value: 175, img: "assets/img/collection/4.jpg" },
+    { title: "Hoodie 'Maniac' Tour", group: "Stray Kids", type: "Ropa", emoji: "🧥", value: 1100, img: "assets/img/collection/5.jpg" },
+    { title: "Poster 'Attacca' edición limitada", group: "SEVENTEEN", type: "Poster", emoji: "🖼️", value: 240, img: "assets/img/collection/6.jpg" },
+    { title: "Keyring set Bang Chan", group: "Stray Kids", type: "Accesorio", emoji: "🔑", value: 150, img: "assets/img/collection/7.jpg" },
+    { title: "Photocard Karina — 'Drama'", group: "aespa", type: "Photocard", emoji: "🃏", value: 300, img: "assets/img/collection/8.jpg" },
   ],
 
   posts: [
