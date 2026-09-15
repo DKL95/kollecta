@@ -15,16 +15,16 @@
 
       <main class="page">
         <div class="profile-cover" id="profile-cover" style="background: var(--gradient-brand);">
-          <span class="avatar cover-avatar" id="profile-cover-avatar">DL</span>
+          <span class="avatar cover-avatar" id="profile-cover-avatar"></span>
         </div>
 
         <div class="profile-head">
           <div>
-            <h2>Derek Luna</h2>
-            <div class="handle">@derek.once · Monterrey, MX</div>
+            <h2 id="profile-name"></h2>
+            <div class="handle" id="profile-handle"></div>
             <div class="badges-row">
-              <span class="pill pink">ONCE</span>
-              <span class="pill gold">Bias: Chaeyoung</span>
+              <span class="pill pink" id="profile-group"></span>
+              <span class="pill gold" id="profile-bias"></span>
               <span class="pill cyan" id="verified-pill"></span>
             </div>
           </div>
@@ -34,7 +34,7 @@
           </div>
         </div>
 
-        <p class="profile-bio">Fiel creyente de la iglesia de las dos veces · ONCE · Monterrey, MX</p>
+        <p class="profile-bio" id="profile-bio"></p>
 
         <div class="profile-stats">
           <div class="stat"><b>76</b><span>Artículos</span></div>
@@ -62,5 +62,65 @@
   <script src="js/icons.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/app.js"></script>
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const usuarioGuardado = localStorage.getItem("kollecta_usuario");
+
+    if (!usuarioGuardado) {
+        return;
+    }
+
+    const usuario = JSON.parse(usuarioGuardado);
+
+    // Nombre
+    document.getElementById("profile-name").textContent =
+        usuario.nombre || usuario.username;
+
+    // Usuario
+    document.getElementById("profile-handle").textContent =
+        "@" + usuario.username;
+
+    // Descripción
+    document.getElementById("profile-bio").textContent =
+        usuario.descripcion || "Sin descripción";
+
+    // Grupo favorito
+    const grupo = usuario.gruposFavoritos && usuario.gruposFavoritos.length > 0
+        ? usuario.gruposFavoritos[0]
+        : "";
+
+    document.getElementById("profile-group").textContent = grupo;
+
+    // Bias
+    document.getElementById("profile-bias").textContent =
+        grupo ? "Grupo favorito: " + grupo : "Sin grupo favorito";
+
+    // Foto de perfil
+    const avatar = document.getElementById("profile-cover-avatar");
+
+    if (usuario.fotoPerfil) {
+
+        avatar.innerHTML = `
+            <img
+                src="${usuario.fotoPerfil}"
+                alt="Foto de perfil"
+                style="
+                    width:100%;
+                    height:100%;
+                    object-fit:cover;
+                "
+            >
+        `;
+
+    } else {
+
+        avatar.textContent = usuario.username
+            ? usuario.username.substring(0, 2).toUpperCase()
+            : "U";
+    }
+
+});
+</script>
 </body>
 </html>

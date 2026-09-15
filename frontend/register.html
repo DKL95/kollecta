@@ -49,6 +49,20 @@
           <input type="password" id="password" placeholder="Mínimo 8 caracteres" required />
         </div>
         <div class="field">
+          <label for="fotoPerfil">Foto de perfil</label>
+          <input type="file" id="fotoPerfil" accept="image/*" />
+        </div>
+
+        <div class="field">
+        <label for="descripcion">Descripción</label>
+        <textarea
+          id="descripcion"
+          placeholder="Cuéntanos un poco sobre ti..."
+          rows="3"
+        ></textarea>
+      </div>
+
+        <div class="field">
           <label for="bias">Grupo favorito (bias)</label>
           <select id="bias">
             <option>BTS</option>
@@ -56,6 +70,7 @@
             <option>TWICE</option>
             <option>Stray Kids</option>
             <option>SEVENTEEN</option>
+            <option>ILLIT</option>
             <option>NewJeans</option>
             <option>aespa</option>
             <option>ATEEZ</option>
@@ -76,12 +91,54 @@
   </div>
 
   <script src="js/data.js"></script>
-  <script>
-    document.getElementById("register-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      localStorage.setItem("kollecta_auth", "1");
-      window.location.href = "home.html";
-    });
-  </script>
+<script>
+document.getElementById("register-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const formulario = new FormData();
+
+    formulario.append("name", document.getElementById("name").value);
+    formulario.append("username", document.getElementById("username").value);
+    formulario.append("email", document.getElementById("email").value);
+    formulario.append("password", document.getElementById("password").value);
+    formulario.append("bias", document.getElementById("bias").value);
+    formulario.append("descripcion", document.getElementById("descripcion").value);
+
+    const foto = document.getElementById("fotoPerfil").files[0];
+
+    if (foto) {
+        formulario.append("fotoPerfil", foto);
+    }
+
+    try {
+        const respuesta = await fetch("/api/register", {
+            method: "POST",
+            body: formulario
+        });
+
+        const resultado = await respuesta.json();
+
+        if (!respuesta.ok) {
+            alert(resultado.mensaje);
+            return;
+        }
+
+        // Guardar los datos del usuario
+        localStorage.setItem("kollecta_auth", "1");
+        localStorage.setItem(
+            "kollecta_usuario",
+            JSON.stringify(resultado.usuario)
+        );
+
+        alert("Cuenta creada correctamente");
+
+        window.location.href = "home.html";
+
+    } catch (error) {
+        console.error(error);
+        alert("No se pudo conectar con el servidor");
+    }
+});
+</script>
 </body>
 </html>
