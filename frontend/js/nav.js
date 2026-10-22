@@ -43,11 +43,30 @@ const BOTTOM_NAV_ITEMS = [
 const PUBLIC_PAGES = ["login", "register"];
 
 function userAvatarHtml(size, fontSize) {
-  const user = KOLLECTA_DATA.currentUser;
-  const img = user.avatarImg
-    ? `<img src="${user.avatarImg}" alt="${user.name}" loading="lazy" onerror="this.remove()" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />`
+  const usuarioGuardado = localStorage.getItem("kollecta_usuario");
+
+  if (!usuarioGuardado) {
+    return `<span class="avatar" style="width:${size}px;height:${size}px;font-size:${fontSize}px; position:relative; overflow:hidden;">U</span>`;
+  }
+
+  const user = JSON.parse(usuarioGuardado);
+
+  const nombre = user.nombre || user.username || "Usuario";
+
+  const iniciales = user.username
+    ? user.username.substring(0, 2).toUpperCase()
+    : "U";
+
+  const img = user.fotoPerfil
+    ? `<img src="${user.fotoPerfil}" alt="${nombre}" loading="lazy" onerror="this.remove()" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />`
     : "";
-  return `<span class="avatar" style="width:${size}px;height:${size}px;font-size:${fontSize}px; position:relative; overflow:hidden;">${user.initials}${img}</span>`;
+
+  return `
+    <span class="avatar" style="width:${size}px;height:${size}px;font-size:${fontSize}px; position:relative; overflow:hidden;">
+      ${iniciales}
+      ${img}
+    </span>
+  `;
 }
 
 function kollectaAuthGate() {
@@ -63,7 +82,14 @@ function renderSidebar() {
   const mount = document.getElementById("sidebar");
   if (!mount) return;
   const active = document.body.dataset.page;
-  const user = KOLLECTA_DATA.currentUser;
+  const usuarioGuardado = localStorage.getItem("kollecta_usuario");
+
+const user = usuarioGuardado
+  ? JSON.parse(usuarioGuardado)
+  : {
+      nombre: "Usuario",
+      username: "usuario"
+    };
 
   const sectionsHtml = NAV_SECTIONS.map((section) => `
     <div class="nav-group">
@@ -95,8 +121,8 @@ function renderSidebar() {
     <div class="sidebar-user">
       ${userAvatarHtml(38, 13)}
       <div class="info">
-        <div class="name">${user.name}</div>
-        <div class="handle">${user.handle}</div>
+        <div class="name">${user.nombre || user.username}</div>
+        <div class="handle">@${user.username}</div>
       </div>
       <button id="logout-btn" title="Cerrar sesión">${icon("power", 16)}</button>
     </div>
@@ -106,6 +132,7 @@ function renderSidebar() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("kollecta_auth");
+      localStorage.removeItem("kollecta_usuario");
       window.location.href = "index.html";
     });
   }

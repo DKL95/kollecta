@@ -17,8 +17,7 @@
         <div class="layout-2col">
           <div>
             <div class="card composer">
-              <span class="avatar" id="composer-avatar" style="width:42px;height:42px;">DL</span>
-              <div class="composer-body">
+                <span class="avatar" id="composer-avatar" style="width:42px;height:42px;"></span>              <div class="composer-body">
                 <input type="text" placeholder="Comparte una nueva pieza de tu colección…" id="composer-input" />
                 <div class="composer-actions">
                   <button class="btn btn-secondary btn-sm" id="composer-photo-btn"></button>
@@ -60,7 +59,21 @@
       <nav class="bottom-nav" id="bottom-nav"></nav>
     </div>
   </div>
+<script>
+const usuario = JSON.parse(localStorage.getItem("kollecta_usuario"));
 
+if (usuario) {
+    const avatar = document.getElementById("composer-avatar");
+
+    if (usuario.fotoPerfil) {
+        avatar.innerHTML = `<img src="${usuario.fotoPerfil}" alt="Foto de perfil">`;
+    } else {
+        avatar.textContent = usuario.username
+            ? usuario.username.substring(0, 2).toUpperCase()
+            : "U";
+    }
+}
+</script>
   <script src="js/data.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/nav.js"></script>

@@ -32,11 +32,11 @@
 
         <div class="field">
           <label for="email">Correo electrónico</label>
-          <input type="email" id="email" placeholder="tucorreo@ejemplo.com" value="derek.luna@kollecta.app" required />
+          <input type="email" id="email" placeholder="tucorreo@ejemplo.com" required />
         </div>
         <div class="field">
           <label for="password">Contraseña</label>
-          <input type="password" id="password" placeholder="••••••••" value="biaswrecked" required />
+          <input type="password" id="password" placeholder="••••••••" required />
         </div>
 
         <div class="checkbox-row">
@@ -53,18 +53,48 @@
           <button type="button" class="btn btn-secondary">🅰 Apple</button>
         </div>
 
-        <p class="auth-footer-note">Es un maquetado estático (mockup) — cualquier correo/contraseña te dejará entrar.</p>
+        <p class="auth-footer-note">Inicia sesión con tu cuenta de KollectA.</p>
       </form>
     </div>
   </div>
 
   <script src="js/data.js"></script>
-  <script>
-    document.getElementById("login-form").addEventListener("submit", function (e) {
-      e.preventDefault();
+<script>
+  document.getElementById("login-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const datos = {
+      email: document.getElementById("email").value,
+      password: document.getElementById("password").value
+    };
+
+    try {
+      const respuesta = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(datos)
+      });
+
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok) {
+        alert(resultado.mensaje);
+        return;
+      }
+
+      // Guardamos los datos básicos del usuario
       localStorage.setItem("kollecta_auth", "1");
+      localStorage.setItem("kollecta_usuario", JSON.stringify(resultado.usuario));
+
       window.location.href = "home.html";
-    });
-  </script>
+
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo conectar con el servidor");
+    }
+  });
+</script>
 </body>
 </html>
