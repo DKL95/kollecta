@@ -57,6 +57,12 @@ export default function ProfilePage() {
 
   function handleSaved(updatedUser) {
     saveUser(updatedUser);
+    // Las publicaciones ya cargadas traen el nombre y la foto anteriores del autor
+    setPosts((current) =>
+      current.map((post) =>
+        post.esMia ? { ...post, autor: { ...post.autor, nombre: updatedUser.nombre, fotoPerfil: updatedUser.fotoPerfil } } : post
+      )
+    );
     setEditing(false);
   }
 
