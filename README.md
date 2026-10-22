@@ -152,6 +152,16 @@ Requisitos: Node.js 18 o superior.
    ```
    Abrir http://localhost:3000
 
+### Pruebas automáticas
+
+Agrega `MONGODB_URI_TEST` a tu `.env` (puede ser la misma URI de Atlas: las pruebas usan bases separadas `kpop_test_*` que se borran solas y nunca tocan `kpop`) y corre:
+
+```bash
+npm test
+```
+
+Cubre registro, login, JWT, perfil, búsqueda, publicaciones (CRUD, likes y permisos), imágenes y las utilidades del frontend. Requiere Node 21 o superior.
+
 ### Fotos subidas antes de guardarlas en MongoDB
 
 Las primeras fotos de perfil se guardaron en la carpeta `uploads/` de la computadora de quien las subió (por eso los demás no las veían). Quien tenga esos archivos debe correr **una vez**, con su `.env` apuntando a Atlas:
