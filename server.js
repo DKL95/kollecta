@@ -4,31 +4,15 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 
-const conectarDB = require("./db");
-const Usuario = require("./models/Usuario");
-
-const multer = require("multer");
+const conectarDB = require("./config/db");
+const { CARPETA_UPLOADS } = require("./middleware/upload");
+const authRoutes = require("./routes/authRoutes");
+const usuarioRoutes = require("./routes/usuarioRoutes");
+const publicacionRoutes = require("./routes/publicacionRoutes");
 
 const app = express();
-const PORT = 3000;
-
-// Crear la carpeta de fotos de perfil si no existe (no se sube a git)
-fs.mkdirSync(path.join(__dirname, "uploads"), { recursive: true });
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, "uploads/");
-    },
-
-    filename: function (req, file, cb) {
-        const nombreUnico = Date.now() + "-" + file.originalname;
-        cb(null, nombreUnico);
-    }
-});
-
-const upload = multer({
-    storage: storage
-});
+const PORT = process.env.PORT || 3000;
+const CARPETA_FRONTEND = path.join(__dirname, "frontend", "dist");
 
 // Conectar MongoDB
 conectarDB();
@@ -37,106 +21,32 @@ conectarDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir el frontend
-app.use(express.static(path.join(__dirname, "frontend")));
+// Servir las fotos subidas (perfil y publicaciones)
+app.use("/uploads", express.static(CARPETA_UPLOADS));
 
-// Servir las fotos de perfil
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// API
+app.use("/api/auth", authRoutes);
+app.use("/api/usuarios", usuarioRoutes);
+app.use("/api/publicaciones", publicacionRoutes);
 
-// REGISTRO
-app.post("/api/register", upload.single("fotoPerfil"), async (req, res) => {
-    try {
-        const { name, username, email, password, bias, descripcion } = req.body;
-
-        // Verificar si ya existe el usuario
-        const usuarioExistente = await Usuario.findOne({
-            $or: [
-                { username: username },
-                { email: email }
-            ]
-        });
-
-        if (usuarioExistente) {
-            return res.status(400).json({
-                mensaje: "El usuario o correo ya está registrado"
-            });
-        }
-
-        // Crear usuario
-        const nuevoUsuario = new Usuario({
-            nombre: name || "",
-            username,
-            email,
-            password,
-            gruposFavoritos: bias ? [bias] : [],
-            descripcion: descripcion || "",
-            fotoPerfil: req.file ? "/uploads/" + req.file.filename : ""
-        });
-
-        await nuevoUsuario.save();
-
-        res.status(201).json({
-            mensaje: "Usuario registrado correctamente",
-            usuario: {
-                id: nuevoUsuario._id,
-                nombre: nuevoUsuario.nombre,
-                username: nuevoUsuario.username,
-                email: nuevoUsuario.email,
-                descripcion: nuevoUsuario.descripcion,
-                fotoPerfil: nuevoUsuario.fotoPerfil,
-                gruposFavoritos: nuevoUsuario.gruposFavoritos
-            }
-        });
-
-    } catch (error) {
-        console.error("Error en registro:", error);
-
-        res.status(500).json({
-            mensaje: "Error al registrar usuario"
-        });
-    }
+app.use("/api", (req, res) => {
+    res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
-// INICIO DE SESIÓN
-app.post("/api/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        const usuario = await Usuario.findOne({ email });
-
-        if (!usuario) {
-            return res.status(401).json({
-                mensaje: "Correo o contraseña incorrectos"
-            });
-        }
-
-        if (usuario.password !== password) {
-            return res.status(401).json({
-                mensaje: "Correo o contraseña incorrectos"
-            });
-        }
-
-        res.json({
-            mensaje: "Inicio de sesión correcto",
-            usuario: {
-            id: usuario._id,
-            nombre: usuario.nombre,
-            username: usuario.username,
-            email: usuario.email,
-            fotoPerfil: usuario.fotoPerfil,
-            descripcion: usuario.descripcion,
-            gruposFavoritos: usuario.gruposFavoritos
-        }
-        });
-
-    } catch (error) {
-        console.error("Error en login:", error);
-
-        res.status(500).json({
-            mensaje: "Error al iniciar sesión"
-        });
-    }
+// Errores de subida de archivos (tamaño, tipo) y otros no controlados
+app.use((error, req, res, next) => {
+    console.error(error.message);
+    res.status(400).json({ mensaje: error.message || "Error en la petición" });
 });
+
+// Frontend en React (ya compilado con `npm run build`).
+// Cualquier ruta que no sea de la API regresa index.html y React Router decide qué pantalla mostrar.
+if (fs.existsSync(CARPETA_FRONTEND)) {
+    app.use(express.static(CARPETA_FRONTEND));
+    app.use((req, res) => {
+        res.sendFile(path.join(CARPETA_FRONTEND, "index.html"));
+    });
+}
 
 // Iniciar servidor
 app.listen(PORT, () => {

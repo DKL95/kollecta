@@ -1,0 +1,97 @@
+const Usuario = require("../models/Usuario");
+const Publicacion = require("../models/Publicacion");
+const { formatearPublicacion, CAMPOS_AUTOR } = require("./publicacionController");
+
+// GET /api/usuarios?q=texto  (busca por usuario o nombre)
+async function buscarUsuarios(req, res) {
+    try {
+        const texto = (req.query.q || "").trim();
+        const escapado = texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const filtro = texto
+            ? { $or: [{ username: new RegExp(escapado, "i") }, { nombre: new RegExp(escapado, "i") }] }
+            : {};
+
+        const usuarios = await Usuario.find(filtro).sort({ fechaRegistro: -1 }).limit(20);
+
+        res.json({
+            usuarios: usuarios.map((u) => ({ ...u.aPublico(), email: undefined }))
+        });
+    } catch (error) {
+        console.error("Error al buscar usuarios:", error);
+        res.status(500).json({ mensaje: "Error al buscar usuarios" });
+    }
+}
+
+// GET /api/usuarios/:username
+async function obtenerPerfil(req, res) {
+    try {
+        const usuario = await Usuario.findOne({ username: req.params.username });
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+        }
+
+        const totalPublicaciones = await Publicacion.countDocuments({ autor: usuario._id });
+
+        res.json({
+            usuario: {
+                ...usuario.aPublico(),
+                email: undefined,
+                totalPublicaciones,
+                totalAmigos: usuario.amigos.length
+            }
+        });
+    } catch (error) {
+        console.error("Error al obtener perfil:", error);
+        res.status(500).json({ mensaje: "Error al obtener el perfil" });
+    }
+}
+
+// GET /api/usuarios/:username/publicaciones
+async function obtenerPublicacionesDeUsuario(req, res) {
+    try {
+        const usuario = await Usuario.findOne({ username: req.params.username });
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+        }
+
+        const publicaciones = await Publicacion.find({ autor: usuario._id })
+            .sort({ fechaCreacion: -1 })
+            .populate("autor", CAMPOS_AUTOR);
+
+        res.json({
+            publicaciones: publicaciones.map((p) => formatearPublicacion(p, req.usuario && req.usuario.id))
+        });
+    } catch (error) {
+        console.error("Error al obtener publicaciones del usuario:", error);
+        res.status(500).json({ mensaje: "Error al obtener las publicaciones" });
+    }
+}
+
+// PUT /api/usuarios/me
+async function actualizarPerfil(req, res) {
+    try {
+        const usuario = await Usuario.findById(req.usuario.id);
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+        }
+
+        const { nombre, descripcion, gruposFavoritos } = req.body;
+
+        if (nombre !== undefined) usuario.nombre = nombre.trim();
+        if (descripcion !== undefined) usuario.descripcion = descripcion.trim();
+        if (Array.isArray(gruposFavoritos)) usuario.gruposFavoritos = gruposFavoritos.map(String);
+        if (req.file) usuario.fotoPerfil = "/uploads/" + req.file.filename;
+
+        await usuario.save();
+
+        res.json({ mensaje: "Perfil actualizado", usuario: usuario.aPublico() });
+    } catch (error) {
+        console.error("Error al actualizar perfil:", error);
+        res.status(500).json({ mensaje: "Error al actualizar el perfil" });
+    }
+}
+
+module.exports = { buscarUsuarios, obtenerPerfil, obtenerPublicacionesDeUsuario, actualizarPerfil };
