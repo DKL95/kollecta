@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 
 const conectarDB = require("./db");
 const Usuario = require("./models/Usuario");
@@ -10,6 +11,9 @@ const multer = require("multer");
 
 const app = express();
 const PORT = 3000;
+
+// Crear la carpeta de fotos de perfil si no existe (no se sube a git)
+fs.mkdirSync(path.join(__dirname, "uploads"), { recursive: true });
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {

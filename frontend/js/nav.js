@@ -19,7 +19,6 @@ const NAV_SECTIONS = [
     items: [
       { key: "marketplace", label: "Explorar merch", icon: "bag", href: "marketplace.html" },
       { key: "sell", label: "Vender / Intercambiar", icon: "plus", href: "sell.html" },
-      { key: "cart", label: "Carrito", icon: "basket", href: "cart.html" },
     ],
   },
   {
@@ -155,7 +154,6 @@ function renderTopbar() {
     </label>
     <div class="topbar-actions">
       <a class="icon-btn" href="notifications.html" title="Notificaciones">${icon("bell", 18)}<span class="badge-dot"></span></a>
-      <a class="icon-btn" href="cart.html" title="Carrito">${icon("basket", 18)}</a>
       <a href="profile.html">${userAvatarHtml(38, 13)}</a>
     </div>
   `;

@@ -21,3 +21,6 @@ logs/
 # Build output
 dist/
 build/
+
+# Archivos subidos por usuarios
+uploads/

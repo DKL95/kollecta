@@ -1,7 +1,7 @@
 /* ==========================================================================
    KollectA — Lógica de interacción del mockup
    Todo corre en el cliente contra js/data.js (sin backend). El objetivo es
-   que las pantallas se sientan vivas: filtros, likes, follows, carrito, etc.
+   que las pantallas se sientan vivas: filtros, likes, follows, etc.
    ========================================================================== */
 
 /* ---------------------------------------------------------------- helpers */
@@ -262,9 +262,8 @@ function initProductDetail() {
 
   document.getElementById("pd-opt-venta").classList.toggle("active", p.mode !== "Intercambio");
   document.getElementById("pd-opt-trade").classList.toggle("active", p.mode === "Intercambio");
-  document.getElementById("pd-add-cart").innerHTML =
-    p.mode === "Intercambio" ? `${icon("repeat", 16)} Proponer intercambio` : `${icon("basket", 16)} Agregar al carrito`;
-  document.getElementById("pd-message").innerHTML = `${icon("chat", 16)} Enviar mensaje`;
+  document.getElementById("pd-contact").innerHTML =
+    p.mode === "Intercambio" ? `${icon("repeat", 16)} Proponer intercambio` : `${icon("chat", 16)} Contactar al vendedor`;
   document.getElementById("pd-fav-btn").innerHTML = icon("heart", 16);
 
   document.getElementById("pd-seller").innerHTML = `
@@ -275,10 +274,7 @@ function initProductDetail() {
     </div>
     <a href="profile.html" class="btn btn-secondary btn-sm">Ver perfil</a>`;
 
-  document.getElementById("pd-add-cart").addEventListener("click", () => {
-    alert(p.mode === "Intercambio" ? "Propuesta de intercambio enviada (simulado)." : "Artículo agregado al carrito (simulado).");
-  });
-  document.getElementById("pd-message").addEventListener("click", () => {
+  document.getElementById("pd-contact").addEventListener("click", () => {
     window.location.href = "messages.html";
   });
 }
@@ -534,57 +530,6 @@ function initMessages() {
   renderChat();
 }
 
-/* ----------------------------------------------------------------- page: cart */
-function initCart() {
-  const list = document.getElementById("cart-list");
-  if (!list) return;
-
-  const cartItems = [
-    { p: KOLLECTA_DATA.products.find((x) => x.id === "p2"), qty: 1 },
-    { p: KOLLECTA_DATA.products.find((x) => x.id === "p4"), qty: 1 },
-    { p: KOLLECTA_DATA.products.find((x) => x.id === "p8"), qty: 2 },
-  ];
-
-  function render() {
-    list.innerHTML = cartItems
-      .map(
-        (item, i) => `
-      <div class="card cart-row">
-        <div class="thumb-sm ${categoryClass(item.p.type)}">${icon(CATEGORY_ICON[item.p.type] || "card", 22)}</div>
-        <div class="info">
-          <div class="t">${item.p.title}</div>
-          <div class="s">${item.p.group} · @${item.p.seller}</div>
-        </div>
-        <div class="qty-stepper">
-          <button data-i="${i}" data-d="-1">−</button>
-          <span>${item.qty}</span>
-          <button data-i="${i}" data-d="1">+</button>
-        </div>
-        <div style="font-weight:800; color:var(--gold); width:80px; text-align:right;">${money(item.p.price * item.qty)}</div>
-      </div>`
-      )
-      .join("");
-
-    const subtotal = cartItems.reduce((sum, i) => sum + i.p.price * i.qty, 0);
-    const fee = Math.round(subtotal * 0.05);
-    document.getElementById("cart-count").textContent = cartItems.reduce((s, i) => s + i.qty, 0);
-    document.getElementById("cart-subtotal").textContent = money(subtotal);
-    document.getElementById("cart-fee").textContent = money(fee);
-    document.getElementById("cart-total").textContent = money(subtotal + fee + 99);
-
-    list.querySelectorAll(".qty-stepper button").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const i = parseInt(btn.dataset.i, 10);
-        const d = parseInt(btn.dataset.d, 10);
-        cartItems[i].qty = Math.max(1, cartItems[i].qty + d);
-        render();
-      });
-    });
-  }
-
-  render();
-}
-
 /* ---------------------------------------------------------- page: notifications */
 function initNotifications() {
   const list = document.getElementById("notif-list");
@@ -633,7 +578,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initGroups();
   initGroupDetail();
   initMessages();
-  initCart();
   initNotifications();
   initSearch();
 });

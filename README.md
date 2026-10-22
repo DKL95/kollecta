@@ -42,7 +42,6 @@ WEB2/
 │   ├── groups.html         Explorar / seguir grupos de K-pop
 │   ├── group-detail.html   Detalle de un grupo (merch, fans, feed)
 │   ├── messages.html       Mensajes directos (chats)
-│   ├── cart.html           Carrito de compras
 │   ├── notifications.html  Notificaciones
 │   ├── search.html         Búsqueda global
 │   ├── css/styles.css      Sistema de diseño compartido (colores, componentes)
@@ -51,6 +50,10 @@ WEB2/
 │       ├── data.js         Datos de ejemplo (usuarios, grupos, productos, posts)
 │       ├── nav.js          Sidebar / topbar / nav inferior + guard de sesión
 │       └── app.js          Lógica de interacción de cada pantalla
+├── server.js               Servidor Express (API + sirve el frontend)
+├── db.js                   Conexión a MongoDB
+├── models/                 Modelos de Mongoose (Usuario, ...)
+├── uploads/                Fotos de perfil subidas (generada, ignorada por git)
 ├── docs/                   PDFs de diseño técnico, mockup y entregables del curso
 └── FE-PW2-052-CIOO-AD2026.pdf   Rúbrica de evaluación del curso
 ```
@@ -63,29 +66,34 @@ WEB2/
 | Registro | `frontend/register.html` | Alta de nuevo usuario |
 | Inicio (feed) | `frontend/home.html` | Publicaciones de la comunidad, sugerencias de grupos y amigos |
 | Marketplace | `frontend/marketplace.html` | Explorar artículos en venta / intercambio, con filtros por grupo |
-| Detalle de artículo | `frontend/product.html?id=<id>` | Información completa de un artículo, comprar o proponer intercambio |
+| Detalle de artículo | `frontend/product.html?id=<id>` | Información completa de un artículo, contactar al vendedor o proponer intercambio |
 | Vender / Intercambiar | `frontend/sell.html` | Formulario para publicar un artículo nuevo |
 | Mi colección | `frontend/collection.html` | Vitrina personal de merch coleccionado |
 | Perfil | `frontend/profile.html` | Perfil del usuario con estadísticas y colección |
 | Grupos | `frontend/groups.html` | Explorar y seguir grupos de K-pop |
 | Detalle de grupo | `frontend/group-detail.html?group=<nombre>` | Info del grupo, merch disponible, fans |
 | Mensajes | `frontend/messages.html` | Conversaciones directas entre usuarios |
-| Carrito | `frontend/cart.html` | Resumen de compra antes de pagar |
 | Notificaciones | `frontend/notifications.html` | Likes, intercambios, seguidores, pedidos |
 | Búsqueda | `frontend/search.html` | Búsqueda combinada de merch, grupos y personas |
 
-## Cómo ejecutar el mockup
+## Cómo ejecutar
 
-No requiere instalación ni backend. Dos opciones:
+Back End: Node.js + Express + MongoDB (Mongoose). El mismo servidor sirve el Front End.
 
-1. **Abrir directo en el navegador**: doble clic en `frontend/index.html`.
-2. **Con un servidor local** (recomendado para que las rutas con `?query` funcionen igual que en producción), por ejemplo con la extensión *Live Server* de VS Code, o:
+1. Instalar dependencias:
    ```bash
-   cd frontend
-   npx serve .
+   npm install
+   ```
+2. Crear un archivo `.env` en la raíz (no se sube a git) con la cadena de conexión de MongoDB:
+   ```
+   MONGODB_URI=mongodb+srv://<usuario>:<password>@<cluster>/
+   ```
+3. Iniciar el servidor y abrir http://localhost:3000:
+   ```bash
+   npm start
    ```
 
-El login/registro es simulado: cualquier correo y contraseña te dejan entrar (guarda una bandera en `localStorage`).
+Login y registro ya usan la base de datos (`POST /api/login`, `POST /api/register`). Las fotos de perfil se guardan en `uploads/` (se crea sola, ignorada por git).
 
 ### Fotos reales
 
