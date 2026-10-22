@@ -1,12 +1,90 @@
-import { useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
+import { apiRequest } from "../api/client";
 import Icon from "../components/Icon";
-import { NOTIFICATIONS } from "../data/mockData";
+
+function tiempoTranscurrido(fecha) {
+  const segundos = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(fecha).getTime()) / 1000)
+  );
+
+  if (segundos < 60) return "Ahora mismo";
+  if (segundos < 3600) return `Hace ${Math.floor(segundos / 60)} min`;
+  if (segundos < 86400) return `Hace ${Math.floor(segundos / 3600)} h`;
+  return `Hace ${Math.floor(segundos / 86400)} días`;
+}
+
+function iconoPorTipo(tipo) {
+  const iconos = {
+    like: "heart",
+    comentario: "message-circle",
+    seguidor: "user-plus",
+    sistema: "bell"
+  };
+
+  return iconos[tipo] || "bell";
+}
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function markAllAsRead() {
-    setNotifications(notifications.map((notification) => ({ ...notification, unread: false })));
+  const cargarNotificaciones = useCallback(async () => {
+    try {
+      setError("");
+      const data = await apiRequest("/notificaciones");
+      setNotifications(data.notificaciones || []);
+    } catch (err) {
+      setError(err.message || "No se pudieron cargar las notificaciones");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarNotificaciones();
+  }, [cargarNotificaciones]);
+
+  async function marcarComoLeida(id) {
+    try {
+      await apiRequest(`/notificaciones/${id}/leida`, {
+        method: "PATCH"
+      });
+
+      setNotifications((actuales) =>
+        actuales.map((n) =>
+          n._id === id ? { ...n, leida: true } : n
+        )
+      );
+
+      window.dispatchEvent(new Event("notificaciones-actualizadas"));
+    } catch (err) {
+      setError(err.message || "No se pudo marcar como leída");
+    }
+  }
+
+  async function marcarTodasComoLeidas() {
+    try {
+      setSaving(true);
+      setError("");
+
+      await apiRequest("/notificaciones/leidas/todas", {
+        method: "PATCH"
+      });
+
+      setNotifications((actuales) =>
+        actuales.map((n) => ({ ...n, leida: true }))
+      );
+
+      window.dispatchEvent(new Event("notificaciones-actualizadas"));
+    } catch (err) {
+      setError(err.message || "No se pudieron marcar como leídas");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -16,25 +94,70 @@ export default function NotificationsPage() {
           <h2>Notificaciones</h2>
           <div className="sub">Actividad reciente de tu comunidad</div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={markAllAsRead}>
-          Marcar todo como leído
+
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={marcarTodasComoLeidas}
+          disabled={saving || notifications.every((n) => n.leida)}
+        >
+          {saving ? "Guardando..." : "Marcar todo como leído"}
         </button>
       </div>
 
+      {error && (
+        <div role="alert" className="sub" style={{ marginBottom: 16 }}>
+          {error}
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={cargarNotificaciones}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       <div className="card" style={{ overflow: "hidden" }}>
-        {notifications.map((notification) => (
-          <div key={notification.id} className={`notif-row ${notification.unread ? "unread" : ""}`}>
-            <div className="ic-badge">
-              <Icon name={notification.icon} size={18} />
-            </div>
-            <div>
-              <div className="txt">
-                <b>{notification.actor}</b> {notification.text}
-              </div>
-              <div className="time">{notification.time}</div>
-            </div>
+        {loading ? (
+          <div className="notif-row">Cargando notificaciones...</div>
+        ) : notifications.length === 0 ? (
+          <div className="notif-row">
+            Todavía no tienes notificaciones.
           </div>
-        ))}
+        ) : (
+          notifications.map((notification) => {
+            const emisor = notification.emisor;
+            const nombre =
+              emisor?.nombre || emisor?.username || "Alguien";
+
+            return (
+              <div
+                key={notification._id}
+                className={`notif-row ${!notification.leida ? "unread" : ""}`}
+                onClick={() =>
+                  !notification.leida &&
+                  marcarComoLeida(notification._id)
+                }
+                style={{ cursor: notification.leida ? "default" : "pointer" }}
+              >
+                <div className="ic-badge">
+                  <Icon name={iconoPorTipo(notification.tipo)} size={18} />
+                </div>
+
+                <div>
+                  <div className="txt">
+                    <b>{nombre}</b>{" "}
+                    {notification.mensaje}
+                  </div>
+
+                  <div className="time">
+                    {tiempoTranscurrido(notification.createdAt)}
+                    {!notification.leida && " · Sin leer"}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </main>
   );

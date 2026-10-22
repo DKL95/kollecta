@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const Publicacion = require("../models/Publicacion");
 const { guardarImagen, eliminarImagen } = require("../middleware/upload");
 
+const Notificacion = require("../models/Notificacion");
+
 const CAMPOS_AUTOR = "nombre username fotoPerfil";
 
 // Da forma a una publicación para el frontend (conteos + si el usuario actual le dio like)
@@ -294,15 +296,23 @@ async function eliminarPublicacion(req, res) {
 }
 
 // POST /api/publicaciones/:id/like  (da o quita el like)
+
 async function alternarLike(req, res) {
     try {
         const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
-            return res.status(404).json({ mensaje: "Publicación no encontrada" });
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
         }
 
-        const yaTieneLike = publicacion.likes.some((id) => id.equals(req.usuario.id));
+        const idUsuario = String(req.usuario.id);
+        const idAutor = String(publicacion.autor._id);
+
+        const yaTieneLike = publicacion.likes.some(
+            (id) => String(id) === idUsuario
+        );
 
         if (yaTieneLike) {
             publicacion.likes.pull(req.usuario.id);
@@ -312,12 +322,38 @@ async function alternarLike(req, res) {
 
         await publicacion.save();
 
-        res.json({ publicacion: formatearPublicacion(publicacion, req.usuario.id) });
+        // Crear notificación solo al dar like a otra persona.
+        if (!yaTieneLike && idUsuario !== idAutor) {
+            try {
+                await Notificacion.create({
+                    destinatario: publicacion.autor._id,
+                    emisor: req.usuario.id,
+                    tipo: "like",
+                    mensaje: "Le dio me gusta a tu publicación.",
+                    enlace: `/publicaciones/${publicacion._id}`
+                });
+            } catch (error) {
+                // Un fallo de notificaciones no debe impedir el like.
+                console.error("Error al crear notificación:", error);
+            }
+        }
+
+        await publicacion.populate("autor", CAMPOS_AUTOR);
+
+        res.json({
+            publicacion: formatearPublicacion(
+                publicacion,
+                req.usuario.id
+            )
+        });
     } catch (error) {
         console.error("Error al dar like:", error);
-        res.status(500).json({ mensaje: "Error al dar like" });
+        res.status(500).json({
+            mensaje: "Error al dar like"
+        });
     }
 }
+
 
 module.exports = {
     CAMPOS_AUTOR,

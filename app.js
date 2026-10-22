@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 
+const notificacionRoutes = require("./routes/notificacionRoutes");
 const { CARPETA_UPLOADS } = require("./middleware/upload");
 const authRoutes = require("./routes/authRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
@@ -25,6 +26,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/publicaciones", publicacionRoutes);
 app.use("/api/imagenes", imagenRoutes);
+app.use("/api/notificaciones", notificacionRoutes);
 
 app.use("/api", (req, res) => {
     res.status(404).json({ mensaje: "Ruta no encontrada" });
