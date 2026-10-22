@@ -64,4 +64,19 @@ const usuarioSchema = new mongoose.Schema(
     }
 );
 
+// Datos del usuario que se pueden enviar al frontend (sin contraseña)
+usuarioSchema.methods.aPublico = function () {
+    return {
+        id: this._id,
+        nombre: this.nombre,
+        username: this.username,
+        email: this.email,
+        rol: this.rol,
+        fotoPerfil: this.fotoPerfil,
+        descripcion: this.descripcion,
+        gruposFavoritos: this.gruposFavoritos,
+        fechaRegistro: this.fechaRegistro
+    };
+};
+
 module.exports = mongoose.model("Usuario", usuarioSchema);
