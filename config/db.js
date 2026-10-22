@@ -1,4 +1,22 @@
+const dns = require("dns");
 const mongoose = require("mongoose");
+
+const DNS_PUBLICOS = ["8.8.8.8", "1.1.1.1"];
+
+// En algunas computadoras con Windows, Node no logra resolver las direcciones
+// mongodb+srv:// de Atlas con el DNS del sistema (error "querySrv ECONNREFUSED"),
+// aunque el navegador y Windows sí funcionen. En ese caso se reintenta con DNS públicos.
+async function conectarMongo(uri, opciones) {
+    try {
+        return await mongoose.connect(uri, opciones);
+    } catch (error) {
+        if (!String(error.message).includes("querySrv")) throw error;
+
+        console.warn("No se pudo resolver la dirección de Atlas con el DNS del sistema; reintentando con DNS públicos...");
+        dns.setServers(DNS_PUBLICOS);
+        return mongoose.connect(uri, opciones);
+    }
+}
 
 const conectarDB = async () => {
     if (!process.env.MONGODB_URI) {
@@ -12,7 +30,7 @@ const conectarDB = async () => {
     }
 
     try {
-        await mongoose.connect(process.env.MONGODB_URI, {
+        await conectarMongo(process.env.MONGODB_URI, {
             dbName: process.env.MONGODB_DB || "kpop",
             serverSelectionTimeoutMS: 10000
         });
@@ -31,3 +49,4 @@ const conectarDB = async () => {
 };
 
 module.exports = conectarDB;
+module.exports.conectarMongo = conectarMongo;

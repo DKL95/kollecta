@@ -11,6 +11,7 @@ require("dotenv").config({ quiet: true });
 
 const mongoose = require("mongoose");
 const app = require("../app");
+const { conectarMongo } = require("../config/db");
 
 // PNG de 1x1 píxel para probar subidas de imágenes
 const PNG_1X1 = Buffer.from(
@@ -28,7 +29,7 @@ async function iniciarApi(nombre) {
     }
 
     const nombreBase = `kpop_test_${nombre}`;
-    await mongoose.connect(uri, { dbName: nombreBase });
+    await conectarMongo(uri, { dbName: nombreBase });
     await mongoose.connection.dropDatabase();
 
     const servidor = await new Promise((resolve) => {
