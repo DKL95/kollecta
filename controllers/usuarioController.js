@@ -3,7 +3,7 @@ const Publicacion = require("../models/Publicacion");
 const { formatearPublicacion, CAMPOS_AUTOR } = require("./publicacionController");
 const { guardarImagen, eliminarImagen } = require("../middleware/upload");
 
-// GET /api/usuarios?q=texto  (busca por usuario o nombre)
+
 async function buscarUsuarios(req, res) {
     try {
         const texto = (req.query.q || "").trim();
