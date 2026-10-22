@@ -46,6 +46,14 @@ if (fs.existsSync(CARPETA_FRONTEND)) {
     app.use((req, res) => {
         res.sendFile(path.join(CARPETA_FRONTEND, "index.html"));
     });
+} else {
+    app.use((req, res) => {
+        res.status(503).type("html").send(
+            "<h2>El frontend no está compilado</h2>" +
+                "<p>Para desarrollar corre <code>npm run dev</code> y abre <a href='http://localhost:5173'>http://localhost:5173</a>.</p>" +
+                "<p>Para la demo corre <code>npm run build</code> y luego <code>npm start</code>.</p>"
+        );
+    });
 }
 
 module.exports = app;
