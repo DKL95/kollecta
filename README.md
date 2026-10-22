@@ -10,7 +10,7 @@ Proyecto integrador de **Programación Web II** — Facultad de Ciencias Físico
 |---|---|---|
 | Derek Alejandro Luna Hernandez| [1969757 | |
 | Jesús Antonio González Leal| [2072116] | |
-| [Nombre integrante 3] | [Matrícula] | |
+| Javier Peña Reyes | 2109195| |
 | [Nombre integrante 4] | [Matrícula] | |
 
 ## Descripción de la aplicación
