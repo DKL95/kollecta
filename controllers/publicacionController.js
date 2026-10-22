@@ -8,12 +8,16 @@ const CAMPOS_AUTOR = "nombre username fotoPerfil";
 // Da forma a una publicación para el frontend (conteos + si el usuario actual le dio like)
 function formatearPublicacion(publicacion, idUsuarioActual) {
     const autor = publicacion.autor || {};
+    const imagenes = publicacion.imagenes?.length
+        ? publicacion.imagenes
+        : (publicacion.imagen ? [publicacion.imagen] : []);
 
     return {
         id: publicacion._id,
         texto: publicacion.texto,
         grupo: publicacion.grupo,
-        imagen: publicacion.imagen,
+        imagenes,
+        imagen: imagenes[0] || "",
         fechaCreacion: publicacion.fechaCreacion,
         autor: {
             id: autor._id,
@@ -23,8 +27,12 @@ function formatearPublicacion(publicacion, idUsuarioActual) {
         },
         totalLikes: publicacion.likes.length,
         totalComentarios: publicacion.comentarios.length,
-        meGusta: idUsuarioActual ? publicacion.likes.some((id) => id.equals(idUsuarioActual)) : false,
-        esMia: idUsuarioActual ? String(autor._id) === String(idUsuarioActual) : false
+        meGusta: idUsuarioActual
+            ? publicacion.likes.some((id) => id.equals(idUsuarioActual))
+            : false,
+        esMia: idUsuarioActual
+            ? String(autor._id) === String(idUsuarioActual)
+            : false
     };
 }
 
@@ -70,72 +78,182 @@ async function obtenerPublicacion(req, res) {
 
 // POST /api/publicaciones
 async function crearPublicacion(req, res) {
+    let imagen = "";
+
     try {
         const cuerpo = req.body || {};
         const texto = (cuerpo.texto || "").trim();
 
         if (!texto) {
-            return res.status(400).json({ mensaje: "La publicación no puede estar vacía" });
+            return res.status(400).json({
+                mensaje: "La publicación no puede estar vacía"
+            });
         }
 
         if (texto.length > 1000) {
-            return res.status(400).json({ mensaje: "La publicación no puede pasar de 1000 caracteres" });
+            return res.status(400).json({
+                mensaje: "La publicación no puede pasar de 1000 caracteres"
+            });
+        }
+
+        if (req.file) {
+            imagen = await guardarImagen(req.file, req.usuario.id);
         }
 
         const nuevaPublicacion = await Publicacion.create({
             autor: req.usuario.id,
             texto,
             grupo: cuerpo.grupo || "",
-            imagen: req.file ? await guardarImagen(req.file, req.usuario.id) : ""
+            imagenes: imagen ? [imagen] : []
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
 
         res.status(201).json({
             mensaje: "Publicación creada",
-            publicacion: formatearPublicacion(nuevaPublicacion, req.usuario.id)
+            publicacion: formatearPublicacion(
+                nuevaPublicacion,
+                req.usuario.id
+            )
         });
     } catch (error) {
+        if (imagen) await eliminarImagen(imagen).catch(() => {});
+
         console.error("Error al crear publicación:", error);
-        res.status(500).json({ mensaje: "Error al crear la publicación" });
+        res.status(500).json({
+            mensaje: "Error al crear la publicación"
+        });
     }
 }
 
-// PUT /api/publicaciones/:id  (solo el autor)
+// PUT /api/publicaciones/:id (solo el autor)
 async function actualizarPublicacion(req, res) {
+    const imagenesNuevas = [];
+
     try {
         const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
-            return res.status(404).json({ mensaje: "Publicación no encontrada" });
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
         }
 
         if (String(publicacion.autor._id) !== String(req.usuario.id)) {
-            return res.status(403).json({ mensaje: "Solo el autor puede editar esta publicación" });
+            return res.status(403).json({
+                mensaje: "Solo el autor puede editar esta publicación"
+            });
         }
 
-        const { texto, grupo } = req.body || {};
+        const { texto, grupo, imagenesEliminadas } = req.body || {};
 
         if (texto !== undefined) {
-            if (!texto.trim()) {
-                return res.status(400).json({ mensaje: "La publicación no puede estar vacía" });
+            if (typeof texto !== "string" || !texto.trim()) {
+                return res.status(400).json({
+                    mensaje: "La publicación no puede estar vacía"
+                });
             }
+
+            if (texto.trim().length > 1000) {
+                return res.status(400).json({
+                    mensaje: "La publicación no puede pasar de 1000 caracteres"
+                });
+            }
+
             publicacion.texto = texto.trim();
         }
 
-        if (grupo !== undefined) publicacion.grupo = grupo;
+        if (grupo !== undefined) {
+            publicacion.grupo = grupo;
+        }
 
-        await publicacion.save();
+        // Compatibilidad con publicaciones antiguas que solo tenían "imagen".
+        const actuales = publicacion.imagenes?.length
+            ? [...publicacion.imagenes]
+            : (publicacion.imagen ? [publicacion.imagen] : []);
+
+        let eliminadas = [];
+
+        if (imagenesEliminadas !== undefined) {
+            try {
+                eliminadas = JSON.parse(imagenesEliminadas);
+
+                if (
+                    !Array.isArray(eliminadas) ||
+                    !eliminadas.every((imagen) => typeof imagen === "string")
+                ) {
+                    return res.status(400).json({
+                        mensaje: "La lista de imágenes eliminadas no es válida"
+                    });
+                }
+            } catch {
+                return res.status(400).json({
+                    mensaje: "La lista de imágenes eliminadas no es válida"
+                });
+            }
+        }
+
+        // Solo se eliminan referencias que pertenecen a esta publicación.
+        const restantes = actuales.filter(
+            (imagen) => !eliminadas.includes(imagen)
+        );
+
+        for (const archivo of req.files || []) {
+            imagenesNuevas.push(
+                await guardarImagen(archivo, req.usuario.id)
+            );
+        }
+
+        const resultado = [...restantes, ...imagenesNuevas];
+
+        if (resultado.length > 10) {
+            for (const imagen of imagenesNuevas) {
+                await eliminarImagen(imagen).catch(() => {});
+            }
+
+            return res.status(400).json({
+                mensaje: "Una publicación puede tener máximo 10 imágenes"
+            });
+        }
+
+        const anterioresEliminadas = actuales.filter(
+            (imagen) => eliminadas.includes(imagen)
+        );
+
+        try {
+            publicacion.imagenes = resultado;
+            publicacion.imagen = "";
+            await publicacion.save();
+        } catch (error) {
+            for (const imagen of imagenesNuevas) {
+                await eliminarImagen(imagen).catch(() => {});
+            }
+            throw error;
+        }
+
+        for (const imagen of anterioresEliminadas) {
+            await eliminarImagen(imagen).catch((error) => {
+                console.error("No se pudo eliminar una imagen:", error);
+            });
+        }
+
+        await publicacion.populate("autor", CAMPOS_AUTOR);
 
         res.json({
             mensaje: "Publicación actualizada",
-            publicacion: formatearPublicacion(publicacion, req.usuario.id)
+            publicacion: formatearPublicacion(
+                publicacion,
+                req.usuario.id
+            )
         });
     } catch (error) {
         console.error("Error al actualizar publicación:", error);
-        res.status(500).json({ mensaje: "Error al actualizar la publicación" });
+        res.status(500).json({
+            mensaje: "Error al actualizar la publicación"
+        });
     }
 }
+
 
 // DELETE /api/publicaciones/:id  (solo el autor)
 async function eliminarPublicacion(req, res) {
@@ -143,20 +261,35 @@ async function eliminarPublicacion(req, res) {
         const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
-            return res.status(404).json({ mensaje: "Publicación no encontrada" });
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
         }
 
         if (String(publicacion.autor._id) !== String(req.usuario.id)) {
-            return res.status(403).json({ mensaje: "Solo el autor puede eliminar esta publicación" });
+            return res.status(403).json({
+                mensaje: "Solo el autor puede eliminar esta publicación"
+            });
         }
 
+        const imagenes = publicacion.imagenes?.length
+            ? [...publicacion.imagenes]
+            : (publicacion.imagen ? [publicacion.imagen] : []);
+
         await publicacion.deleteOne();
-        await eliminarImagen(publicacion.imagen);
+
+        for (const imagen of imagenes) {
+            await eliminarImagen(imagen).catch((error) => {
+                console.error("No se pudo eliminar una imagen:", error);
+            });
+        }
 
         res.json({ mensaje: "Publicación eliminada" });
     } catch (error) {
         console.error("Error al eliminar publicación:", error);
-        res.status(500).json({ mensaje: "Error al eliminar la publicación" });
+        res.status(500).json({
+            mensaje: "Error al eliminar la publicación"
+        });
     }
 }
 

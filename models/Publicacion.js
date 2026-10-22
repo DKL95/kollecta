@@ -40,9 +40,9 @@ const publicacionSchema = new mongoose.Schema(
             default: ""
         },
 
-        imagen: {
-            type: String,
-            default: ""
+        imagenes: {
+            type: [String],
+            default: []
         },
 
         likes: {
