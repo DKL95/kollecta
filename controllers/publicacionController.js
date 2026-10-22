@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Publicacion = require("../models/Publicacion");
+const { guardarImagen, eliminarImagen } = require("../middleware/upload");
 
 const CAMPOS_AUTOR = "nombre username fotoPerfil";
 
@@ -70,7 +71,8 @@ async function obtenerPublicacion(req, res) {
 // POST /api/publicaciones
 async function crearPublicacion(req, res) {
     try {
-        const texto = (req.body.texto || "").trim();
+        const cuerpo = req.body || {};
+        const texto = (cuerpo.texto || "").trim();
 
         if (!texto) {
             return res.status(400).json({ mensaje: "La publicación no puede estar vacía" });
@@ -83,8 +85,8 @@ async function crearPublicacion(req, res) {
         const nuevaPublicacion = await Publicacion.create({
             autor: req.usuario.id,
             texto,
-            grupo: req.body.grupo || "",
-            imagen: req.file ? "/uploads/" + req.file.filename : ""
+            grupo: cuerpo.grupo || "",
+            imagen: req.file ? await guardarImagen(req.file, req.usuario.id) : ""
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
@@ -112,15 +114,16 @@ async function actualizarPublicacion(req, res) {
             return res.status(403).json({ mensaje: "Solo el autor puede editar esta publicación" });
         }
 
-        if (req.body.texto !== undefined) {
-            const texto = req.body.texto.trim();
-            if (!texto) {
+        const { texto, grupo } = req.body || {};
+
+        if (texto !== undefined) {
+            if (!texto.trim()) {
                 return res.status(400).json({ mensaje: "La publicación no puede estar vacía" });
             }
-            publicacion.texto = texto;
+            publicacion.texto = texto.trim();
         }
 
-        if (req.body.grupo !== undefined) publicacion.grupo = req.body.grupo;
+        if (grupo !== undefined) publicacion.grupo = grupo;
 
         await publicacion.save();
 
@@ -148,6 +151,7 @@ async function eliminarPublicacion(req, res) {
         }
 
         await publicacion.deleteOne();
+        await eliminarImagen(publicacion.imagen);
 
         res.json({ mensaje: "Publicación eliminada" });
     } catch (error) {

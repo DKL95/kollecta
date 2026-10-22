@@ -28,7 +28,7 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 - **Back End**: Node.js + Express 5.
 - **Base de datos**: MongoDB (Atlas) con Mongoose.
 - **Autenticación**: JWT (token en el header `Authorization: Bearer <token>`), contraseñas cifradas con bcrypt.
-- **Archivos**: Multer para fotos de perfil y de publicaciones.
+- **Imágenes**: Multer recibe las fotos de perfil y de publicaciones y se guardan **dentro de MongoDB** (colección `imagenes`), así todo el equipo las ve y no se pierden al subir la app a un hosting.
 
 ## Estado actual
 
@@ -50,19 +50,23 @@ WEB2/
 │   └── db.js                 Conexión a MongoDB
 ├── models/                   Esquemas de Mongoose
 │   ├── Usuario.js
-│   └── Publicacion.js
+│   ├── Publicacion.js
+│   └── Imagen.js             Imágenes subidas (se guardan como binario en MongoDB)
 ├── controllers/              Lógica de cada endpoint
 │   ├── authController.js
 │   ├── usuarioController.js
-│   └── publicacionController.js
+│   ├── publicacionController.js
+│   └── imagenController.js
 ├── routes/                   Definición de rutas de la API
 │   ├── authRoutes.js
 │   ├── usuarioRoutes.js
-│   └── publicacionRoutes.js
+│   ├── publicacionRoutes.js
+│   └── imagenRoutes.js
 ├── middleware/
 │   ├── auth.js               Generación y verificación de JWT
-│   └── upload.js             Subida de imágenes (Multer)
-├── uploads/                  Imágenes subidas por usuarios (se crea sola, ignorada por git)
+│   └── upload.js             Subida de imágenes (Multer) y guardado en MongoDB
+├── scripts/
+│   └── migrarUploads.js      Migración única de fotos viejas de uploads/ a MongoDB
 ├── frontend/                 Aplicación React (Vite)
 │   ├── index.html
 │   ├── vite.config.js        Proxy de /api y /uploads hacia Express en desarrollo
@@ -125,6 +129,7 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 | PUT 🔒 | `/publicaciones/:id` | Editar publicación (solo el autor) |
 | DELETE 🔒 | `/publicaciones/:id` | Eliminar publicación (solo el autor) |
 | POST 🔒 | `/publicaciones/:id/like` | Dar o quitar like |
+| GET | `/imagenes/:id` | Devuelve una imagen subida (pública, para usarla en `<img src>`) |
 
 ## Cómo ejecutar
 
@@ -146,6 +151,16 @@ Requisitos: Node.js 18 o superior.
    npm start
    ```
    Abrir http://localhost:3000
+
+### Fotos subidas antes de guardarlas en MongoDB
+
+Las primeras fotos de perfil se guardaron en la carpeta `uploads/` de la computadora de quien las subió (por eso los demás no las veían). Quien tenga esos archivos debe correr **una vez**, con su `.env` apuntando a Atlas:
+
+```bash
+npm run migrar-uploads
+```
+
+Sube esas fotos a MongoDB y actualiza las rutas en la base de datos. Se puede correr varias veces sin duplicar nada.
 
 ### Fotos reales
 

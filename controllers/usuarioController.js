@@ -1,6 +1,7 @@
 const Usuario = require("../models/Usuario");
 const Publicacion = require("../models/Publicacion");
 const { formatearPublicacion, CAMPOS_AUTOR } = require("./publicacionController");
+const { guardarImagen, eliminarImagen } = require("../middleware/upload");
 
 // GET /api/usuarios?q=texto  (busca por usuario o nombre)
 async function buscarUsuarios(req, res) {
@@ -75,15 +76,20 @@ async function actualizarPerfil(req, res) {
         const usuario = await Usuario.findById(req.usuario.id);
 
         if (!usuario) {
-            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+            return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
         }
 
-        const { nombre, descripcion, gruposFavoritos } = req.body;
+        const { nombre, descripcion, gruposFavoritos } = req.body || {};
 
         if (nombre !== undefined) usuario.nombre = nombre.trim();
         if (descripcion !== undefined) usuario.descripcion = descripcion.trim();
         if (Array.isArray(gruposFavoritos)) usuario.gruposFavoritos = gruposFavoritos.map(String);
-        if (req.file) usuario.fotoPerfil = "/uploads/" + req.file.filename;
+
+        if (req.file) {
+            const fotoAnterior = usuario.fotoPerfil;
+            usuario.fotoPerfil = await guardarImagen(req.file, usuario._id);
+            await eliminarImagen(fotoAnterior);
+        }
 
         await usuario.save();
 

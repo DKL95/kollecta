@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 
 const Usuario = require("../models/Usuario");
 const { generarToken } = require("../middleware/auth");
+const { guardarImagen } = require("../middleware/upload");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9._]{3,30}$/;
@@ -45,8 +46,12 @@ async function registrar(req, res) {
             password: await bcrypt.hash(password, 10),
             gruposFavoritos: bias ? [bias] : [],
             descripcion: descripcion || "",
-            fotoPerfil: req.file ? "/uploads/" + req.file.filename : ""
+            fotoPerfil: ""
         });
+
+        if (req.file) {
+            nuevoUsuario.fotoPerfil = await guardarImagen(req.file, nuevoUsuario._id);
+        }
 
         await nuevoUsuario.save();
 
@@ -92,8 +97,10 @@ async function usuarioActual(req, res) {
     try {
         const usuario = await Usuario.findById(req.usuario.id);
 
+        // El token es válido pero el usuario ya no existe (p. ej. se borró o es de otra base de datos):
+        // se responde 401 para que el frontend cierre la sesión.
         if (!usuario) {
-            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+            return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
         }
 
         res.json({ usuario: usuario.aPublico() });

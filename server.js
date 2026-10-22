@@ -9,6 +9,7 @@ const { CARPETA_UPLOADS } = require("./middleware/upload");
 const authRoutes = require("./routes/authRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 const publicacionRoutes = require("./routes/publicacionRoutes");
+const imagenRoutes = require("./routes/imagenRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,13 +22,14 @@ conectarDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir las fotos subidas (perfil y publicaciones)
+// Fotos subidas antes de guardarlas en MongoDB (rutas antiguas /uploads/...)
 app.use("/uploads", express.static(CARPETA_UPLOADS));
 
 // API
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/publicaciones", publicacionRoutes);
+app.use("/api/imagenes", imagenRoutes);
 
 app.use("/api", (req, res) => {
     res.status(404).json({ mensaje: "Ruta no encontrada" });
