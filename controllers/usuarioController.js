@@ -48,25 +48,47 @@ async function obtenerPerfil(req, res) {
     }
 }
 
+
 // GET /api/usuarios/:username/publicaciones
 async function obtenerPublicacionesDeUsuario(req, res) {
     try {
-        const usuario = await Usuario.findOne({ username: req.params.username });
+        const usuario = await Usuario.findOne({
+            username: req.params.username
+        });
 
         if (!usuario) {
-            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+            return res.status(404).json({
+                mensaje: "Usuario no encontrado"
+            });
         }
 
-        const publicaciones = await Publicacion.find({ autor: usuario._id })
+        const publicaciones = await Publicacion.find({
+            autor: usuario._id
+        })
             .sort({ fechaCreacion: -1 })
             .populate("autor", CAMPOS_AUTOR);
 
-        res.json({
-            publicaciones: publicaciones.map((p) => formatearPublicacion(p, req.usuario && req.usuario.id))
+        const publicacionesFormateadas = await Promise.all(
+            publicaciones.map((publicacion) =>
+                formatearPublicacion(
+                    publicacion,
+                    req.usuario?.id
+                )
+            )
+        );
+
+        return res.json({
+            publicaciones: publicacionesFormateadas
         });
     } catch (error) {
-        console.error("Error al obtener publicaciones del usuario:", error);
-        res.status(500).json({ mensaje: "Error al obtener las publicaciones" });
+        console.error(
+            "Error al obtener publicaciones del usuario:",
+            error
+        );
+
+        return res.status(500).json({
+            mensaje: "Error al obtener las publicaciones"
+        });
     }
 }
 

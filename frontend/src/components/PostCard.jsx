@@ -1,16 +1,34 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { UserAvatar } from "./Avatar";
 import Icon from "./Icon";
 import Photo from "./Photo";
 import { timeAgo } from "../utils/format";
+import UserHoverCard from "./UserHoverCard";
 
 const MAX_IMAGES = 10;
 
+// Convierte las menciones @usuario en enlaces con vista previa de perfil.
+function renderTextWithMentions(text) {
+  const value = String(text || "");
+  const parts = value.split(/(^|\s)(@[a-zA-Z0-9_.-]+)/g);
+
+  return parts.map((part, index) => {
+    if (/^@[a-zA-Z0-9_.-]+$/.test(part)) {
+      return (
+        <UserHoverCard key={`${part}-${index}`} user={part}>
+          <span className="post-mention">{part}</span>
+        </UserHoverCard>
+      );
+    }
+
+    return part;
+  });
+}
+
 export default function PostCard({ post, onChange, onDelete }) {
-  const author = post.autor;
-  const images = post.imagenes || (post.imagen ? [post.imagen] : []);
+  const author = post.autor || {};
+  const images = post.imagenes || (post.imagen ? [post.imagen] : []); 
 
   const [editing, setEditing] = useState(false);
   const [texto, setTexto] = useState(post.texto || "");
@@ -353,16 +371,18 @@ export default function PostCard({ post, onChange, onDelete }) {
 
   return (    <article className="card post">
       <div className="post-head">
-        <Link to={`/perfil/${author.username}`}>
+        <UserHoverCard user={author}>
           <UserAvatar user={author} />
-        </Link>
+        </UserHoverCard>
 
         <div>
           <div className="name">
-            <Link to={`/perfil/${author.username}`}>
+            <UserHoverCard user={author}>
               {author.nombre || author.username}
-            </Link>{" "}
-            <span className="handle">@{author.username}</span>
+            </UserHoverCard>{" "}
+            <UserHoverCard user={author}>
+              <span className="handle">@{author.username}</span>
+            </UserHoverCard>
           </div>
 
           <div className="time">
@@ -550,7 +570,7 @@ export default function PostCard({ post, onChange, onDelete }) {
         </form>
       ) : (
         <>
-          <p className="post-text">{post.texto}</p>
+          <p className="post-text">{renderTextWithMentions(post.texto)}</p>
 
           {images.length > 0 && (
             <div className="post-photo-grid">
@@ -615,18 +635,22 @@ export default function PostCard({ post, onChange, onDelete }) {
                 comments.map((comment) => (
                   <div className="post-comment" key={comment.id}>
                     {comment.autor && (
-                      <UserAvatar
-                        user={comment.autor}
-                        size={32}
-                      />
+                      <UserHoverCard user={comment.autor}>
+                        <UserAvatar
+                          user={comment.autor}
+                          size={32}
+                        />
+                      </UserHoverCard>
                     )}
 
                     <div className="post-comment-content">
                       <div className="post-comment-bubble">
                         <strong>
-                          {comment.autor?.nombre ||
-                            comment.autor?.username ||
-                            "Usuario"}
+                          {comment.autor ? (
+                            <UserHoverCard user={comment.autor}>
+                              {comment.autor.nombre || comment.autor.username || "Usuario"}
+                            </UserHoverCard>
+                          ) : "Usuario"}
                         </strong>
 
                         <p>{comment.texto}</p>
@@ -667,26 +691,34 @@ export default function PostCard({ post, onChange, onDelete }) {
                           key={reply.id}
                         >
                           {reply.autor && (
-                            <UserAvatar
-                              user={reply.autor}
-                              size={28}
-                            />
+                            <UserHoverCard user={reply.autor}>
+                              <UserAvatar
+                                user={reply.autor}
+                                size={28}
+                              />
+                            </UserHoverCard>
                           )}
 
                           <div className="post-comment-content">
                             <div className="post-comment-bubble">
                               <strong>
-                                {reply.autor?.nombre ||
-                                  reply.autor?.username ||
-                                  "Usuario"}
+                                {reply.autor ? (
+                                  <UserHoverCard user={reply.autor}>
+                                    {reply.autor.nombre || reply.autor.username || "Usuario"}
+                                  </UserHoverCard>
+                                ) : "Usuario"}
                               </strong>
 
                               <p>
                                 {reply.mencionado?.username && (
-                                  <span className="reply-mention">
-                                    @{reply.mencionado.username}{" "}
-                                  </span>
-                                )}
+                                <>
+                                  <UserHoverCard user={reply.mencionado}>
+                                    <span className="reply-mention">
+                                      @{reply.mencionado.username}
+                                    </span>
+                                  </UserHoverCard>{" "}
+                                </>
+                              )}
 
                                 {reply.texto
                                   ?.replace(/^@\S+\s*/, "")}

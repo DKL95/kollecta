@@ -15,12 +15,19 @@ const Notificacion = require("../models/Notificacion");
 const CAMPOS_AUTOR = "nombre username fotoPerfil";
 
 // Da forma a una publicación para el frontend.
-function formatearPublicacion(publicacion, idUsuarioActual) {
+async function formatearPublicacion(publicacion, idUsuarioActual) {
     const autor = publicacion.autor || {};
 
     const imagenes = publicacion.imagenes?.length
         ? publicacion.imagenes
         : (publicacion.imagen ? [publicacion.imagen] : []);
+
+    // Obtener el total desde la colección independiente.
+    const totalComentarios = await Comentario.countDocuments({
+        publicacion: publicacion._id
+    });
+
+    const likes = publicacion.likes || [];
 
     return {
         id: publicacion._id,
@@ -29,19 +36,23 @@ function formatearPublicacion(publicacion, idUsuarioActual) {
         imagenes,
         imagen: imagenes[0] || "",
         fechaCreacion: publicacion.fechaCreacion,
+
         autor: {
             id: autor._id,
             nombre: autor.nombre,
             username: autor.username,
             fotoPerfil: autor.fotoPerfil
         },
-        totalLikes: publicacion.likes.length,
-        totalComentarios: publicacion.comentarios.length,
+
+        totalLikes: likes.length,
+        totalComentarios,
+
         meGusta: idUsuarioActual
-            ? publicacion.likes.some(
+            ? likes.some(
                 (id) => String(id) === String(idUsuarioActual)
             )
             : false,
+
         esMia: idUsuarioActual
             ? String(autor._id) === String(idUsuarioActual)
             : false
@@ -66,10 +77,14 @@ async function listarPublicaciones(req, res) {
             .limit(50)
             .populate("autor", CAMPOS_AUTOR);
 
-        return res.json({
-            publicaciones: publicaciones.map((publicacion) =>
+        const publicacionesFormateadas = await Promise.all(
+            publicaciones.map((publicacion) =>
                 formatearPublicacion(publicacion, req.usuario.id)
             )
+        );
+
+        return res.json({
+            publicaciones: publicacionesFormateadas
         });
     } catch (error) {
         console.error("Error al listar publicaciones:", error);
