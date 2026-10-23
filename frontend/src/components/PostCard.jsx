@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { apiRequest } from "../api/client";
+import { apiRequest, USER_KEY } from "../api/client";
 import { UserAvatar } from "./Avatar";
 import Icon from "./Icon";
 import Photo from "./Photo";
@@ -30,6 +30,29 @@ export default function PostCard({ post, onChange, onDelete }) {
   const author = post.autor || {};
   const images = post.imagenes || (post.imagen ? [post.imagen] : []); 
 
+  const usuarioGuardado = JSON.parse(
+  localStorage.getItem(USER_KEY) || "null"
+  );
+
+  const usuarioActualId = String(
+    usuarioGuardado?.id || usuarioGuardado?._id || ""
+  );
+
+  const puedeEliminarComentario = (comment) =>
+    post.esMia ||
+    String(comment.autor?.id || "") === usuarioActualId;
+
+  const puedeEliminarRespuesta = (reply) =>
+    post.esMia ||
+    String(reply.autor?.id || "") === usuarioActualId;
+
+  // Solo el autor puede editar sus propios comentarios y respuestas.
+  const puedeEditarComentario = (comment) =>
+    String(comment.autor?.id || "") === usuarioActualId;
+
+  const puedeEditarRespuesta = (reply) =>
+    String(reply.autor?.id || "") === usuarioActualId;
+
   const [editing, setEditing] = useState(false);
   const [texto, setTexto] = useState(post.texto || "");
   const [photos, setPhotos] = useState([]);
@@ -48,6 +71,12 @@ export default function PostCard({ post, onChange, onDelete }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+
+  // Estado y lógica para editar comentarios y respuestas.
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingReplyId, setEditingReplyId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
 
   const keptImagesCount = images.filter(
     (image) => !removedImages.includes(image)
@@ -280,6 +309,113 @@ export default function PostCard({ post, onChange, onDelete }) {
     }
   }
 
+  async function handleDeleteComment(comment) {
+  if (
+    !window.confirm(
+      "¿Eliminar este comentario y todas sus respuestas?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    await apiRequest(
+      `/publicaciones/${post.id}/comentarios/${comment.id}`,
+      { method: "DELETE" }
+    );
+
+    setComments((current) =>
+      current.filter((item) => item.id !== comment.id)
+    );
+
+    setReplyingTo((current) =>
+      current?.commentId === comment.id ? null : current
+    );
+
+    setReplyText("");
+
+    onChange({
+      ...post,
+      totalComentarios: Math.max(
+        0,
+        (post.totalComentarios || 0) - 1
+      ),
+    });
+  } catch (error) {
+    alert(error.message || "No se pudo eliminar el comentario.");
+  }
+}
+
+async function handleDeleteReply(comment, reply) {
+  if (
+    !window.confirm(
+      "¿Eliminar esta respuesta y todas sus respuestas dependientes?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const data = await apiRequest(
+      `/publicaciones/${post.id}/comentarios/${comment.id}/respuestas/${reply.id}`,
+      { method: "DELETE" }
+    );
+
+    // El backend devuelve la cantidad de respuestas eliminadas.
+    const idsEliminar = new Set([reply.id]);
+
+    // Identificar las respuestas descendientes para actualizar
+    // correctamente la interfaz.
+    const respuestas = comment.respuestas || [];
+    let huboCambios = true;
+
+    while (huboCambios) {
+      huboCambios = false;
+
+      for (const item of respuestas) {
+        if (
+          item.responderA &&
+          idsEliminar.has(item.responderA) &&
+          !idsEliminar.has(item.id)
+        ) {
+          idsEliminar.add(item.id);
+          huboCambios = true;
+        }
+      }
+    }
+
+    setComments((current) =>
+      current.map((item) =>
+        item.id !== comment.id
+          ? item
+          : {
+              ...item,
+              respuestas: (item.respuestas || []).filter(
+                (answer) => !idsEliminar.has(answer.id)
+              ),
+            }
+      )
+    );
+
+    setReplyingTo((current) =>
+      current &&
+      current.commentId === comment.id &&
+      idsEliminar.has(current.targetId)
+        ? null
+        : current
+    );
+
+    if (
+      replyingTo?.commentId === comment.id &&
+      idsEliminar.has(replyingTo.targetId)
+    ) {
+      setReplyText("");
+    }
+  } catch (error) {
+    alert(error.message || "No se pudo eliminar la respuesta.");
+  }
+}
+
   // Dar o quitar like a una respuesta.
   async function handleReplyLike(comment, reply) {
     try {
@@ -308,6 +444,112 @@ export default function PostCard({ post, onChange, onDelete }) {
       );
     } catch (error) {
       alert(error.message || "No se pudo dar like a la respuesta.");
+    }
+  }
+
+  // Preparar la edición de un comentario.
+  function startEditComment(comment) {
+    setEditingCommentId(comment.id);
+    setEditingReplyId(null);
+    setEditCommentText(comment.texto || "");
+    setReplyingTo(null);
+    setReplyText("");
+  }
+
+  // Preparar la edición de una respuesta.
+  function startEditReply(reply) {
+    setEditingReplyId(reply.id);
+    setEditingCommentId(null);
+    setEditCommentText(reply.texto || "");
+    setReplyingTo(null);
+    setReplyText("");
+  }
+
+  // Cancelar la edición actual.
+  function cancelEditComment() {
+    setEditingCommentId(null);
+    setEditingReplyId(null);
+    setEditCommentText("");
+  }
+
+  // Guardar la edición de un comentario.
+  async function handleSaveComment(comment) {
+    const nuevoTexto = editCommentText.trim();
+
+    if (!nuevoTexto || nuevoTexto.length > 500) {
+      alert("El texto debe tener entre 1 y 500 caracteres.");
+      return;
+    }
+
+    setSavingComment(true);
+
+    try {
+      const data = await apiRequest(
+        `/publicaciones/${post.id}/comentarios/${comment.id}`,
+        {
+          method: "PUT",
+          body: { texto: nuevoTexto },
+        }
+      );
+
+      const textoActualizado = data.comentario?.texto || nuevoTexto;
+      setComments((current) =>
+        current.map((item) =>
+          item.id === comment.id
+            ? { ...item, texto: textoActualizado }
+            : item
+        )
+      );
+
+      cancelEditComment();
+    } catch (error) {
+      alert(error.message || "No se pudo editar el comentario.");
+    } finally {
+      setSavingComment(false);
+    }
+  }
+
+  // Guardar la edición de una respuesta.
+  async function handleSaveReply(comment, reply) {
+    const nuevoTexto = editCommentText.trim();
+
+    if (!nuevoTexto || nuevoTexto.length > 500) {
+      alert("El texto debe tener entre 1 y 500 caracteres.");
+      return;
+    }
+
+    setSavingComment(true);
+
+    try {
+      const data = await apiRequest(
+        `/publicaciones/${post.id}/comentarios/${comment.id}/respuestas/${reply.id}`,
+        {
+          method: "PUT",
+          body: { texto: nuevoTexto },
+        }
+      );
+
+      const textoActualizado = data.respuesta?.texto || nuevoTexto;
+      setComments((current) =>
+        current.map((item) =>
+          item.id !== comment.id
+            ? item
+            : {
+                ...item,
+                respuestas: (item.respuestas || []).map((answer) =>
+                  answer.id === reply.id
+                    ? { ...answer, texto: textoActualizado }
+                    : answer
+                ),
+              }
+        )
+      );
+
+      cancelEditComment();
+    } catch (error) {
+      alert(error.message || "No se pudo editar la respuesta.");
+    } finally {
+      setSavingComment(false);
     }
   }
 
@@ -653,7 +895,39 @@ export default function PostCard({ post, onChange, onDelete }) {
                           ) : "Usuario"}
                         </strong>
 
-                        <p>{comment.texto}</p>
+                        {editingCommentId === comment.id ? (
+                          <div className="comment-edit-form">
+                            <textarea
+                              value={editCommentText}
+                              onChange={(event) => setEditCommentText(event.target.value)}
+                              maxLength={500}
+                              rows={3}
+                              autoFocus
+                              aria-label="Editar comentario"
+                              disabled={savingComment}
+                            />
+                            <div className="comment-interactions">
+                              <button
+                                type="button"
+                                className="comment-interaction-btn"
+                                onClick={() => handleSaveComment(comment)}
+                                disabled={savingComment || !editCommentText.trim()}
+                              >
+                                {savingComment ? "Guardando..." : "Guardar"}
+                              </button>
+                              <button
+                                type="button"
+                                className="comment-interaction-btn"
+                                onClick={cancelEditComment}
+                                disabled={savingComment}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>{comment.texto}</p>
+                        )}
                       </div>
 
                       <small>
@@ -682,20 +956,37 @@ export default function PostCard({ post, onChange, onDelete }) {
                         >
                           Responder
                         </button>
+
+                        {puedeEditarComentario(comment) && editingCommentId !== comment.id && (
+                          <button
+                            type="button"
+                            className="comment-interaction-btn"
+                            onClick={() => startEditComment(comment)}
+                            disabled={savingComment}
+                            aria-label="Editar comentario"
+                          >
+                            <Icon name="pencil" size={13} /> Editar
+                          </button>
+                        )}
+
+                        {puedeEliminarComentario(comment) && (
+                          <button
+                            type="button"
+                            className="comment-interaction-btn"
+                            onClick={() => handleDeleteComment(comment)}
+                            aria-label="Eliminar comentario"
+                          >
+                            <Icon name="trash" size={13} /> Eliminar
+                          </button>
+                        )}
                       </div>
 
                       {/* Respuestas del comentario */}
                       {(comment.respuestas || []).map((reply) => (
-                        <div
-                          className="post-reply"
-                          key={reply.id}
-                        >
+                        <div className="post-reply" key={reply.id}>
                           {reply.autor && (
                             <UserHoverCard user={reply.autor}>
-                              <UserAvatar
-                                user={reply.autor}
-                                size={28}
-                              />
+                              <UserAvatar user={reply.autor} size={28} />
                             </UserHoverCard>
                           )}
 
@@ -706,29 +997,48 @@ export default function PostCard({ post, onChange, onDelete }) {
                                   <UserHoverCard user={reply.autor}>
                                     {reply.autor.nombre || reply.autor.username || "Usuario"}
                                   </UserHoverCard>
-                                ) : "Usuario"}
+                                ) : (
+                                  "Usuario"
+                                )}
                               </strong>
 
-                              <p>
-                                {reply.mencionado?.username && (
-                                <>
-                                  <UserHoverCard user={reply.mencionado}>
-                                    <span className="reply-mention">
-                                      @{reply.mencionado.username}
-                                    </span>
-                                  </UserHoverCard>{" "}
-                                </>
+                              {editingReplyId === reply.id ? (
+                                <div className="comment-edit-form">
+                                  <textarea
+                                    value={editCommentText}
+                                    onChange={(event) => setEditCommentText(event.target.value)}
+                                    maxLength={500}
+                                    rows={3}
+                                    autoFocus
+                                    aria-label="Editar respuesta"
+                                    disabled={savingComment}
+                                  />
+                                  <div className="comment-interactions">
+                                    <button
+                                      type="button"
+                                      className="comment-interaction-btn"
+                                      onClick={() => handleSaveReply(comment, reply)}
+                                      disabled={savingComment || !editCommentText.trim()}
+                                    >
+                                      {savingComment ? "Guardando..." : "Guardar"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="comment-interaction-btn"
+                                      onClick={cancelEditComment}
+                                      disabled={savingComment}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p>{renderTextWithMentions(reply.texto)}</p>
                               )}
-
-                                {reply.texto
-                                  ?.replace(/^@\S+\s*/, "")}
-                              </p>
                             </div>
 
                             <small>
-                              {reply.fecha
-                                ? timeAgo(reply.fecha)
-                                : "Ahora"}
+                              {reply.fecha ? timeAgo(reply.fecha) : "Ahora"}
                             </small>
 
                             <div className="comment-interactions">
@@ -737,9 +1047,7 @@ export default function PostCard({ post, onChange, onDelete }) {
                                 className={`comment-interaction-btn ${
                                   reply.meGusta ? "liked" : ""
                                 }`}
-                                onClick={() =>
-                                  handleReplyLike(comment, reply)
-                                }
+                                onClick={() => handleReplyLike(comment, reply)}
                                 aria-label="Dar o quitar like a la respuesta"
                               >
                                 ♥ {reply.totalLikes || 0}
@@ -748,12 +1056,33 @@ export default function PostCard({ post, onChange, onDelete }) {
                               <button
                                 type="button"
                                 className="comment-interaction-btn"
-                                onClick={() =>
-                                  startReply(comment, reply)
-                                }
+                                onClick={() => startReply(comment, reply)}
                               >
                                 Responder
                               </button>
+
+                              {puedeEditarRespuesta(reply) && editingReplyId !== reply.id && (
+                                <button
+                                  type="button"
+                                  className="comment-interaction-btn"
+                                  onClick={() => startEditReply(reply)}
+                                  disabled={savingComment}
+                                  aria-label="Editar respuesta"
+                                >
+                                  <Icon name="pencil" size={13} /> Editar
+                                </button>
+                              )}
+
+                              {puedeEliminarRespuesta(reply) && (
+                                <button
+                                  type="button"
+                                  className="comment-interaction-btn"
+                                  onClick={() => handleDeleteReply(comment, reply)}
+                                  aria-label="Eliminar respuesta"
+                                >
+                                  <Icon name="trash" size={13} /> Eliminar
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

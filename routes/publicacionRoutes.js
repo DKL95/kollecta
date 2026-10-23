@@ -11,7 +11,11 @@ const {
     agregarComentario,
     agregarRespuesta,
     alternarLikeComentario,
-    alternarLikeRespuesta
+    alternarLikeRespuesta,
+    eliminarComentario,
+    eliminarRespuesta,
+    actualizarComentario,
+    actualizarRespuesta
 } = require("../controllers/publicacionController");
 
 const { requiereAuth } = require("../middleware/auth");
@@ -58,5 +62,27 @@ router.delete("/:id", eliminarPublicacion);
 
 // Like de publicación
 router.post("/:id/like", alternarLike);
+
+// Eliminar comentarios.
+router.delete(
+    "/:id/comentarios/:comentarioId",
+    eliminarComentario
+);
+
+// Eliminar respuestas.
+router.delete(
+    "/:id/comentarios/:comentarioId/respuestas/:respuestaId",
+    eliminarRespuesta
+);
+
+router.put(
+    "/:id/comentarios/:comentarioId",
+    actualizarComentario
+);
+
+router.put(
+    "/:id/comentarios/:comentarioId/respuestas/:respuestaId",
+    actualizarRespuesta
+);
 
 module.exports = router;

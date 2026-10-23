@@ -1753,3 +1753,85 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #edit-foto::file-selector-button:hover {
   filter: brightness(1.12);
 }
+
+/* Contenedor del editor de comentarios y respuestas */
+.comment-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Campo de texto integrado al tema oscuro */
+.comment-edit-form textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 70px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+
+  background: #171026;
+  color: #f2eaff;
+
+  border: 1px solid #493765;
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Resaltar el campo cuando está seleccionado */
+.comment-edit-form textarea:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
+}
+
+/* Mantener el estilo al deshabilitar el campo */
+.comment-edit-form textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Botones Guardar y Cancelar */
+.comment-edit-form .comment-interactions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comment-edit-form .comment-interaction-btn {
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+
+  background: transparent;
+  color: #b9a7d0;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.comment-edit-form .comment-interaction-btn:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.12);
+  color: #e3c8ff;
+}
+
+.comment-edit-form .comment-interaction-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

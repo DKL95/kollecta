@@ -824,7 +824,6 @@ async function agregarRespuesta(req, res) {
     }
 }
 
-
 // POST /api/publicaciones/:id/comentarios/:comentarioId/respuestas/:respuestaId/like
 async function alternarLikeRespuesta(req, res) {
     try {
@@ -881,6 +880,446 @@ async function alternarLikeRespuesta(req, res) {
     }
 }
 
+// DELETE /api/publicaciones/:id/comentarios/:comentarioId
+async function eliminarComentario(req, res) {
+    try {
+        const { id, comentarioId } = req.params;
+        const idUsuario = String(req.usuario.id);
+
+        // Validar los identificadores.
+        if (
+            !mongoose.isValidObjectId(id) ||
+            !mongoose.isValidObjectId(comentarioId)
+        ) {
+            return res.status(400).json({
+                mensaje: "Los identificadores no son válidos"
+            });
+        }
+
+        // Buscar la publicación.
+        const publicacion = await Publicacion.findById(id)
+            .select("autor");
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        // Buscar el comentario dentro de esa publicación.
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: publicacion._id
+        });
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        const esDuenioPublicacion =
+            String(publicacion.autor) === idUsuario;
+
+        const esAutorComentario =
+            String(comentario.autor) === idUsuario;
+
+        // El dueño de la publicación o el autor del comentario
+        // pueden eliminarlo.
+        if (!esDuenioPublicacion && !esAutorComentario) {
+            return res.status(403).json({
+                mensaje: "No tienes permiso para eliminar este comentario"
+            });
+        }
+
+        // Eliminar todas las respuestas del comentario,
+        // incluidas las respuestas a otras respuestas.
+        const respuestas = await Respuesta.find({
+            comentario: comentario._id,
+            publicacion: publicacion._id
+        }).select("_id responderA");
+
+        const idsRespuestas = new Set(
+            respuestas.map((respuesta) => String(respuesta._id))
+        );
+
+        // Eliminar el comentario y todas sus respuestas.
+        await Respuesta.deleteMany({
+            comentario: comentario._id,
+            publicacion: publicacion._id
+        });
+
+        await comentario.deleteOne();
+
+        return res.json({
+            mensaje: "Comentario eliminado correctamente",
+            comentarioId: String(comentario._id),
+            respuestasEliminadas: idsRespuestas.size,
+            totalComentarios: await Comentario.countDocuments({
+                publicacion: publicacion._id
+            })
+        });
+
+    } catch (error) {
+        console.error("Error al eliminar comentario:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al eliminar el comentario"
+        });
+    }
+}
+
+// DELETE /api/publicaciones/:id/comentarios/:comentarioId/respuestas/:respuestaId
+async function eliminarRespuesta(req, res) {
+    try {
+        const { id, comentarioId, respuestaId } = req.params;
+        const idUsuario = String(req.usuario.id);
+
+        // Validar los identificadores.
+        if (
+            !mongoose.isValidObjectId(id) ||
+            !mongoose.isValidObjectId(comentarioId) ||
+            !mongoose.isValidObjectId(respuestaId)
+        ) {
+            return res.status(400).json({
+                mensaje: "Los identificadores no son válidos"
+            });
+        }
+
+        // Buscar la publicación.
+        const publicacion = await Publicacion.findById(id)
+            .select("autor");
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        // Comprobar que el comentario pertenece a la publicación.
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: publicacion._id
+        }).select("_id");
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        // Comprobar que la respuesta pertenece al comentario
+        // y a la publicación indicada.
+        const respuesta = await Respuesta.findOne({
+            _id: respuestaId,
+            comentario: comentario._id,
+            publicacion: publicacion._id
+        });
+
+        if (!respuesta) {
+            return res.status(404).json({
+                mensaje: "Respuesta no encontrada"
+            });
+        }
+
+        const esDuenioPublicacion =
+            String(publicacion.autor) === idUsuario;
+
+        const esAutorRespuesta =
+            String(respuesta.autor) === idUsuario;
+
+        // El dueño de la publicación o el autor de la respuesta
+        // pueden eliminarla.
+        if (!esDuenioPublicacion && !esAutorRespuesta) {
+            return res.status(403).json({
+                mensaje: "No tienes permiso para eliminar esta respuesta"
+            });
+        }
+
+        // Obtener todas las respuestas de este comentario.
+        const respuestas = await Respuesta.find({
+            comentario: comentario._id,
+            publicacion: publicacion._id
+        }).select("_id responderA");
+
+        // Empezar con la respuesta que queremos eliminar.
+        const idsEliminar = new Set([String(respuesta._id)]);
+
+        // Encontrar recursivamente las respuestas que dependen
+        // de la respuesta seleccionada.
+        let huboCambios = true;
+
+        while (huboCambios) {
+            huboCambios = false;
+
+            for (const item of respuestas) {
+                const idActual = String(item._id);
+                const idPadre = item.responderA
+                    ? String(item.responderA)
+                    : null;
+
+                if (
+                    idPadre &&
+                    idsEliminar.has(idPadre) &&
+                    !idsEliminar.has(idActual)
+                ) {
+                    idsEliminar.add(idActual);
+                    huboCambios = true;
+                }
+            }
+        }
+
+        // Eliminar solamente la respuesta seleccionada
+        // y sus respuestas dependientes.
+        const resultado = await Respuesta.deleteMany({
+            _id: {
+                $in: [...idsEliminar]
+            },
+            comentario: comentario._id,
+            publicacion: publicacion._id
+        });
+
+        return res.json({
+            mensaje: "Respuesta eliminada correctamente",
+            respuestaId: String(respuesta._id),
+            respuestasEliminadas: resultado.deletedCount
+        });
+
+    } catch (error) {
+        console.error("Error al eliminar respuesta:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al eliminar la respuesta"
+        });
+    }
+}
+
+// PUT /api/publicaciones/:id/comentarios/:comentarioId
+async function actualizarComentario(req, res) {
+    try {
+        const { id, comentarioId } = req.params;
+        const idUsuario = String(req.usuario.id);
+
+        // Validar los identificadores.
+        if (
+            !mongoose.isValidObjectId(id) ||
+            !mongoose.isValidObjectId(comentarioId)
+        ) {
+            return res.status(400).json({
+                mensaje: "Los identificadores no son válidos"
+            });
+        }
+
+        // Comprobar que existe la publicación.
+        const publicacion = await Publicacion.findById(id).select("_id");
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        // Buscar el comentario dentro de esa publicación.
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: publicacion._id
+        });
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        // Solo el autor puede editar su comentario.
+        if (String(comentario.autor) !== idUsuario) {
+            return res.status(403).json({
+                mensaje: "Solo puedes editar tus propios comentarios"
+            });
+        }
+
+        // Validar el texto.
+        if (typeof req.body.texto !== "string") {
+            return res.status(400).json({
+                mensaje: "El texto del comentario no es válido"
+            });
+        }
+
+        const texto = req.body.texto.trim();
+
+        if (!texto) {
+            return res.status(400).json({
+                mensaje: "El comentario no puede estar vacío"
+            });
+        }
+
+        if (texto.length > 500) {
+            return res.status(400).json({
+                mensaje: "El comentario no puede superar los 500 caracteres"
+            });
+        }
+
+        comentario.texto = texto;
+        await comentario.save();
+        await comentario.populate("autor", CAMPOS_AUTOR);
+
+        return res.json({
+            mensaje: "Comentario actualizado correctamente",
+            comentario: {
+                id: String(comentario._id),
+                texto: comentario.texto,
+                fecha: comentario.fecha,
+                autor: {
+                    id: String(comentario.autor._id),
+                    nombre: comentario.autor.nombre,
+                    username: comentario.autor.username,
+                    fotoPerfil: comentario.autor.fotoPerfil
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error al actualizar comentario:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al actualizar el comentario"
+        });
+    }
+}
+
+// PUT /api/publicaciones/:id/comentarios/:comentarioId/respuestas/:respuestaId
+async function actualizarRespuesta(req, res) {
+    try {
+        const { id, comentarioId, respuestaId } = req.params;
+        const idUsuario = String(req.usuario.id);
+
+        // Validar los identificadores.
+        if (
+            !mongoose.isValidObjectId(id) ||
+            !mongoose.isValidObjectId(comentarioId) ||
+            !mongoose.isValidObjectId(respuestaId)
+        ) {
+            return res.status(400).json({
+                mensaje: "Los identificadores no son válidos"
+            });
+        }
+
+        // Comprobar que existe la publicación.
+        const publicacion = await Publicacion.findById(id).select("_id");
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        // Comprobar que el comentario pertenece a la publicación.
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: publicacion._id
+        }).select("_id");
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        // Buscar la respuesta dentro del comentario y la publicación.
+        const respuesta = await Respuesta.findOne({
+            _id: respuestaId,
+            comentario: comentario._id,
+            publicacion: publicacion._id
+        });
+
+        if (!respuesta) {
+            return res.status(404).json({
+                mensaje: "Respuesta no encontrada"
+            });
+        }
+
+        // Solo el autor puede editar su respuesta.
+        if (String(respuesta.autor) !== idUsuario) {
+            return res.status(403).json({
+                mensaje: "Solo puedes editar tus propias respuestas"
+            });
+        }
+
+        // Validar el texto.
+        if (typeof req.body.texto !== "string") {
+            return res.status(400).json({
+                mensaje: "El texto de la respuesta no es válido"
+            });
+        }
+
+        const texto = req.body.texto.trim();
+
+        if (!texto) {
+            return res.status(400).json({
+                mensaje: "La respuesta no puede estar vacía"
+            });
+        }
+
+        if (texto.length > 500) {
+            return res.status(400).json({
+                mensaje: "La respuesta no puede superar los 500 caracteres"
+            });
+        }
+
+        respuesta.texto = texto;
+        await respuesta.save();
+
+        await respuesta.populate([
+            {
+                path: "autor",
+                select: CAMPOS_AUTOR
+            },
+            {
+                path: "mencionado",
+                select: CAMPOS_AUTOR
+            }
+        ]);
+
+        const formatearAutor = (autor) => {
+            if (!autor) return null;
+
+            return {
+                id: String(autor._id),
+                nombre: autor.nombre,
+                username: autor.username,
+                fotoPerfil: autor.fotoPerfil
+            };
+        };
+
+        return res.json({
+            mensaje: "Respuesta actualizada correctamente",
+            respuesta: {
+                id: String(respuesta._id),
+                texto: respuesta.texto,
+                fecha: respuesta.fecha,
+                autor: formatearAutor(respuesta.autor),
+                responderA: respuesta.responderA
+                    ? String(respuesta.responderA)
+                    : null,
+                mencionado: formatearAutor(respuesta.mencionado),
+                likes: (respuesta.likes || []).map(
+                    (like) => String(like)
+                ),
+                totalLikes: (respuesta.likes || []).length,
+                meGusta: (respuesta.likes || []).some(
+                    (like) => String(like) === idUsuario
+                )
+            }
+        });
+    } catch (error) {
+        console.error("Error al actualizar respuesta:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al actualizar la respuesta"
+        });
+    }
+}
+
+
 module.exports = {
     CAMPOS_AUTOR,
     formatearPublicacion,
@@ -894,5 +1333,9 @@ module.exports = {
     agregarComentario,
     agregarRespuesta,
     alternarLikeComentario,
-    alternarLikeRespuesta
+    alternarLikeRespuesta,
+    eliminarComentario,
+    eliminarRespuesta,
+    actualizarComentario,
+    actualizarRespuesta
 };
