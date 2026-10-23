@@ -1,5 +1,5 @@
-
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import Icon from "../components/Icon";
 
@@ -20,13 +20,15 @@ function iconoPorTipo(tipo) {
     like: "heart",
     comentario: "message-circle",
     seguidor: "user-plus",
-    sistema: "bell"
+    sistema: "bell",
   };
 
   return iconos[tipo] || "bell";
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,7 +53,7 @@ export default function NotificationsPage() {
   async function marcarComoLeida(id) {
     try {
       await apiRequest(`/notificaciones/${id}/leida`, {
-        method: "PATCH"
+        method: "PATCH",
       });
 
       setNotifications((actuales) =>
@@ -63,6 +65,21 @@ export default function NotificationsPage() {
       window.dispatchEvent(new Event("notificaciones-actualizadas"));
     } catch (err) {
       setError(err.message || "No se pudo marcar como leída");
+      throw err;
+    }
+  }
+
+  async function abrirNotificacion(notification) {
+    if (!notification.leida) {
+      try {
+        await marcarComoLeida(notification._id);
+      } catch {
+        // Si falla al marcarla como leída, todavía intentamos abrir el enlace.
+      }
+    }
+
+    if (notification.enlace) {
+      navigate(notification.enlace);
     }
   }
 
@@ -72,7 +89,7 @@ export default function NotificationsPage() {
       setError("");
 
       await apiRequest("/notificaciones/leidas/todas", {
-        method: "PATCH"
+        method: "PATCH",
       });
 
       setNotifications((actuales) =>
@@ -133,11 +150,21 @@ export default function NotificationsPage() {
               <div
                 key={notification._id}
                 className={`notif-row ${!notification.leida ? "unread" : ""}`}
-                onClick={() =>
-                  !notification.leida &&
-                  marcarComoLeida(notification._id)
-                }
-                style={{ cursor: notification.leida ? "default" : "pointer" }}
+                onClick={() => abrirNotificacion(notification)}
+                style={{
+                  cursor: notification.enlace ? "pointer" : "default",
+                }}
+                role={notification.enlace ? "link" : undefined}
+                tabIndex={notification.enlace ? 0 : undefined}
+                onKeyDown={(event) => {
+                  if (
+                    notification.enlace &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
+                    event.preventDefault();
+                    abrirNotificacion(notification);
+                  }
+                }}
               >
                 <div className="ic-badge">
                   <Icon name={iconoPorTipo(notification.tipo)} size={18} />

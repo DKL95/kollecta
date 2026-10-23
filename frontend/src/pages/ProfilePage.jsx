@@ -85,7 +85,7 @@ export default function ProfilePage() {
           <h2>{shown.nombre || shown.username}</h2>
           <div className="handle">@{shown.username}</div>
           <div className="badges-row">
-            {favoriteGroups[0] && <span className="pill gold">Bias: {favoriteGroups[0]}</span>}
+            {favoriteGroups[0] && <span className="pill gold">Grupo Principal: {favoriteGroups[0]}</span>}
             <span className="pill cyan">
               <Icon name="checkCircle" size={13} /> Miembro desde {new Date(shown.fechaRegistro).toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
             </span>
@@ -170,20 +170,42 @@ function EditProfileForm({ user, onSaved }) {
   const [nombre, setNombre] = useState(user.nombre || "");
   const [descripcion, setDescripcion] = useState(user.descripcion || "");
   const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!photo) {
+      setPhotoPreview("");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(photo);
+    setPhotoPreview(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [photo]);
+
   async function handleSubmit(event) {
     event.preventDefault();
+
     const body = new FormData();
     body.append("nombre", nombre);
     body.append("descripcion", descripcion);
-    if (photo) body.append("fotoPerfil", photo);
+
+    if (photo) {
+      body.append("fotoPerfil", photo);
+    }
 
     setSaving(true);
     setError("");
+
     try {
-      const data = await apiRequest("/usuarios/me", { method: "PUT", body });
+      const data = await apiRequest("/usuarios/me", {
+        method: "PUT",
+        body,
+      });
+
       onSaved(data.usuario);
     } catch (requestError) {
       setError(requestError.message);
@@ -193,21 +215,85 @@ function EditProfileForm({ user, onSaved }) {
   }
 
   return (
-    <form className="card" style={{ padding: 20, marginBottom: 20, maxWidth: 560 }} onSubmit={handleSubmit}>
+    <form
+      className="card edit-profile-form"
+      onSubmit={handleSubmit}
+    >
       <div className="field">
         <label htmlFor="edit-nombre">Nombre</label>
-        <input id="edit-nombre" type="text" value={nombre} onChange={(event) => setNombre(event.target.value)} />
+
+        <input
+          id="edit-nombre"
+          type="text"
+          value={nombre}
+          onChange={(event) => setNombre(event.target.value)}
+        />
       </div>
+
       <div className="field">
         <label htmlFor="edit-descripcion">Descripción</label>
-        <textarea id="edit-descripcion" rows="3" value={descripcion} onChange={(event) => setDescripcion(event.target.value)} />
+
+        <textarea
+          id="edit-descripcion"
+          rows="3"
+          value={descripcion}
+          onChange={(event) => setDescripcion(event.target.value)}
+        />
       </div>
+
       <div className="field">
         <label htmlFor="edit-foto">Nueva foto de perfil</label>
-        <input id="edit-foto" type="file" accept="image/*" onChange={(event) => setPhoto(event.target.files[0] || null)} />
+
+        <input
+          id="edit-foto"
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            setPhoto(event.target.files?.[0] || null);
+          }}
+        />
       </div>
+
+      {photoPreview && (
+        <div className="edit-profile-photo-preview">
+          <div className="edit-profile-photo-item">
+            <img
+              src={photoPreview}
+              alt="Vista previa de la nueva foto de perfil"
+            />
+
+            <button
+              type="button"
+              className="edit-profile-photo-remove"
+              onClick={() => {
+                setPhoto(null);
+
+                const input = document.getElementById("edit-foto");
+
+                if (input) {
+                  input.value = "";
+                }
+              }}
+              aria-label="Quitar foto seleccionada"
+              title="Quitar foto"
+            >
+              ×
+            </button>
+          </div>
+
+          <span className="edit-profile-photo-label">
+            Vista previa de la nueva foto
+          </span>
+        </div>
+      )}
+
       {error && <p className="form-error">{error}</p>}
-      <button type="submit" className="btn btn-primary" disabled={saving}>
+
+      <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={saving}
+      >
         {saving ? "Guardando…" : "Guardar cambios"}
       </button>
     </form>

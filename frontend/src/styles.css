@@ -1581,3 +1581,175 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     transform: translateY(0);
   }
 }
+
+/* Formulario de edición de perfil */
+.edit-profile-form {
+  padding: 24px;
+  margin-bottom: 20px;
+  max-width: 700px;
+  box-sizing: border-box;
+}
+
+/* Contenedor de la vista previa */
+.edit-profile-photo-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 20px;
+}
+
+/* Imagen seleccionada */
+.edit-profile-photo-item {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #241a38;
+}
+
+.edit-profile-photo-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Botón para quitar la imagen */
+.edit-profile-photo-remove {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 29px;
+  height: 29px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(25, 18, 38, 0.88);
+  color: white;
+
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.edit-profile-photo-remove:hover {
+  background: #e83e8c;
+  transform: scale(1.08);
+}
+
+/* Texto de la vista previa */
+.edit-profile-photo-label {
+  color: var(--text-muted, #a99bbd);
+  font-size: 12px;
+}
+
+/* ===== Vista previa de foto de perfil ===== */
+
+.edit-profile-photo-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0 22px;
+}
+
+.edit-profile-photo-item {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #211632;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.edit-profile-photo-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-profile-photo-remove {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(20, 12, 32, 0.85);
+  color: #fff;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.edit-profile-photo-remove:hover {
+  background: #e83e91;
+  border-color: #ff65bb;
+  transform: scale(1.08);
+}
+
+.edit-profile-photo-remove:focus-visible {
+  outline: 2px solid #58c8ff;
+  outline-offset: 3px;
+}
+
+.edit-profile-photo-label {
+  color: var(--text-muted, #a99bbd);
+  font-size: 13px;
+}
+
+/* Selector de archivos */
+
+#edit-foto {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-primary, #f5efff);
+  font: inherit;
+}
+
+#edit-foto::file-selector-button {
+  margin-right: 12px;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--gradient-brand, linear-gradient(110deg, #ec45ac, #a64bfa, #48c8ff));
+  color: #170d26;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+#edit-foto::file-selector-button:hover {
+  filter: brightness(1.12);
+}

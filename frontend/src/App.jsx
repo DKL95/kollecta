@@ -6,6 +6,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import CollectionPage from "./pages/CollectionPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
 import GroupsPage from "./pages/GroupsPage";
+import PostDetailPage from "./pages/PostDetailPage";
 import HomePage from "./pages/HomePage";
 import MarketplacePage from "./pages/MarketplacePage";
 import MessagesPage from "./pages/MessagesPage";
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
+      { path: "/publicaciones/:id", element: <PostDetailPage />, handle: { title: "Publicación", subtitle: "Detalle de publicación" } },
       { path: "/inicio", element: <HomePage />, handle: { title: "Inicio", subtitle: "Lo último de tus grupos y amigos" } },
       { path: "/buscar", element: <SearchPage />, handle: { title: "Buscar", subtitle: "Grupos, merch y personas en un solo lugar" } },
       { path: "/notificaciones", element: <NotificationsPage />, handle: { title: "Notificaciones" } },

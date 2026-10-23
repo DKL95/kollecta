@@ -98,19 +98,24 @@ async function listarPublicaciones(req, res) {
 // GET /api/publicaciones/:id
 async function obtenerPublicacion(req, res) {
     try {
+        
         const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
+            console.log("No se encontró la publicación.");
+
             return res.status(404).json({
                 mensaje: "Publicación no encontrada"
             });
         }
 
+        const resultado = await formatearPublicacion(
+            publicacion,
+            req.usuario.id
+        );
+
         return res.json({
-            publicacion: formatearPublicacion(
-                publicacion,
-                req.usuario.id
-            )
+            publicacion: resultado
         });
     } catch (error) {
         console.error("Error al obtener publicación:", error);
@@ -441,11 +446,10 @@ async function alternarLike(req, res) {
     }
 }
 
-
 // POST /api/publicaciones/:id/comentarios
 async function agregarComentario(req, res) {
     try {
-        const publicacion = await Publicacion.findById(req.params.id);
+        const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
             return res.status(404).json({
@@ -467,6 +471,7 @@ async function agregarComentario(req, res) {
             });
         }
 
+        // Crear el comentario con el sistema actual.
         const comentario = await Comentario.create({
             publicacion: publicacion._id,
             autor: req.usuario.id,
@@ -476,6 +481,33 @@ async function agregarComentario(req, res) {
         await comentario.populate("autor", CAMPOS_AUTOR);
 
         const autor = comentario.autor;
+
+        // Crear una notificación si el comentario es de otra persona.
+        const idAutorPublicacion = String(publicacion.autor._id);
+        const idAutorComentario = String(req.usuario.id);
+
+        if (idAutorPublicacion !== idAutorComentario) {
+            try {
+                const textoNotificacion =
+                    texto.length > 100
+                        ? `${texto.slice(0, 100)}...`
+                        : texto;
+
+                await Notificacion.create({
+                    destinatario: publicacion.autor._id,
+                    emisor: req.usuario.id,
+                    tipo: "comentario",
+                    mensaje: `comentó tu publicación: "${textoNotificacion}"`,
+                    enlace: `/publicaciones/${publicacion._id}`
+                });
+            } catch (error) {
+                // Un error de notificación no debe impedir publicar.
+                console.error(
+                    "Error al crear notificación de comentario:",
+                    error
+                );
+            }
+        }
 
         return res.status(201).json({
             mensaje: "Comentario publicado",
