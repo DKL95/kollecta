@@ -1,15 +1,23 @@
+
 const mongoose = require("mongoose");
 
 const Publicacion = require("../models/Publicacion");
-const { guardarImagen, eliminarImagen } = require("../middleware/upload");
+const {
+    guardarImagen,
+    eliminarImagen
+} = require("../middleware/upload");
+
+const Comentario = require("../models/Comentario");
+const Respuesta = require("../models/Respuesta");
 
 const Notificacion = require("../models/Notificacion");
 
 const CAMPOS_AUTOR = "nombre username fotoPerfil";
 
-// Da forma a una publicación para el frontend (conteos + si el usuario actual le dio like)
+// Da forma a una publicación para el frontend.
 function formatearPublicacion(publicacion, idUsuarioActual) {
     const autor = publicacion.autor || {};
+
     const imagenes = publicacion.imagenes?.length
         ? publicacion.imagenes
         : (publicacion.imagen ? [publicacion.imagen] : []);
@@ -30,7 +38,9 @@ function formatearPublicacion(publicacion, idUsuarioActual) {
         totalLikes: publicacion.likes.length,
         totalComentarios: publicacion.comentarios.length,
         meGusta: idUsuarioActual
-            ? publicacion.likes.some((id) => id.equals(idUsuarioActual))
+            ? publicacion.likes.some(
+                (id) => String(id) === String(idUsuarioActual)
+            )
             : false,
         esMia: idUsuarioActual
             ? String(autor._id) === String(idUsuarioActual)
@@ -40,25 +50,33 @@ function formatearPublicacion(publicacion, idUsuarioActual) {
 
 async function buscarPorId(id) {
     if (!mongoose.isValidObjectId(id)) return null;
+
     return Publicacion.findById(id).populate("autor", CAMPOS_AUTOR);
 }
 
-// GET /api/publicaciones?grupo=TWICE
+// GET /api/publicaciones
 async function listarPublicaciones(req, res) {
     try {
-        const filtro = req.query.grupo ? { grupo: req.query.grupo } : {};
+        const filtro = req.query.grupo
+            ? { grupo: req.query.grupo }
+            : {};
 
         const publicaciones = await Publicacion.find(filtro)
             .sort({ fechaCreacion: -1 })
             .limit(50)
             .populate("autor", CAMPOS_AUTOR);
 
-        res.json({
-            publicaciones: publicaciones.map((p) => formatearPublicacion(p, req.usuario.id))
+        return res.json({
+            publicaciones: publicaciones.map((publicacion) =>
+                formatearPublicacion(publicacion, req.usuario.id)
+            )
         });
     } catch (error) {
         console.error("Error al listar publicaciones:", error);
-        res.status(500).json({ mensaje: "Error al obtener las publicaciones" });
+
+        return res.status(500).json({
+            mensaje: "Error al obtener las publicaciones"
+        });
     }
 }
 
@@ -68,19 +86,30 @@ async function obtenerPublicacion(req, res) {
         const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
-            return res.status(404).json({ mensaje: "Publicación no encontrada" });
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
         }
 
-        res.json({ publicacion: formatearPublicacion(publicacion, req.usuario.id) });
+        return res.json({
+            publicacion: formatearPublicacion(
+                publicacion,
+                req.usuario.id
+            )
+        });
     } catch (error) {
         console.error("Error al obtener publicación:", error);
-        res.status(500).json({ mensaje: "Error al obtener la publicación" });
+
+        return res.status(500).json({
+            mensaje: "Error al obtener la publicación"
+        });
     }
 }
 
 // POST /api/publicaciones
+// Crear publicación con hasta 10 imágenes.
 async function crearPublicacion(req, res) {
-    let imagen = "";
+    const imagenesGuardadas = [];
 
     try {
         const cuerpo = req.body || {};
@@ -98,20 +127,34 @@ async function crearPublicacion(req, res) {
             });
         }
 
-        if (req.file) {
-            imagen = await guardarImagen(req.file, req.usuario.id);
+        // upload.array() coloca los archivos en req.files.
+        const archivos = req.files || [];
+
+        if (archivos.length > 10) {
+            return res.status(400).json({
+                mensaje: "Una publicación puede tener máximo 10 imágenes"
+            });
+        }
+
+        for (const archivo of archivos) {
+            const imagen = await guardarImagen(
+                archivo,
+                req.usuario.id
+            );
+
+            imagenesGuardadas.push(imagen);
         }
 
         const nuevaPublicacion = await Publicacion.create({
             autor: req.usuario.id,
             texto,
             grupo: cuerpo.grupo || "",
-            imagenes: imagen ? [imagen] : []
+            imagenes: imagenesGuardadas
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
 
-        res.status(201).json({
+        return res.status(201).json({
             mensaje: "Publicación creada",
             publicacion: formatearPublicacion(
                 nuevaPublicacion,
@@ -119,16 +162,25 @@ async function crearPublicacion(req, res) {
             )
         });
     } catch (error) {
-        if (imagen) await eliminarImagen(imagen).catch(() => {});
+        for (const imagen of imagenesGuardadas) {
+            await eliminarImagen(imagen).catch((errorLimpieza) => {
+                console.error(
+                    "No se pudo limpiar una imagen:",
+                    errorLimpieza
+                );
+            });
+        }
 
         console.error("Error al crear publicación:", error);
-        res.status(500).json({
+
+        return res.status(500).json({
             mensaje: "Error al crear la publicación"
         });
     }
 }
 
-// PUT /api/publicaciones/:id (solo el autor)
+// PUT /api/publicaciones/:id
+// Editar publicación y sus imágenes.
 async function actualizarPublicacion(req, res) {
     const imagenesNuevas = [];
 
@@ -147,7 +199,11 @@ async function actualizarPublicacion(req, res) {
             });
         }
 
-        const { texto, grupo, imagenesEliminadas } = req.body || {};
+        const {
+            texto,
+            grupo,
+            imagenesEliminadas
+        } = req.body || {};
 
         if (texto !== undefined) {
             if (typeof texto !== "string" || !texto.trim()) {
@@ -169,7 +225,7 @@ async function actualizarPublicacion(req, res) {
             publicacion.grupo = grupo;
         }
 
-        // Compatibilidad con publicaciones antiguas que solo tenían "imagen".
+        // Compatibilidad con publicaciones antiguas.
         const actuales = publicacion.imagenes?.length
             ? [...publicacion.imagenes]
             : (publicacion.imagen ? [publicacion.imagen] : []);
@@ -182,7 +238,9 @@ async function actualizarPublicacion(req, res) {
 
                 if (
                     !Array.isArray(eliminadas) ||
-                    !eliminadas.every((imagen) => typeof imagen === "string")
+                    !eliminadas.every(
+                        (imagen) => typeof imagen === "string"
+                    )
                 ) {
                     return res.status(400).json({
                         mensaje: "La lista de imágenes eliminadas no es válida"
@@ -195,28 +253,29 @@ async function actualizarPublicacion(req, res) {
             }
         }
 
-        // Solo se eliminan referencias que pertenecen a esta publicación.
         const restantes = actuales.filter(
             (imagen) => !eliminadas.includes(imagen)
         );
 
-        for (const archivo of req.files || []) {
-            imagenesNuevas.push(
-                await guardarImagen(archivo, req.usuario.id)
-            );
-        }
+        const archivos = req.files || [];
 
-        const resultado = [...restantes, ...imagenesNuevas];
-
-        if (resultado.length > 10) {
-            for (const imagen of imagenesNuevas) {
-                await eliminarImagen(imagen).catch(() => {});
-            }
-
+        // Comprobar el límite antes de guardar archivos.
+        if (restantes.length + archivos.length > 10) {
             return res.status(400).json({
                 mensaje: "Una publicación puede tener máximo 10 imágenes"
             });
         }
+
+        for (const archivo of archivos) {
+            const imagen = await guardarImagen(
+                archivo,
+                req.usuario.id
+            );
+
+            imagenesNuevas.push(imagen);
+        }
+
+        const resultado = [...restantes, ...imagenesNuevas];
 
         const anterioresEliminadas = actuales.filter(
             (imagen) => eliminadas.includes(imagen)
@@ -225,23 +284,28 @@ async function actualizarPublicacion(req, res) {
         try {
             publicacion.imagenes = resultado;
             publicacion.imagen = "";
+
             await publicacion.save();
         } catch (error) {
             for (const imagen of imagenesNuevas) {
                 await eliminarImagen(imagen).catch(() => {});
             }
+
             throw error;
         }
 
         for (const imagen of anterioresEliminadas) {
             await eliminarImagen(imagen).catch((error) => {
-                console.error("No se pudo eliminar una imagen:", error);
+                console.error(
+                    "No se pudo eliminar una imagen:",
+                    error
+                );
             });
         }
 
         await publicacion.populate("autor", CAMPOS_AUTOR);
 
-        res.json({
+        return res.json({
             mensaje: "Publicación actualizada",
             publicacion: formatearPublicacion(
                 publicacion,
@@ -250,14 +314,14 @@ async function actualizarPublicacion(req, res) {
         });
     } catch (error) {
         console.error("Error al actualizar publicación:", error);
-        res.status(500).json({
+
+        return res.status(500).json({
             mensaje: "Error al actualizar la publicación"
         });
     }
 }
 
-
-// DELETE /api/publicaciones/:id  (solo el autor)
+// DELETE /api/publicaciones/:id
 async function eliminarPublicacion(req, res) {
     try {
         const publicacion = await buscarPorId(req.params.id);
@@ -282,21 +346,26 @@ async function eliminarPublicacion(req, res) {
 
         for (const imagen of imagenes) {
             await eliminarImagen(imagen).catch((error) => {
-                console.error("No se pudo eliminar una imagen:", error);
+                console.error(
+                    "No se pudo eliminar una imagen:",
+                    error
+                );
             });
         }
 
-        res.json({ mensaje: "Publicación eliminada" });
+        return res.json({
+            mensaje: "Publicación eliminada"
+        });
     } catch (error) {
         console.error("Error al eliminar publicación:", error);
-        res.status(500).json({
+
+        return res.status(500).json({
             mensaje: "Error al eliminar la publicación"
         });
     }
 }
 
-// POST /api/publicaciones/:id/like  (da o quita el like)
-
+// POST /api/publicaciones/:id/like
 async function alternarLike(req, res) {
     try {
         const publicacion = await buscarPorId(req.params.id);
@@ -322,7 +391,7 @@ async function alternarLike(req, res) {
 
         await publicacion.save();
 
-        // Crear notificación solo al dar like a otra persona.
+        // Notificar solo cuando alguien da like a otra persona.
         if (!yaTieneLike && idUsuario !== idAutor) {
             try {
                 await Notificacion.create({
@@ -333,14 +402,16 @@ async function alternarLike(req, res) {
                     enlace: `/publicaciones/${publicacion._id}`
                 });
             } catch (error) {
-                // Un fallo de notificaciones no debe impedir el like.
-                console.error("Error al crear notificación:", error);
+                console.error(
+                    "Error al crear notificación:",
+                    error
+                );
             }
         }
 
         await publicacion.populate("autor", CAMPOS_AUTOR);
 
-        res.json({
+        return res.json({
             publicacion: formatearPublicacion(
                 publicacion,
                 req.usuario.id
@@ -348,12 +419,420 @@ async function alternarLike(req, res) {
         });
     } catch (error) {
         console.error("Error al dar like:", error);
-        res.status(500).json({
+
+        return res.status(500).json({
             mensaje: "Error al dar like"
         });
     }
 }
 
+
+// POST /api/publicaciones/:id/comentarios
+async function agregarComentario(req, res) {
+    try {
+        const publicacion = await Publicacion.findById(req.params.id);
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        const texto = (req.body.texto || "").trim();
+
+        if (!texto) {
+            return res.status(400).json({
+                mensaje: "El comentario no puede estar vacío"
+            });
+        }
+
+        if (texto.length > 500) {
+            return res.status(400).json({
+                mensaje: "El comentario no puede superar los 500 caracteres"
+            });
+        }
+
+        const comentario = await Comentario.create({
+            publicacion: publicacion._id,
+            autor: req.usuario.id,
+            texto
+        });
+
+        await comentario.populate("autor", CAMPOS_AUTOR);
+
+        const autor = comentario.autor;
+
+        return res.status(201).json({
+            mensaje: "Comentario publicado",
+
+            comentario: {
+                id: String(comentario._id),
+                texto: comentario.texto,
+                fecha: comentario.fecha,
+
+                autor: {
+                    id: String(autor._id),
+                    nombre: autor.nombre,
+                    username: autor.username,
+                    fotoPerfil: autor.fotoPerfil
+                },
+
+                likes: [],
+                totalLikes: 0,
+                meGusta: false,
+                respuestas: []
+            },
+
+            totalComentarios: await Comentario.countDocuments({
+                publicacion: publicacion._id
+            })
+        });
+
+    } catch (error) {
+        console.error("Error al agregar comentario:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al publicar el comentario"
+        });
+    }
+}
+// GET /api/publicaciones/:id/comentarios
+async function listarComentarios(req, res) {
+    try {
+        const publicacion = await Publicacion.findById(req.params.id)
+            .select("_id");
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        const idUsuarioActual = String(req.usuario.id);
+
+        const comentariosDB = await Comentario.find({
+            publicacion: publicacion._id
+        })
+            .sort({ fecha: 1 })
+            .populate("autor", CAMPOS_AUTOR);
+
+        const idsComentarios = comentariosDB.map(
+            (comentario) => comentario._id
+        );
+
+        const respuestasDB = await Respuesta.find({
+            comentario: { $in: idsComentarios }
+        })
+            .sort({ fecha: 1 })
+            .populate("autor", CAMPOS_AUTOR)
+            .populate("mencionado", CAMPOS_AUTOR);
+
+        const formatearAutor = (autor) => {
+            if (!autor) return null;
+
+            return {
+                id: String(autor._id),
+                nombre: autor.nombre,
+                username: autor.username,
+                fotoPerfil: autor.fotoPerfil
+            };
+        };
+
+        const respuestasPorComentario = new Map();
+
+        for (const respuesta of respuestasDB) {
+            const idComentario = String(respuesta.comentario);
+
+            if (!respuestasPorComentario.has(idComentario)) {
+                respuestasPorComentario.set(idComentario, []);
+            }
+
+            const likes = respuesta.likes || [];
+
+            respuestasPorComentario.get(idComentario).push({
+                id: String(respuesta._id),
+                texto: respuesta.texto,
+                fecha: respuesta.fecha,
+                autor: formatearAutor(respuesta.autor),
+
+                responderA: respuesta.responderA
+                    ? String(respuesta.responderA)
+                    : null,
+
+                mencionado: formatearAutor(respuesta.mencionado),
+
+                likes: likes.map((id) => String(id)),
+                totalLikes: likes.length,
+
+                meGusta: likes.some(
+                    (id) => String(id) === idUsuarioActual
+                )
+            });
+        }
+
+        const comentarios = comentariosDB.map((comentario) => {
+            const likes = comentario.likes || [];
+
+            return {
+                id: String(comentario._id),
+                texto: comentario.texto,
+                fecha: comentario.fecha,
+                autor: formatearAutor(comentario.autor),
+
+                likes: likes.map((id) => String(id)),
+                totalLikes: likes.length,
+
+                meGusta: likes.some(
+                    (id) => String(id) === idUsuarioActual
+                ),
+
+                respuestas:
+                    respuestasPorComentario.get(
+                        String(comentario._id)
+                    ) || []
+            };
+        });
+
+        return res.json({
+            comentarios,
+            totalComentarios: comentarios.length
+        });
+
+    } catch (error) {
+        console.error("Error al listar comentarios:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al obtener los comentarios"
+        });
+    }
+}
+
+// POST /api/publicaciones/:id/comentarios/:comentarioId/like
+async function alternarLikeComentario(req, res) {
+    try {
+        const { id, comentarioId } = req.params;
+
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: id
+        });
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        const idUsuario = String(req.usuario.id);
+
+        const yaTieneLike = comentario.likes.some(
+            (id) => String(id) === idUsuario
+        );
+
+        if (yaTieneLike) {
+            comentario.likes.pull(req.usuario.id);
+        } else {
+            comentario.likes.push(req.usuario.id);
+        }
+
+        await comentario.save();
+
+        return res.json({
+            mensaje: yaTieneLike
+                ? "Like eliminado"
+                : "Like agregado",
+
+            comentario: {
+                id: String(comentario._id),
+                totalLikes: comentario.likes.length,
+                meGusta: !yaTieneLike
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al dar like al comentario:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al dar like al comentario"
+        });
+    }
+}
+
+
+// POST /api/publicaciones/:id/comentarios/:comentarioId/respuestas
+async function agregarRespuesta(req, res) {
+    try {
+        const { id, comentarioId } = req.params;
+
+        const publicacion = await Publicacion.findById(id).select("_id");
+
+        if (!publicacion) {
+            return res.status(404).json({
+                mensaje: "Publicación no encontrada"
+            });
+        }
+
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: publicacion._id
+        });
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        const texto = (req.body.texto || "").trim();
+
+        if (!texto) {
+            return res.status(400).json({
+                mensaje: "La respuesta no puede estar vacía"
+            });
+        }
+
+        if (texto.length > 500) {
+            return res.status(400).json({
+                mensaje: "La respuesta no puede superar los 500 caracteres"
+            });
+        }
+
+        const responderA = req.body.responderA || null;
+
+        let mencionado = comentario.autor;
+
+        if (responderA) {
+            const respuestaObjetivo = await Respuesta.findOne({
+                _id: responderA,
+                comentario: comentario._id
+            });
+
+            if (!respuestaObjetivo) {
+                return res.status(404).json({
+                    mensaje: "La respuesta a la que intentas contestar no existe"
+                });
+            }
+
+            mencionado = respuestaObjetivo.autor;
+        }
+
+        const respuesta = await Respuesta.create({
+            comentario: comentario._id,
+            publicacion: publicacion._id,
+            autor: req.usuario.id,
+            texto,
+            responderA,
+            mencionado
+        });
+
+        await respuesta.populate([
+            {
+                path: "autor",
+                select: CAMPOS_AUTOR
+            },
+            {
+                path: "mencionado",
+                select: CAMPOS_AUTOR
+            }
+        ]);
+
+        const formatearAutor = (autor) => {
+            if (!autor) return null;
+
+            return {
+                id: String(autor._id),
+                nombre: autor.nombre,
+                username: autor.username,
+                fotoPerfil: autor.fotoPerfil
+            };
+        };
+
+        return res.status(201).json({
+            mensaje: "Respuesta publicada",
+
+            respuesta: {
+                id: String(respuesta._id),
+                texto: respuesta.texto,
+                fecha: respuesta.fecha,
+                autor: formatearAutor(respuesta.autor),
+
+                responderA: respuesta.responderA
+                    ? String(respuesta.responderA)
+                    : null,
+
+                mencionado: formatearAutor(respuesta.mencionado),
+
+                likes: [],
+                totalLikes: 0,
+                meGusta: false
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al agregar respuesta:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al publicar la respuesta"
+        });
+    }
+}
+
+
+// POST /api/publicaciones/:id/comentarios/:comentarioId/respuestas/:respuestaId/like
+async function alternarLikeRespuesta(req, res) {
+    try {
+        const {
+            id,
+            comentarioId,
+            respuestaId
+        } = req.params;
+
+        const respuesta = await Respuesta.findOne({
+            _id: respuestaId,
+            comentario: comentarioId,
+            publicacion: id
+        });
+
+        if (!respuesta) {
+            return res.status(404).json({
+                mensaje: "Respuesta no encontrada"
+            });
+        }
+
+        const idUsuario = String(req.usuario.id);
+
+        const yaTieneLike = respuesta.likes.some(
+            (id) => String(id) === idUsuario
+        );
+
+        if (yaTieneLike) {
+            respuesta.likes.pull(req.usuario.id);
+        } else {
+            respuesta.likes.push(req.usuario.id);
+        }
+
+        await respuesta.save();
+
+        return res.json({
+            mensaje: yaTieneLike
+                ? "Like eliminado"
+                : "Like agregado",
+
+            respuesta: {
+                id: String(respuesta._id),
+                totalLikes: respuesta.likes.length,
+                meGusta: !yaTieneLike
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al dar like a la respuesta:", error);
+
+        return res.status(500).json({
+            mensaje: "Error al dar like a la respuesta"
+        });
+    }
+}
 
 module.exports = {
     CAMPOS_AUTOR,
@@ -363,5 +842,10 @@ module.exports = {
     crearPublicacion,
     actualizarPublicacion,
     eliminarPublicacion,
-    alternarLike
+    alternarLike,
+    listarComentarios,
+    agregarComentario,
+    agregarRespuesta,
+    alternarLikeComentario,
+    alternarLikeRespuesta
 };

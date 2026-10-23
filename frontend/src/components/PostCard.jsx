@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
@@ -6,6 +5,8 @@ import { UserAvatar } from "./Avatar";
 import Icon from "./Icon";
 import Photo from "./Photo";
 import { timeAgo } from "../utils/format";
+
+const MAX_IMAGES = 10;
 
 export default function PostCard({ post, onChange, onDelete }) {
   const author = post.autor;
@@ -18,6 +19,24 @@ export default function PostCard({ post, onChange, onDelete }) {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
+  // Estado y lógica de comentarios
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+
+  // Estado y lógica de respuestas
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+
+  const keptImagesCount = images.filter(
+    (image) => !removedImages.includes(image)
+  ).length;
+
+  const availableSlots = Math.max(0, MAX_IMAGES - keptImagesCount);
+
   async function handleLike() {
     onChange({
       ...post,
@@ -29,6 +48,7 @@ export default function PostCard({ post, onChange, onDelete }) {
       const data = await apiRequest(`/publicaciones/${post.id}/like`, {
         method: "POST",
       });
+
       onChange(data.publicacion);
     } catch (error) {
       onChange(post);
@@ -43,6 +63,7 @@ export default function PostCard({ post, onChange, onDelete }) {
       await apiRequest(`/publicaciones/${post.id}`, {
         method: "DELETE",
       });
+
       onDelete(post.id);
     } catch (error) {
       alert(error.message);
@@ -70,15 +91,80 @@ export default function PostCard({ post, onChange, onDelete }) {
         ? current.filter((item) => item !== image)
         : [...current, image]
     );
+
+    setEditError("");
+  }
+
+  function handlePhotoSelection(event) {
+    const selected = Array.from(event.target.files || []);
+
+    // Permite volver a elegir el mismo archivo.
+    event.target.value = "";
+
+    setPhotos((current) => {
+      const combined = [...current];
+
+      const slots = Math.max(
+        0,
+        MAX_IMAGES -
+          images.filter(
+            (image) => !removedImages.includes(image)
+          ).length
+      );
+
+      let exceededLimit = false;
+
+      for (const file of selected) {
+        const duplicate = combined.some(
+          (item) =>
+            item.name === file.name &&
+            item.size === file.size &&
+            item.lastModified === file.lastModified
+        );
+
+        if (duplicate) continue;
+
+        if (combined.length < slots) {
+          combined.push(file);
+        } else {
+          exceededLimit = true;
+        }
+      }
+
+      setEditError(
+        exceededLimit
+          ? "La publicación admite máximo 10 fotos en total."
+          : ""
+      );
+
+      return combined;
+    });
+  }
+
+  function removeNewPhoto(index) {
+    setPhotos((current) => current.filter((_, i) => i !== index));
+    setEditError("");
   }
 
   async function handleSaveEdit(event) {
     event.preventDefault();
+
+    if (!texto.trim()) {
+      setEditError("La publicación no puede estar vacía.");
+      return;
+    }
+
+    if (keptImagesCount + photos.length > MAX_IMAGES) {
+      setEditError("La publicación admite máximo 10 fotos en total.");
+      return;
+    }
+
     setSaving(true);
     setEditError("");
 
     try {
       const body = new FormData();
+
       body.append("texto", texto.trim());
       body.append("imagenesEliminadas", JSON.stringify(removedImages));
 
@@ -102,8 +188,170 @@ export default function PostCard({ post, onChange, onDelete }) {
     }
   }
 
-  return (
-    <article className="card post">
+  async function toggleComments() {
+    const shouldOpen = !commentsOpen;
+    setCommentsOpen(shouldOpen);
+
+    if (!shouldOpen) return;
+
+    setLoadingComments(true);
+
+    try {
+      const data = await apiRequest(`/publicaciones/${post.id}/comentarios`);
+      setComments(data.comentarios || []);
+    } catch (error) {
+      alert(error.message || "No se pudieron cargar los comentarios.");
+    } finally {
+      setLoadingComments(false);
+    }
+  }
+
+  async function handleCommentSubmit(event) {
+    event.preventDefault();
+
+    const textoComentario = commentText.trim();
+    if (!textoComentario || sendingComment) return;
+
+    setSendingComment(true);
+
+    try {
+      const data = await apiRequest(`/publicaciones/${post.id}/comentarios`, {
+        method: "POST",
+        body: { texto: textoComentario },
+      });
+
+      if (data.comentario) {
+        setComments((current) => [...current, data.comentario]);
+      }
+
+      setCommentText("");
+
+      onChange({
+        ...post,
+        totalComentarios:
+          data.totalComentarios ?? (post.totalComentarios || 0) + 1,
+      });
+    } catch (error) {
+      alert(error.message || "No se pudo publicar el comentario.");
+    } finally {
+      setSendingComment(false);
+    }
+  }
+
+  // Dar o quitar like a un comentario.
+  async function handleCommentLike(comment) {
+    try {
+      const data = await apiRequest(
+        `/publicaciones/${post.id}/comentarios/${comment.id}/like`,
+        { method: "POST" }
+      );
+
+      setComments((current) =>
+        current.map((item) =>
+          item.id === comment.id
+            ? {
+                ...item,
+                totalLikes: data.comentario.totalLikes,
+                meGusta: data.comentario.meGusta,
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      alert(error.message || "No se pudo dar like al comentario.");
+    }
+  }
+
+  // Dar o quitar like a una respuesta.
+  async function handleReplyLike(comment, reply) {
+    try {
+      const data = await apiRequest(
+        `/publicaciones/${post.id}/comentarios/${comment.id}/respuestas/${reply.id}/like`,
+        { method: "POST" }
+      );
+
+      setComments((current) =>
+        current.map((item) =>
+          item.id !== comment.id
+            ? item
+            : {
+                ...item,
+                respuestas: (item.respuestas || []).map((answer) =>
+                  answer.id === reply.id
+                    ? {
+                        ...answer,
+                        totalLikes: data.respuesta.totalLikes,
+                        meGusta: data.respuesta.meGusta,
+                      }
+                    : answer
+                ),
+              }
+        )
+      );
+    } catch (error) {
+      alert(error.message || "No se pudo dar like a la respuesta.");
+    }
+  }
+
+  // Preparar una respuesta y mencionar al usuario.
+  function startReply(comment, reply = null) {
+    const target = reply || comment;
+    const username = target.autor?.username || "";
+
+    setReplyingTo({
+      commentId: comment.id,
+      targetId: reply?.id || null,
+    });
+
+    setReplyText(username ? `@${username} ` : "");
+  }
+
+  // Publicar una respuesta.
+  async function handleReplySubmit(event) {
+    event.preventDefault();
+
+    if (!replyingTo || !replyText.trim() || sendingReply) return;
+
+    setSendingReply(true);
+
+    try {
+      const data = await apiRequest(
+        `/publicaciones/${post.id}/comentarios/${replyingTo.commentId}/respuestas`,
+        {
+          method: "POST",
+          body: {
+            texto: replyText.trim(),
+            responderA: replyingTo.targetId,
+          },
+        }
+      );
+
+      if (data.respuesta) {
+        setComments((current) =>
+          current.map((comment) =>
+            comment.id === replyingTo.commentId
+              ? {
+                  ...comment,
+                  respuestas: [
+                    ...(comment.respuestas || []),
+                    data.respuesta,
+                  ],
+                }
+              : comment
+          )
+        );
+      }
+
+      setReplyText("");
+      setReplyingTo(null);
+    } catch (error) {
+      alert(error.message || "No se pudo publicar la respuesta.");
+    } finally {
+      setSendingReply(false);
+    }
+  }
+
+  return (    <article className="card post">
       <div className="post-head">
         <Link to={`/perfil/${author.username}`}>
           <UserAvatar user={author} />
@@ -141,7 +389,6 @@ export default function PostCard({ post, onChange, onDelete }) {
               marginLeft: "auto",
             }}
           >
-            {/* Botón de editar corregido */}
             <button
               type="button"
               className="icon-btn"
@@ -175,9 +422,7 @@ export default function PostCard({ post, onChange, onDelete }) {
       {editing ? (
         <form onSubmit={handleSaveEdit} className="post-edit-form">
           <div className="field">
-            <label htmlFor={`post-text-${post.id}`}>
-              Texto
-            </label>
+            <label htmlFor={`post-text-${post.id}`}>Texto</label>
 
             <textarea
               id={`post-text-${post.id}`}
@@ -188,7 +433,6 @@ export default function PostCard({ post, onChange, onDelete }) {
               required
             />
           </div>
-          
 
           {images.length > 0 && (
             <div className="field">
@@ -210,6 +454,7 @@ export default function PostCard({ post, onChange, onDelete }) {
                         type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => toggleRemoveImage(image)}
+                        disabled={saving}
                       >
                         {removed ? "Conservar" : "Quitar"}
                       </button>
@@ -230,24 +475,52 @@ export default function PostCard({ post, onChange, onDelete }) {
               type="file"
               accept="image/*"
               multiple
-              onChange={(event) => {
-                setPhotos(Array.from(event.target.files || []));
-              }}
+              onChange={handlePhotoSelection}
+              disabled={saving || availableSlots === 0}
             />
 
             <small>
-              Las fotos nuevas se agregarán a las que conserves.
+              Puedes añadir fotos en varias selecciones. Tienes espacio
+              para {availableSlots} foto(s) nueva(s).
             </small>
           </div>
 
           {photos.length > 0 && (
-            <p>
-              {photos.length} foto(s) nueva(s) seleccionada(s).
-            </p>
+            <div className="field">
+              <label>
+                Fotos nuevas seleccionadas ({photos.length})
+              </label>
+
+              {photos.map((photo, index) => (
+                <div
+                  key={`${photo.name}-${photo.lastModified}-${index}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
+                >
+                  <span>{photo.name}</span>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => removeNewPhoto(index)}
+                    disabled={saving}
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
 
           {editError && (
-            <p className="form-error">{editError}</p>
+            <p className="form-error" role="alert">
+              {editError}
+            </p>
           )}
 
           <div
@@ -293,6 +566,7 @@ export default function PostCard({ post, onChange, onDelete }) {
 
       <div className="post-actions">
         <button
+          type="button"
           className={`post-action-btn like-btn ${
             post.meGusta ? "liked" : ""
           }`}
@@ -307,14 +581,232 @@ export default function PostCard({ post, onChange, onDelete }) {
           <span className="count">{post.totalLikes}</span>
         </button>
 
-        <button type="button" className="post-action-btn">
-          <Icon name="comment" size={16} /> {post.totalComentarios}
+        <button
+          type="button"
+          className="post-action-btn"
+          onClick={toggleComments}
+          aria-expanded={commentsOpen}
+          aria-label={`${commentsOpen ? "Ocultar" : "Ver"} comentarios`}
+        >
+          <Icon name="comment" size={16} />
+          <span className="count">
+            {post.totalComentarios || 0}
+          </span>
         </button>
 
         <button type="button" className="post-action-btn">
           <Icon name="share" size={16} /> Compartir
         </button>
       </div>
+
+      {commentsOpen && (
+        <section className="post-comments" aria-label="Comentarios">
+          {loadingComments ? (
+            <p className="post-comments-empty">
+              Cargando comentarios...
+            </p>
+          ) : (
+            <div className="post-comments-list">
+              {comments.length === 0 ? (
+                <p className="post-comments-empty">
+                  Todavía no hay comentarios. ¡Sé el primero!
+                </p>
+              ) : (
+                comments.map((comment) => (
+                  <div className="post-comment" key={comment.id}>
+                    {comment.autor && (
+                      <UserAvatar
+                        user={comment.autor}
+                        size={32}
+                      />
+                    )}
+
+                    <div className="post-comment-content">
+                      <div className="post-comment-bubble">
+                        <strong>
+                          {comment.autor?.nombre ||
+                            comment.autor?.username ||
+                            "Usuario"}
+                        </strong>
+
+                        <p>{comment.texto}</p>
+                      </div>
+
+                      <small>
+                        {comment.fecha
+                          ? timeAgo(comment.fecha)
+                          : "Ahora"}
+                      </small>
+
+                      {/* Acciones del comentario */}
+                      <div className="comment-interactions">
+                        <button
+                          type="button"
+                          className={`comment-interaction-btn ${
+                            comment.meGusta ? "liked" : ""
+                          }`}
+                          onClick={() => handleCommentLike(comment)}
+                          aria-label="Dar o quitar like al comentario"
+                        >
+                          ♥ {comment.totalLikes || 0}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="comment-interaction-btn"
+                          onClick={() => startReply(comment)}
+                        >
+                          Responder
+                        </button>
+                      </div>
+
+                      {/* Respuestas del comentario */}
+                      {(comment.respuestas || []).map((reply) => (
+                        <div
+                          className="post-reply"
+                          key={reply.id}
+                        >
+                          {reply.autor && (
+                            <UserAvatar
+                              user={reply.autor}
+                              size={28}
+                            />
+                          )}
+
+                          <div className="post-comment-content">
+                            <div className="post-comment-bubble">
+                              <strong>
+                                {reply.autor?.nombre ||
+                                  reply.autor?.username ||
+                                  "Usuario"}
+                              </strong>
+
+                              <p>
+                                {reply.mencionado?.username && (
+                                  <span className="reply-mention">
+                                    @{reply.mencionado.username}{" "}
+                                  </span>
+                                )}
+
+                                {reply.texto
+                                  ?.replace(/^@\S+\s*/, "")}
+                              </p>
+                            </div>
+
+                            <small>
+                              {reply.fecha
+                                ? timeAgo(reply.fecha)
+                                : "Ahora"}
+                            </small>
+
+                            <div className="comment-interactions">
+                              <button
+                                type="button"
+                                className={`comment-interaction-btn ${
+                                  reply.meGusta ? "liked" : ""
+                                }`}
+                                onClick={() =>
+                                  handleReplyLike(comment, reply)
+                                }
+                                aria-label="Dar o quitar like a la respuesta"
+                              >
+                                ♥ {reply.totalLikes || 0}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="comment-interaction-btn"
+                                onClick={() =>
+                                  startReply(comment, reply)
+                                }
+                              >
+                                Responder
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Formulario para responder al comentario */}
+                      {replyingTo?.commentId === comment.id && (
+                        <form
+                          className="post-reply-form"
+                          onSubmit={handleReplySubmit}
+                        >
+                          <input
+                            type="text"
+                            value={replyText}
+                            onChange={(event) =>
+                              setReplyText(event.target.value)
+                            }
+                            placeholder="Escribe una respuesta..."
+                            maxLength={500}
+                            disabled={sendingReply}
+                            aria-label="Escribe una respuesta"
+                            autoFocus
+                          />
+
+                          <button
+                            type="submit"
+                            className="btn btn-primary btn-sm"
+                            disabled={
+                              sendingReply || !replyText.trim()
+                            }
+                          >
+                            {sendingReply
+                              ? "Enviando..."
+                              : "Responder"}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              setReplyingTo(null);
+                              setReplyText("");
+                            }}
+                            disabled={sendingReply}
+                          >
+                            Cancelar
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Formulario para publicar un comentario */}
+          <form
+            className="post-comment-form"
+            onSubmit={handleCommentSubmit}
+          >
+            <input
+              type="text"
+              value={commentText}
+              onChange={(event) =>
+                setCommentText(event.target.value)
+              }
+              placeholder="Escribe un comentario..."
+              maxLength={500}
+              disabled={sendingComment}
+              aria-label="Escribe un comentario"
+            />
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={
+                sendingComment || !commentText.trim()
+              }
+            >
+              {sendingComment ? "Enviando..." : "Enviar"}
+            </button>
+          </form>
+        </section>
+      )}
     </article>
   );
 }
