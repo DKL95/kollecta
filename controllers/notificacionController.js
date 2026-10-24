@@ -110,7 +110,8 @@ async function crearNotificacion({
         "comentario",
         "seguidor",
         "sistema",
-        "solicitud_amistad"
+        "solicitud_amistad",
+        "mencion"
     ];
 
     if (!tiposPermitidos.includes(tipo)) {

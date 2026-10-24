@@ -20,7 +20,8 @@ const notificacionSchema = new mongoose.Schema(
                 "comentario",
                 "seguidor",
                 "sistema",
-                "solicitud_amistad"
+                "solicitud_amistad",
+                "mencion"
             ],
             required: true
         },

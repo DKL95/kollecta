@@ -11,8 +11,103 @@ const Comentario = require("../models/Comentario");
 const Respuesta = require("../models/Respuesta");
 
 const Notificacion = require("../models/Notificacion");
+const Usuario = require("../models/Usuario");
 
 const CAMPOS_AUTOR = "nombre username fotoPerfil";
+
+// Detectar menciones y crear sus notificaciones.
+async function notificarMenciones(texto, emisorId, enlace, contexto) {
+    try {
+        console.log("🔎 Texto recibido:", texto);
+        console.log("👤 ID del emisor:", String(emisorId));
+
+        // Detectar menciones como @cgl, incluso después de signos de puntuación.
+        const coincidencias = [
+            ...String(texto || "").matchAll(
+                /@([a-zA-Z0-9_.-]+)/g
+            )
+        ];
+
+        const usernames = [
+            ...new Set(
+                coincidencias.map((coincidencia) =>
+                    coincidencia[1].toLowerCase()
+                )
+            )
+        ];
+
+        console.log("🏷️ Usuarios detectados:", usernames);
+
+        if (usernames.length === 0) {
+            console.log("⚠️ No se detectaron menciones.");
+            return;
+        }
+
+        // Buscar usuarios sin distinguir entre mayúsculas y minúsculas.
+        const usuarios = await Usuario.find({
+            activo: true,
+            username: {
+                $in: usernames.map(
+                    (username) => new RegExp(
+                        "^" + username.replace(
+                            /[.*+?^${}()|[\]\\]/g,
+                            "\\$&"
+                        ) + "$",
+                        "i"
+                    )
+                )
+            }
+        }).select("_id username");
+
+        console.log(
+            "👥 Usuarios encontrados:",
+            usuarios.map((usuario) => ({
+                id: String(usuario._id),
+                username: usuario.username
+            }))
+        );
+
+        for (const usuario of usuarios) {
+            if (String(usuario._id) === String(emisorId)) {
+                console.log(
+                    "⏭️ Se omite la notificación al propio usuario:",
+                    usuario.username
+                );
+                continue;
+            }
+
+            const notificacion = await Notificacion.create({
+                destinatario: usuario._id,
+                emisor: emisorId,
+                tipo: "mencion",
+                mensaje: `Te mencionaron en ${contexto}.`,
+                enlace
+            });
+
+            console.log(
+                "✅ Notificación creada:",
+                String(notificacion._id),
+                "para @",
+                usuario.username
+            );
+        }
+    } catch (error) {
+        console.error(
+            "❌ Error al notificar menciones:",
+            error
+        );
+    }
+}
+
+// Cuenta comentarios principales y todas sus respuestas como interacciones.
+async function contarInteracciones(publicacionId) {
+    const [totalComentarios, totalRespuestas] = await Promise.all([
+        Comentario.countDocuments({ publicacion: publicacionId }),
+        Respuesta.countDocuments({ publicacion: publicacionId })
+    ]);
+
+    return totalComentarios + totalRespuestas;
+}
 
 // Da forma a una publicación para el frontend.
 async function formatearPublicacion(publicacion, idUsuarioActual) {
@@ -22,10 +117,8 @@ async function formatearPublicacion(publicacion, idUsuarioActual) {
         ? publicacion.imagenes
         : (publicacion.imagen ? [publicacion.imagen] : []);
 
-    // Obtener el total desde la colección independiente.
-    const totalComentarios = await Comentario.countDocuments({
-        publicacion: publicacion._id
-    });
+    // El contador incluye comentarios principales y respuestas.
+    const totalComentarios = await contarInteracciones(publicacion._id);
 
     const likes = publicacion.likes || [];
 
@@ -173,6 +266,13 @@ async function crearPublicacion(req, res) {
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
+
+        await notificarMenciones(
+            texto,
+            req.usuario.id,
+            `/publicaciones/${nuevaPublicacion._id}`,
+            "una publicación"
+        );
 
         return res.status(201).json({
             mensaje: "Publicación creada",
@@ -509,6 +609,14 @@ async function agregarComentario(req, res) {
             }
         }
 
+        // NUEVO: detectar menciones y notificar a los usuarios mencionados.
+        await notificarMenciones(
+            texto,
+            req.usuario.id,
+            `/publicaciones/${publicacion._id}`,
+            "un comentario"
+        );
+
         return res.status(201).json({
             mensaje: "Comentario publicado",
 
@@ -530,9 +638,7 @@ async function agregarComentario(req, res) {
                 respuestas: []
             },
 
-            totalComentarios: await Comentario.countDocuments({
-                publicacion: publicacion._id
-            })
+            totalComentarios: await contarInteracciones(publicacion._id)
         });
 
     } catch (error) {
@@ -543,6 +649,7 @@ async function agregarComentario(req, res) {
         });
     }
 }
+
 // GET /api/publicaciones/:id/comentarios
 async function listarComentarios(req, res) {
     try {
@@ -642,7 +749,7 @@ async function listarComentarios(req, res) {
 
         return res.json({
             comentarios,
-            totalComentarios: comentarios.length
+            totalComentarios: await contarInteracciones(publicacion._id)
         });
 
     } catch (error) {
@@ -705,6 +812,83 @@ async function alternarLikeComentario(req, res) {
     }
 }
 
+// POST /api/publicaciones/:id/comentarios/:comentarioId/like
+async function alternarLikeComentario(req, res) {
+    try {
+        const { id, comentarioId } = req.params;
+
+        const comentario = await Comentario.findOne({
+            _id: comentarioId,
+            publicacion: id
+        });
+
+        if (!comentario) {
+            return res.status(404).json({
+                mensaje: "Comentario no encontrado"
+            });
+        }
+
+        const idUsuario = String(req.usuario.id);
+
+        const yaTieneLike = comentario.likes.some(
+            (id) => String(id) === idUsuario
+        );
+
+        // Agregar o quitar el like.
+        if (yaTieneLike) {
+            comentario.likes.pull(req.usuario.id);
+        } else {
+            comentario.likes.push(req.usuario.id);
+        }
+
+        await comentario.save();
+
+        // Crear una notificación únicamente al agregar el like.
+        // No notificar cuando el usuario da like a su propio comentario.
+        if (
+            !yaTieneLike &&
+            String(comentario.autor) !== idUsuario
+        ) {
+            try {
+                await Notificacion.create({
+                    destinatario: comentario.autor,
+                    emisor: req.usuario.id,
+                    tipo: "like",
+                    mensaje: "Le dio me gusta a tu comentario.",
+                    enlace: `/publicaciones/${id}`
+                });
+            } catch (errorNotificacion) {
+                // Un error en la notificación no debe impedir el like.
+                console.error(
+                    "Error al crear notificación de like al comentario:",
+                    errorNotificacion
+                );
+            }
+        }
+
+        return res.json({
+            mensaje: yaTieneLike
+                ? "Like eliminado"
+                : "Like agregado",
+
+            comentario: {
+                id: String(comentario._id),
+                totalLikes: comentario.likes.length,
+                meGusta: !yaTieneLike
+            }
+        });
+
+    } catch (error) {
+        console.error(
+            "Error al dar like al comentario:",
+            error
+        );
+
+        return res.status(500).json({
+            mensaje: "Error al dar like al comentario"
+        });
+    }
+}
 
 // POST /api/publicaciones/:id/comentarios/:comentarioId/respuestas
 async function agregarRespuesta(req, res) {
@@ -783,6 +967,14 @@ async function agregarRespuesta(req, res) {
             }
         ]);
 
+        // Detectar menciones y notificar a los usuarios mencionados.
+        await notificarMenciones(
+            texto,
+            req.usuario.id,
+            `/publicaciones/${publicacion._id}`,
+            "una respuesta"
+        );
+
         const formatearAutor = (autor) => {
             if (!autor) return null;
 
@@ -812,7 +1004,9 @@ async function agregarRespuesta(req, res) {
                 likes: [],
                 totalLikes: 0,
                 meGusta: false
-            }
+            },
+
+            totalComentarios: await contarInteracciones(publicacion._id)
         });
 
     } catch (error) {
@@ -851,6 +1045,7 @@ async function alternarLikeRespuesta(req, res) {
             (id) => String(id) === idUsuario
         );
 
+        // Agregar o quitar el like.
         if (yaTieneLike) {
             respuesta.likes.pull(req.usuario.id);
         } else {
@@ -858,6 +1053,30 @@ async function alternarLikeRespuesta(req, res) {
         }
 
         await respuesta.save();
+
+        // Notificar al autor cuando alguien da like a su respuesta.
+        // No crear notificaciones al quitar un like ni al darse
+        // like a uno mismo.
+        if (
+            !yaTieneLike &&
+            String(respuesta.autor) !== idUsuario
+        ) {
+            try {
+                await Notificacion.create({
+                    destinatario: respuesta.autor,
+                    emisor: req.usuario.id,
+                    tipo: "like",
+                    mensaje: "Le dio me gusta a tu respuesta.",
+                    enlace: `/publicaciones/${id}`
+                });
+            } catch (errorNotificacion) {
+                // La notificación no debe impedir que funcione el like.
+                console.error(
+                    "Error al crear notificación de like a la respuesta:",
+                    errorNotificacion
+                );
+            }
+        }
 
         return res.json({
             mensaje: yaTieneLike
@@ -872,13 +1091,17 @@ async function alternarLikeRespuesta(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al dar like a la respuesta:", error);
+        console.error(
+            "Error al dar like a la respuesta:",
+            error
+        );
 
         return res.status(500).json({
             mensaje: "Error al dar like a la respuesta"
         });
     }
 }
+
 
 // DELETE /api/publicaciones/:id/comentarios/:comentarioId
 async function eliminarComentario(req, res) {
@@ -955,9 +1178,7 @@ async function eliminarComentario(req, res) {
             mensaje: "Comentario eliminado correctamente",
             comentarioId: String(comentario._id),
             respuestasEliminadas: idsRespuestas.size,
-            totalComentarios: await Comentario.countDocuments({
-                publicacion: publicacion._id
-            })
+            totalComentarios: await contarInteracciones(publicacion._id)
         });
 
     } catch (error) {
@@ -1082,7 +1303,8 @@ async function eliminarRespuesta(req, res) {
         return res.json({
             mensaje: "Respuesta eliminada correctamente",
             respuestaId: String(respuesta._id),
-            respuestasEliminadas: resultado.deletedCount
+            respuestasEliminadas: resultado.deletedCount,
+            totalComentarios: await contarInteracciones(publicacion._id)
         });
 
     } catch (error) {

@@ -8,22 +8,39 @@ import UserHoverCard from "./UserHoverCard";
 
 const MAX_IMAGES = 10;
 
-// Convierte las menciones @usuario en enlaces con vista previa de perfil.
+// Convierte las menciones @usuario en elementos interactivos con vista previa
+// y acceso al perfil, tanto en publicaciones como en comentarios y respuestas.
 function renderTextWithMentions(text) {
   const value = String(text || "");
-  const parts = value.split(/(^|\s)(@[a-zA-Z0-9_.-]+)/g);
+  const mentionRegex = /(^|[\\s([{,;:!?])(@[a-zA-Z0-9_.-]+)/g;
+  const elements = [];
+  let lastIndex = 0;
+  let match;
+  let index = 0;
 
-  return parts.map((part, index) => {
-    if (/^@[a-zA-Z0-9_.-]+$/.test(part)) {
-      return (
-        <UserHoverCard key={`${part}-${index}`} user={part}>
-          <span className="post-mention">{part}</span>
-        </UserHoverCard>
-      );
+  while ((match = mentionRegex.exec(value)) !== null) {
+    const [, prefix, mention] = match;
+    const mentionStart = match.index + prefix.length;
+
+    // Conserva intacto el texto que aparece antes de la mención.
+    if (mentionStart > lastIndex) {
+      elements.push(value.slice(lastIndex, mentionStart));
     }
 
-    return part;
-  });
+    elements.push(
+      <UserHoverCard key={`mention-${index++}`} user={mention}>
+        <span className="post-mention">{mention}</span>
+      </UserHoverCard>
+    );
+
+    lastIndex = mentionStart + mention.length;
+  }
+
+  if (lastIndex < value.length) {
+    elements.push(value.slice(lastIndex));
+  }
+
+  return elements;
 }
 
 export default function PostCard({ post, onChange, onDelete }) {
@@ -70,6 +87,18 @@ export default function PostCard({ post, onChange, onDelete }) {
 
   // Estado y lógica de respuestas
   const [replyingTo, setReplyingTo] = useState(null);
+
+  // Las respuestas permanecen ocultas hasta que el usuario las despliega.
+  const [expandedReplies, setExpandedReplies] = useState(() => new Set());
+
+  function toggleReplies(commentId) {
+    setExpandedReplies((current) => {
+      const next = new Set(current);
+      if (next.has(commentId)) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+  }
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
@@ -335,11 +364,14 @@ export default function PostCard({ post, onChange, onDelete }) {
 
     setReplyText("");
 
+    // Se elimina el comentario y todas sus respuestas.
+    const totalEliminados = 1 + (comment.respuestas || []).length;
+
     onChange({
       ...post,
       totalComentarios: Math.max(
         0,
-        (post.totalComentarios || 0) - 1
+        (post.totalComentarios || 0) - totalEliminados
       ),
     });
   } catch (error) {
@@ -412,6 +444,15 @@ async function handleDeleteReply(comment, reply) {
     ) {
       setReplyText("");
     }
+
+    // Resta la respuesta eliminada y todas sus respuestas dependientes.
+    onChange({
+      ...post,
+      totalComentarios: Math.max(
+        0,
+        (post.totalComentarios || 0) - idsEliminar.size
+      ),
+    });
   } catch (error) {
     alert(error.message || "No se pudo eliminar la respuesta.");
   }
@@ -605,6 +646,14 @@ async function handleDeleteReply(comment, reply) {
 
       setReplyText("");
       setReplyingTo(null);
+
+      // Cada respuesta también cuenta como comentario de la publicación.
+      if (data.respuesta) {
+        onChange({
+          ...post,
+          totalComentarios: (post.totalComentarios || 0) + 1,
+        });
+      }
     } catch (error) {
       alert(error.message || "No se pudo publicar la respuesta.");
     } finally {
@@ -936,7 +985,7 @@ async function handleDeleteReply(comment, reply) {
                             </div>
                           </div>
                         ) : (
-                          <p>{comment.texto}</p>
+                          <p>{renderTextWithMentions(comment.texto)}</p>
                         )}
                       </div>
 
@@ -991,8 +1040,23 @@ async function handleDeleteReply(comment, reply) {
                         )}
                       </div>
 
-                      {/* Respuestas del comentario */}
-                      {(comment.respuestas || []).map((reply) => (
+                      {/* Control para mostrar u ocultar las respuestas */}
+                      {(comment.respuestas || []).length > 0 && (
+                        <button
+                          type="button"
+                          className="comment-interaction-btn"
+                          onClick={() => toggleReplies(comment.id)}
+                          aria-expanded={expandedReplies.has(comment.id)}
+                        >
+                          {expandedReplies.has(comment.id)
+                            ? "Ocultar respuestas"
+                            : `Ver respuestas (${comment.respuestas.length})`}
+                        </button>
+                      )}
+
+                      {/* Las respuestas solo aparecen al desplegarlas */}
+                      {expandedReplies.has(comment.id) &&
+                        (comment.respuestas || []).map((reply) => (
                         <div className="post-reply" key={reply.id}>
                           {reply.autor && (
                             <UserHoverCard user={reply.autor}>
