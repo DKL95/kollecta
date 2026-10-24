@@ -54,6 +54,7 @@ export default function PostCard({ post, onChange, onDelete }) {
     String(reply.autor?.id || "") === usuarioActualId;
 
   const [editing, setEditing] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(null);
   const [texto, setTexto] = useState(post.texto || "");
   const [photos, setPhotos] = useState([]);
   const [removedImages, setRemovedImages] = useState([]);
@@ -815,11 +816,20 @@ async function handleDeleteReply(comment, reply) {
           <p className="post-text">{renderTextWithMentions(post.texto)}</p>
 
           {images.length > 0 && (
-            <div className="post-photo-grid">
-              {images.map((image) => (
-                <div key={image} className="post-media">
-                  <Photo src={image} alt={post.texto} />
-                </div>
+            <div className={`post-photo-grid post-photo-grid-count-${Math.min(images.length, 4)}`}>
+              {images.slice(0, 4).map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  className={`post-media post-photo-open ${index === 3 && images.length > 4 ? "post-photo-more" : ""}`}
+                  onClick={() => setPhotoViewerIndex(index)}
+                  aria-label={index === 3 && images.length > 4 ? `Ver ${images.length - 4} fotos más` : `Ver foto ${index + 1}`}
+                >
+                  <Photo src={image} alt={post.texto || `Foto ${index + 1}`} />
+                  {index === 3 && images.length > 4 && (
+                    <span className="post-photo-more-count">+{images.length - 4}</span>
+                  )}
+                </button>
               ))}
             </div>
           )}
@@ -1167,6 +1177,51 @@ async function handleDeleteReply(comment, reply) {
             </button>
           </form>
         </section>
+      )}
+
+      {photoViewerIndex !== null && images.length > 0 && (
+        <div
+          className="post-photo-viewer-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Visor de fotos de la publicación"
+          onClick={() => setPhotoViewerIndex(null)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setPhotoViewerIndex(null);
+            if (event.key === "ArrowRight") setPhotoViewerIndex((current) => (current + 1) % images.length);
+            if (event.key === "ArrowLeft") setPhotoViewerIndex((current) => (current - 1 + images.length) % images.length);
+          }}
+          tabIndex={-1}
+        >
+          <button type="button" className="post-photo-viewer-close" aria-label="Cerrar visor" onClick={() => setPhotoViewerIndex(null)}>×</button>
+          <div className="post-photo-viewer" onClick={(event) => event.stopPropagation()}>
+            <div className="post-photo-viewer-stage">
+              {images.length > 1 && (
+                <button type="button" className="post-photo-viewer-arrow prev" aria-label="Foto anterior" onClick={() => setPhotoViewerIndex((current) => (current - 1 + images.length) % images.length)}>‹</button>
+              )}
+              <img src={images[photoViewerIndex]} alt={post.texto || `Foto ${photoViewerIndex + 1}`} className="post-photo-viewer-image" />
+              {images.length > 1 && (
+                <button type="button" className="post-photo-viewer-arrow next" aria-label="Foto siguiente" onClick={() => setPhotoViewerIndex((current) => (current + 1) % images.length)}>›</button>
+              )}
+              <span className="post-photo-viewer-counter">{photoViewerIndex + 1} / {images.length}</span>
+            </div>
+            <aside className="post-photo-viewer-details">
+              <div className="post-photo-viewer-author">
+                <UserAvatar user={author} size={42} />
+                <div><strong>{author.nombre || author.username || "Usuario"}</strong><small>@{author.username || ""} · {timeAgo(post.fechaCreacion)}</small></div>
+              </div>
+              <div className="post-photo-viewer-caption">{renderTextWithMentions(post.texto)}</div>
+              {post.grupo && <span className="pill pink post-photo-viewer-group">{post.grupo}</span>}
+              <div className="post-photo-viewer-actions">
+                <button type="button" className={`post-action-btn like-btn ${post.meGusta ? "liked" : ""}`} onClick={handleLike}><Icon name={post.meGusta ? "heartFilled" : "heart"} size={16} /> <span>{post.totalLikes}</span> Me gusta</button>
+                <button type="button" className="post-action-btn" onClick={() => { setPhotoViewerIndex(null); toggleComments(); }}><Icon name="comment" size={16} /> Ver comentarios ({post.totalComentarios || 0})</button>
+              </div>
+              <div className="post-photo-viewer-thumbnails">
+                {images.map((image, index) => <button type="button" key={`${image}-thumb-${index}`} className={index === photoViewerIndex ? "active" : ""} onClick={() => setPhotoViewerIndex(index)} aria-label={`Ir a foto ${index + 1}`}><img src={image} alt="" /></button>)}
+              </div>
+            </aside>
+          </div>
+        </div>
       )}
     </article>
   );
