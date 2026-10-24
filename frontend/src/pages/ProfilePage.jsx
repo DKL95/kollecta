@@ -23,17 +23,137 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
 
+  // Estados para las solicitudes de amistad
+  const [friendStatus, setFriendStatus] = useState("none");
+  const [friendRequestId, setFriendRequestId] = useState(null);
+  const [friendLoading, setFriendLoading] = useState(false);
+  const [friendError, setFriendError] = useState("");
+
   useEffect(() => {
     setProfile(null);
     setError("");
     setEditing(false);
-    Promise.all([apiRequest(`/usuarios/${username}`), apiRequest(`/usuarios/${username}/publicaciones`)])
+
+    Promise.all([
+      apiRequest(`/usuarios/${encodeURIComponent(username)}`),
+      apiRequest(`/usuarios/${encodeURIComponent(username)}/publicaciones`)
+    ])
       .then(([profileData, postsData]) => {
         setProfile(profileData.usuario);
         setPosts(postsData.publicaciones);
       })
       .catch((requestError) => setError(requestError.message));
   }, [username]);
+
+  // Consultar el estado de la amistad al entrar en un perfil
+  useEffect(() => {
+    setFriendStatus("none");
+    setFriendRequestId(null);
+    setFriendError("");
+
+    if (isOwnProfile) {
+      return;
+    }
+
+    let cancelled = false;
+
+    apiRequest(`/usuarios/${encodeURIComponent(username)}/amistad`)
+      .then((data) => {
+        if (cancelled) return;
+
+        setFriendStatus(data.estado || "none");
+        setFriendRequestId(data.solicitudId || null);
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setFriendError(requestError.message);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username, isOwnProfile]);
+
+  // Enviar, aceptar, rechazar o cancelar una solicitud
+  async function handleFriendAction(action) {
+    if (friendLoading || !friendRequestActionAllowed(action)) {
+      return;
+    }
+
+    setFriendLoading(true);
+    setFriendError("");
+
+    try {
+      if (action === "send") {
+        const data = await apiRequest(
+          `/usuarios/${encodeURIComponent(username)}/solicitud`,
+          { method: "POST" }
+        );
+
+        setFriendStatus("sent");
+        setFriendRequestId(
+          data.solicitud?._id ||
+          data.solicitud?.id ||
+          data.solicitudId ||
+          null
+        );
+      }
+
+      if (action === "accept") {
+        await apiRequest(`/usuarios/solicitudes/${friendRequestId}/aceptar`, {
+          method: "POST"
+        });
+
+        setFriendStatus("friends");
+        setFriendRequestId(null);
+
+        // Actualizar el contador del perfil que se está mostrando
+        setProfile((current) =>
+          current
+            ? {
+                ...current,
+                totalAmigos: (current.totalAmigos || 0) + 1
+              }
+            : current
+        );
+      }
+
+      if (action === "reject") {
+        await apiRequest(`/usuarios/solicitudes/${friendRequestId}/rechazar`, {
+          method: "POST"
+        });
+
+        setFriendStatus("none");
+        setFriendRequestId(null);
+      }
+
+      if (action === "cancel") {
+        await apiRequest(`/usuarios/solicitudes/${friendRequestId}`, {
+          method: "DELETE"
+        });
+
+        setFriendStatus("none");
+        setFriendRequestId(null);
+      }
+    } catch (requestError) {
+      setFriendError(requestError.message);
+    } finally {
+      setFriendLoading(false);
+    }
+  }
+
+  // Evita acciones que no corresponden al estado actual
+  function friendRequestActionAllowed(action) {
+    if (action === "send") return friendStatus === "none";
+    if (action === "accept" || action === "reject") {
+      return friendStatus === "received" && Boolean(friendRequestId);
+    }
+    if (action === "cancel") {
+      return friendStatus === "sent" && Boolean(friendRequestId);
+    }
+    return false;
+  }
 
   if (error) {
     return (
@@ -60,23 +180,41 @@ export default function ProfilePage() {
     // Las publicaciones ya cargadas traen el nombre y la foto anteriores del autor
     setPosts((current) =>
       current.map((post) =>
-        post.esMia ? { ...post, autor: { ...post.autor, nombre: updatedUser.nombre, fotoPerfil: updatedUser.fotoPerfil } } : post
+        post.esMia
+          ? {
+              ...post,
+              autor: {
+                ...post.autor,
+                nombre: updatedUser.nombre,
+                fotoPerfil: updatedUser.fotoPerfil
+              }
+            }
+          : post
       )
     );
     setEditing(false);
   }
 
   function handlePostChange(updatedPost) {
-    setPosts((current) => current.map((post) => (post.id === updatedPost.id ? updatedPost : post)));
+    setPosts((current) =>
+      current.map((post) =>
+        post.id === updatedPost.id ? updatedPost : post
+      )
+    );
   }
 
   function handlePostDelete(postId) {
-    setPosts((current) => current.filter((post) => post.id !== postId));
+    setPosts((current) =>
+      current.filter((post) => post.id !== postId)
+    );
   }
 
   return (
     <main className="page">
-      <div className="profile-cover" style={{ background: "var(--gradient-brand)" }}>
+      <div
+        className="profile-cover"
+        style={{ background: "var(--gradient-brand)" }}
+      >
         <UserAvatar user={shown} className="cover-avatar" />
       </div>
 
@@ -84,49 +222,197 @@ export default function ProfilePage() {
         <div>
           <h2>{shown.nombre || shown.username}</h2>
           <div className="handle">@{shown.username}</div>
+
           <div className="badges-row">
-            {favoriteGroups[0] && <span className="pill gold">Grupo Principal: {favoriteGroups[0]}</span>}
+            {favoriteGroups[0] && (
+              <span className="pill gold">
+                Grupo Principal: {favoriteGroups[0]}
+              </span>
+            )}
+
             <span className="pill cyan">
-              <Icon name="checkCircle" size={13} /> Miembro desde {new Date(shown.fechaRegistro).toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
+              <Icon name="checkCircle" size={13} /> Miembro desde{" "}
+              {new Date(shown.fechaRegistro).toLocaleDateString("es-MX", {
+                month: "long",
+                year: "numeric"
+              })}
             </span>
           </div>
         </div>
-        {isOwnProfile && (
+
+        {isOwnProfile ? (
           <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn btn-secondary" onClick={() => setEditing(!editing)}>
-              <Icon name="pencil" size={14} /> {editing ? "Cancelar" : "Editar perfil"}
+            <button
+              className="btn btn-secondary"
+              onClick={() => setEditing(!editing)}
+            >
+              <Icon name="pencil" size={14} />{" "}
+              {editing ? "Cancelar" : "Editar perfil"}
             </button>
+
             <Link to="/vender" className="btn btn-primary">
               <Icon name="plus" size={14} /> Publicar
             </Link>
           </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 8
+            }}
+          >
+            {friendStatus === "none" && (
+              <button
+                className="btn btn-primary"
+                onClick={() => handleFriendAction("send")}
+                disabled={friendLoading}
+              >
+                <Icon name="plus" size={14} />{" "}
+                {friendLoading ? "Enviando…" : "Agregar amigo"}
+              </button>
+            )}
+
+            {friendStatus === "sent" && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleFriendAction("cancel")}
+                disabled={friendLoading || !friendRequestId}
+              >
+                {friendLoading ? "Cancelando…" : "Cancelar solicitud"}
+              </button>
+            )}
+
+            {friendStatus === "received" && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleFriendAction("accept")}
+                  disabled={friendLoading || !friendRequestId}
+                >
+                  {friendLoading ? "Procesando…" : "Aceptar solicitud"}
+                </button>
+
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => handleFriendAction("reject")}
+                  disabled={friendLoading || !friendRequestId}
+                >
+                  Rechazar
+                </button>
+              </div>
+            )}
+
+            {friendStatus === "friends" && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn btn-secondary" disabled>
+                  <Icon name="checkCircle" size={14} /> Amigos
+                </button>
+
+                <button
+                  className="btn btn-secondary"
+                  disabled={friendLoading}
+                  onClick={async () => {
+                    const confirmar = window.confirm(
+                      `¿Seguro que quieres eliminar a @${shown.username} de tus amigos?`
+                    );
+
+                    if (!confirmar) return;
+
+                    const otroUsuarioId = profile.id || profile._id;
+
+                    if (!otroUsuarioId) {
+                      setFriendError("No se pudo identificar al usuario.");
+                      return;
+                    }
+
+                    setFriendLoading(true);
+                    setFriendError("");
+
+                    try {
+                      await apiRequest(
+                        `/usuarios/${encodeURIComponent(otroUsuarioId)}/amigo`,
+                        { method: "DELETE" }
+                      );
+
+                      setFriendStatus("none");
+                      setFriendRequestId(null);
+
+                      setProfile((current) =>
+                        current
+                          ? {
+                              ...current,
+                              totalAmigos: Math.max(
+                                0,
+                                (current.totalAmigos || 0) - 1
+                              )
+                            }
+                          : current
+                      );
+                    } catch (requestError) {
+                      setFriendError(requestError.message);
+                    } finally {
+                      setFriendLoading(false);
+                    }
+                  }}
+                >
+                  {friendLoading ? "Procesando…" : "Eliminar amigo"}
+                </button>
+              </div>
+            )}
+
+            {friendError && (
+              <p className="form-error" role="alert">
+                {friendError}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
-      {editing ? <EditProfileForm user={user} onSaved={handleSaved} /> : <p className="profile-bio">{shown.descripcion || "Sin descripción"}</p>}
+      {editing ? (
+        <EditProfileForm user={user} onSaved={handleSaved} />
+      ) : (
+        <p className="profile-bio">
+          {shown.descripcion || "Sin descripción"}
+        </p>
+      )}
 
       <div className="profile-stats">
         <div className="stat">
           <b>{posts.length}</b>
           <span>Publicaciones</span>
         </div>
+
         <div className="stat">
-          <b>{profile.totalAmigos}</b>
+          <b>{profile.totalAmigos ?? 0}</b>
           <span>Amigos</span>
         </div>
+
         <div className="stat">
           <b>{favoriteGroups.length}</b>
           <span>Grupos que sigue</span>
         </div>
+
         <div className="stat">
-          <b>{posts.reduce((total, post) => total + post.totalLikes, 0)}</b>
+          <b>
+            {posts.reduce(
+              (total, post) => total + post.totalLikes,
+              0
+            )}
+          </b>
           <span>Likes recibidos</span>
         </div>
       </div>
 
       <div className="tabs">
         {TABS.map((tab) => (
-          <span key={tab} className={`tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>
+          <span
+            key={tab}
+            className={`tab ${activeTab === tab ? "active" : ""}`}
+            onClick={() => setActiveTab(tab)}
+          >
             {tab}
           </span>
         ))}
@@ -134,9 +420,19 @@ export default function ProfilePage() {
 
       {activeTab === "Publicaciones" && (
         <div style={{ maxWidth: 680 }}>
-          {posts.length === 0 && <EmptyState icon="folder">Aún no hay publicaciones.</EmptyState>}
+          {posts.length === 0 && (
+            <EmptyState icon="folder">
+              Aún no hay publicaciones.
+            </EmptyState>
+          )}
+
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} onChange={handlePostChange} onDelete={handlePostDelete} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onChange={handlePostChange}
+              onDelete={handlePostDelete}
+            />
           ))}
         </div>
       )}
@@ -149,14 +445,25 @@ export default function ProfilePage() {
             ))}
           </div>
         ) : (
-          <EmptyState icon="folder">La colección de @{shown.username} todavía no es pública.</EmptyState>
+          <EmptyState icon="folder">
+            La colección de @{shown.username} todavía no es pública.
+          </EmptyState>
         ))}
 
       {activeTab === "Grupos que sigo" && (
         <div className="badges-row">
-          {favoriteGroups.length === 0 && <EmptyState icon="star">Todavía no sigue a ningún grupo.</EmptyState>}
+          {favoriteGroups.length === 0 && (
+            <EmptyState icon="star">
+              Todavía no sigue a ningún grupo.
+            </EmptyState>
+          )}
+
           {favoriteGroups.map((groupName) => (
-            <Link key={groupName} to={`/grupos/${encodeURIComponent(groupName)}`} className="pill pink">
+            <Link
+              key={groupName}
+              to={`/grupos/${encodeURIComponent(groupName)}`}
+              className="pill pink"
+            >
               {groupName}
             </Link>
           ))}
@@ -203,7 +510,7 @@ function EditProfileForm({ user, onSaved }) {
     try {
       const data = await apiRequest("/usuarios/me", {
         method: "PUT",
-        body,
+        body
       });
 
       onSaved(data.usuario);
@@ -215,10 +522,7 @@ function EditProfileForm({ user, onSaved }) {
   }
 
   return (
-    <form
-      className="card edit-profile-form"
-      onSubmit={handleSubmit}
-    >
+    <form className="card edit-profile-form" onSubmit={handleSubmit}>
       <div className="field">
         <label htmlFor="edit-nombre">Nombre</label>
 

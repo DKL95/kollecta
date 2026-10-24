@@ -109,7 +109,8 @@ async function crearNotificacion({
         "like",
         "comentario",
         "seguidor",
-        "sistema"
+        "sistema",
+        "solicitud_amistad"
     ];
 
     if (!tiposPermitidos.includes(tipo)) {
