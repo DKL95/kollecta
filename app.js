@@ -9,6 +9,7 @@ const usuarioRoutes = require("./routes/usuarioRoutes");
 const publicacionRoutes = require("./routes/publicacionRoutes");
 const imagenRoutes = require("./routes/imagenRoutes");
 const videoRoutes = require("./routes/videoRoutes");
+const mensajeRoutes = require("./routes/mensajeRoutes");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
 // sin abrir el puerto real ni conectarse a la base de datos de Atlas.
@@ -28,7 +29,9 @@ app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/publicaciones", publicacionRoutes);
 app.use("/api/imagenes", imagenRoutes);
 app.use("/api/videos", videoRoutes);
+app.use("/api/mensajes", mensajeRoutes);
 app.use("/api/notificaciones", notificacionRoutes);
+
 
 app.use("/api", (req, res) => {
     res.status(404).json({ mensaje: "Ruta no encontrada" });

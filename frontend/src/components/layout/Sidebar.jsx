@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -6,13 +5,16 @@ import { apiRequest } from "../../api/client";
 import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
 import { NAV_SECTIONS } from "./navItems";
+import { socket } from "../../api/socket";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
+  const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
 
+  // Cargar el contador de notificaciones.
   const cargarNotificaciones = useCallback(async () => {
     if (!user) {
       setNotificacionesNoLeidas(0);
@@ -27,6 +29,22 @@ export default function Sidebar() {
     }
   }, [user]);
 
+  // Cargar el contador real de mensajes sin leer.
+  const cargarMensajesNoLeidos = useCallback(async () => {
+    if (!user) {
+      setMensajesNoLeidos(0);
+      return;
+    }
+
+    try {
+      const data = await apiRequest("/mensajes/no-leidos");
+      setMensajesNoLeidos(data.noLeidos || 0);
+    } catch (error) {
+      console.error("Error al cargar mensajes sin leer:", error);
+    }
+  }, [user]);
+
+  // Escuchar las actualizaciones de las notificaciones.
   useEffect(() => {
     cargarNotificaciones();
 
@@ -42,6 +60,33 @@ export default function Sidebar() {
       );
     };
   }, [cargarNotificaciones]);
+
+  // Escuchar los mensajes nuevos y actualizar el contador.
+  useEffect(() => {
+    cargarMensajesNoLeidos();
+
+    window.addEventListener(
+      "mensajes-actualizados",
+      cargarMensajesNoLeidos
+    );
+
+    socket.on(
+      "mensajes:contador-actualizar",
+      cargarMensajesNoLeidos
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mensajes-actualizados",
+        cargarMensajesNoLeidos
+      );
+
+      socket.off(
+        "mensajes:contador-actualizar",
+        cargarMensajesNoLeidos
+      );
+    };
+  }, [cargarMensajesNoLeidos]);
 
   function handleLogout() {
     logout();
@@ -84,6 +129,14 @@ export default function Sidebar() {
                       : notificacionesNoLeidas}
                   </span>
                 )
+              ) : item.to === "/mensajes" ? (
+                mensajesNoLeidos > 0 && (
+                  <span className="count">
+                    {mensajesNoLeidos > 9
+                      ? "9+"
+                      : mensajesNoLeidos}
+                  </span>
+                )
               ) : (
                 item.count && (
                   <span className="count">{item.count}</span>
@@ -99,6 +152,7 @@ export default function Sidebar() {
         <p>
           Publícala en segundos y encuentra comprador o intercambio.
         </p>
+
         <Link
           className="btn btn-primary btn-sm btn-block"
           to="/vender"
@@ -112,9 +166,12 @@ export default function Sidebar() {
 
         <div className="info">
           <div className="name">
-            {user.nombre || user.username}
+            {user?.nombre || user?.username}
           </div>
-          <div className="handle">@{user.username}</div>
+
+          <div className="handle">
+            @{user?.username}
+          </div>
         </div>
 
         <button
