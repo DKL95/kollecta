@@ -21,7 +21,6 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
         console.log("🔎 Texto recibido:", texto);
         console.log("👤 ID del emisor:", String(emisorId));
 
-        // Detectar menciones como @cgl, incluso después de signos de puntuación.
         const coincidencias = [
             ...String(texto || "").matchAll(
                 /@([a-zA-Z0-9_.-]+)/g

@@ -2074,3 +2074,20 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     grid-template-rows: repeat(2, 140px);
   }
 }
+
+/* Menciones a usuarios en publicaciones, comentarios y respuestas */
+.post-mention {
+  color: #d85bea;
+  text-decoration: underline;
+  text-decoration-color: #b85cff;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.2s ease, text-decoration-thickness 0.2s ease;
+}
+
+/* Efecto al pasar el cursor sobre una mención */
+.post-mention:hover {
+  color: #ec7aff;
+  text-decoration-thickness: 2px;
+}

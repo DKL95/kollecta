@@ -14,9 +14,13 @@ const SolicitudAmistad = require("../models/SolicitudAmistad");
 const { crearNotificacion } = require("./notificacionController");
 
 // GET /api/usuarios
+// Buscar usuarios y priorizar amigos para el autocompletado de menciones.
+
 async function buscarUsuarios(req, res) {
     try {
         const texto = (req.query.q || "").trim();
+
+        // Escapar caracteres especiales para tratar la búsqueda como texto literal.
         const escapado = texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
         const filtro = texto
@@ -28,14 +32,44 @@ async function buscarUsuarios(req, res) {
             }
             : {};
 
+        // Obtener las amistades del usuario autenticado.
+        const usuarioActual = await Usuario.findById(req.usuario.id)
+            .select("amigos");
+
+        if (!usuarioActual) {
+            return res.status(401).json({
+                mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo"
+            });
+        }
+
+        const idsAmigos = new Set(
+            (usuarioActual.amigos || []).map((id) => String(id))
+        );
+
         const usuarios = await Usuario.find(filtro)
             .sort({ fechaRegistro: -1 })
             .limit(20);
 
+        // Excluir al usuario actual y colocar primero a sus amigos.
+        const usuariosConDatos = usuarios
+            .filter(
+                (usuario) =>
+                    String(usuario._id) !== String(usuarioActual._id)
+            )
+            .map((usuario) => ({
+                usuario,
+                esAmigo: idsAmigos.has(String(usuario._id))
+            }))
+            .sort(
+                (a, b) =>
+                    Number(b.esAmigo) - Number(a.esAmigo)
+            );
+
         return res.json({
-            usuarios: usuarios.map((u) => ({
-                ...u.aPublico(),
-                email: undefined
+            usuarios: usuariosConDatos.map(({ usuario, esAmigo }) => ({
+                ...usuario.aPublico(),
+                email: undefined,
+                esAmigo
             }))
         });
     } catch (error) {

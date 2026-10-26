@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiRequest, USER_KEY } from "../api/client";
 import { UserAvatar } from "./Avatar";
 import Icon from "./Icon";
@@ -8,11 +8,274 @@ import UserHoverCard from "./UserHoverCard";
 
 const MAX_IMAGES = 10;
 
+function MentionAutocomplete({
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+  disabled,
+  ariaLabel,
+  autoFocus,
+  rows,
+}) {
+  const inputRef = useRef(null);
+  const suggestionRef = useRef(null);
+
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mentionQuery, setMentionQuery] = useState(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  // Detecta si el cursor está escribiendo una mención, por ejemplo @moka.
+  const updateMentionQuery = (text, cursorPosition) => {
+    const beforeCursor = text.slice(0, cursorPosition);
+    const match = beforeCursor.match(/(^|\s)@([a-zA-Z0-9_.-]*)$/);
+
+    if (!match) {
+      setMentionQuery(null);
+      setSuggestions([]);
+      return;
+    }
+
+    setMentionQuery({
+      query: match[2],
+      start: cursorPosition - match[2].length - 1,
+      end: cursorPosition,
+    });
+  };
+
+  // Busca usuarios cuando se escribe después de @.
+  useEffect(() => {
+    if (mentionQuery === null) {
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoadingSuggestions(true);
+
+        const response = await apiRequest(
+          `/usuarios?q=${encodeURIComponent(mentionQuery.query)}`
+        );
+
+        if (cancelled) return;
+
+        const usuarios = Array.isArray(response)
+          ? response
+          : response?.usuarios || [];
+
+        setSuggestions(usuarios);
+        setActiveIndex(0);
+      } catch (error) {
+        if (!cancelled) {
+          setSuggestions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSuggestions(false);
+        }
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mentionQuery]);
+
+  const handleChange = (event) => {
+    const nextValue = event.target.value;
+    onChange(nextValue);
+
+    updateMentionQuery(
+      nextValue,
+      event.target.selectionStart ?? nextValue.length
+    );
+  };
+
+  const insertMention = (usuario) => {
+    if (!mentionQuery || !usuario?.username) return;
+
+    const start = mentionQuery.start;
+    const end = mentionQuery.end;
+    const currentValue = value || "";
+
+    // Agrega un espacio después del nombre para continuar escribiendo.
+    const mention = `@${usuario.username} `;
+    const nextValue =
+      currentValue.slice(0, start) +
+      mention +
+      currentValue.slice(end);
+
+    onChange(nextValue);
+    setMentionQuery(null);
+    setSuggestions([]);
+
+    requestAnimationFrame(() => {
+      const input = inputRef.current;
+
+      if (input) {
+        input.focus();
+
+        const cursorPosition = start + mention.length;
+        input.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  };
+
+  const handleKeyDown = (event) => {
+    if (mentionQuery === null || suggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((index) => (index + 1) % suggestions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex(
+        (index) => (index - 1 + suggestions.length) % suggestions.length
+      );
+    } else if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      insertMention(suggestions[activeIndex]);
+    } else if (event.key === "Escape") {
+      setMentionQuery(null);
+      setSuggestions([]);
+    }
+  };
+
+  const sharedProps = {
+    ref: inputRef,
+    value: value || "",
+    onChange: handleChange,
+    onKeyDown: handleKeyDown,
+    placeholder,
+    maxLength,
+    disabled,
+    "aria-label": ariaLabel,
+    autoFocus,
+    onClick: (event) =>
+      updateMentionQuery(
+        event.currentTarget.value,
+        event.currentTarget.selectionStart
+      ),
+    onKeyUp: (event) => {
+      if (
+        ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+      ) {
+        updateMentionQuery(
+          event.currentTarget.value,
+          event.currentTarget.selectionStart
+        );
+      }
+    },
+    onBlur: () => {
+      // Retrasa el cierre para permitir seleccionar una sugerencia con el mouse.
+      setTimeout(() => {
+        if (!suggestionRef.current?.matches(":hover")) {
+          setMentionQuery(null);
+          setSuggestions([]);
+        }
+      }, 150);
+    },
+  };
+
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      {typeof rows === "number" ? (
+        <textarea {...sharedProps} rows={rows} />
+      ) : (
+        <input {...sharedProps} type="text" />
+      )}
+
+      {mentionQuery !== null &&
+        (loadingSuggestions || suggestions.length > 0) && (
+          <div
+            ref={suggestionRef}
+            role="listbox"
+            aria-label="Usuarios para mencionar"
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 8px)",
+              left: 0,
+              width: "min(100%, 320px)",
+              maxHeight: "240px",
+              overflowY: "auto",
+              background: "#1b102b",
+              color: "#f5edff",
+              border: "1px solid #7543a6",
+              borderRadius: "10px",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+              zIndex: 1000,
+              padding: "4px",
+            }}
+          >
+            {loadingSuggestions && (
+              <div style={{ padding: "10px" }}>Buscando usuarios...</div>
+            )}
+
+            {!loadingSuggestions &&
+              suggestions.map((usuario, index) => (
+                <button
+                  key={usuario._id || usuario.id || usuario.username}
+                  type="button"
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => insertMention(usuario)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    width: "100%",
+                    padding: "9px 10px",
+                    border: 0,
+                    borderRadius: "7px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    background:
+                      index === activeIndex
+                        ? "linear-gradient(90deg, #51277a, #38204f)"
+                        : "transparent",
+                    color: "#f5edff",
+                    transition: "background 0.15s ease",
+                  }}
+                >
+                  <UserAvatar user={usuario} />
+
+                  <span
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      minWidth: 0,
+                    }}
+                  >
+                    <strong>
+                      {usuario.nombre || usuario.username}
+                    </strong>
+
+                    <small style={{ opacity: 0.7 }}>
+                      @{usuario.username}
+                      {usuario.esAmigo ? " · Amigo" : ""}
+                    </small>
+                  </span>
+                </button>
+              ))}
+          </div>
+        )}
+    </div>
+  );
+}
+
 // Convierte las menciones @usuario en elementos interactivos con vista previa
 // y acceso al perfil, tanto en publicaciones como en comentarios y respuestas.
 function renderTextWithMentions(text) {
   const value = String(text || "");
-  const mentionRegex = /(^|[\\s([{,;:!?])(@[a-zA-Z0-9_.-]+)/g;
+  const mentionRegex = /(^|[\s([{,;:!?])(@[a-zA-Z0-9_.-]+)/g;
   const elements = [];
   let lastIndex = 0;
   let match;
@@ -736,13 +999,13 @@ async function handleDeleteReply(comment, reply) {
           <div className="field">
             <label htmlFor={`post-text-${post.id}`}>Texto</label>
 
-            <textarea
-              id={`post-text-${post.id}`}
+            <MentionAutocomplete
               value={texto}
-              onChange={(event) => setTexto(event.target.value)}
+              onChange={setTexto}
               rows={4}
               maxLength={1000}
               required
+              ariaLabel="Editar publicación"
             />
           </div>
 
@@ -956,13 +1219,13 @@ async function handleDeleteReply(comment, reply) {
 
                         {editingCommentId === comment.id ? (
                           <div className="comment-edit-form">
-                            <textarea
+                            <MentionAutocomplete
                               value={editCommentText}
-                              onChange={(event) => setEditCommentText(event.target.value)}
+                              onChange={setEditCommentText}
                               maxLength={500}
                               rows={3}
                               autoFocus
-                              aria-label="Editar comentario"
+                              ariaLabel="Editar comentario"
                               disabled={savingComment}
                             />
                             <div className="comment-interactions">
@@ -1168,16 +1431,13 @@ async function handleDeleteReply(comment, reply) {
                           className="post-reply-form"
                           onSubmit={handleReplySubmit}
                         >
-                          <input
-                            type="text"
+                          <MentionAutocomplete
                             value={replyText}
-                            onChange={(event) =>
-                              setReplyText(event.target.value)
-                            }
+                            onChange={setReplyText}
                             placeholder="Escribe una respuesta..."
                             maxLength={500}
                             disabled={sendingReply}
-                            aria-label="Escribe una respuesta"
+                            ariaLabel="Escribe una respuesta"
                             autoFocus
                           />
 
@@ -1218,16 +1478,13 @@ async function handleDeleteReply(comment, reply) {
             className="post-comment-form"
             onSubmit={handleCommentSubmit}
           >
-            <input
-              type="text"
+            <MentionAutocomplete
               value={commentText}
-              onChange={(event) =>
-                setCommentText(event.target.value)
-              }
+              onChange={setCommentText}
               placeholder="Escribe un comentario..."
               maxLength={500}
               disabled={sendingComment}
-              aria-label="Escribe un comentario"
+              ariaLabel="Escribe un comentario"
             />
 
             <button
