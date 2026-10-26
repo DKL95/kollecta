@@ -8,6 +8,7 @@ const authRoutes = require("./routes/authRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 const publicacionRoutes = require("./routes/publicacionRoutes");
 const imagenRoutes = require("./routes/imagenRoutes");
+const videoRoutes = require("./routes/videoRoutes");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
 // sin abrir el puerto real ni conectarse a la base de datos de Atlas.
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/publicaciones", publicacionRoutes);
 app.use("/api/imagenes", imagenRoutes);
+app.use("/api/videos", videoRoutes);
 app.use("/api/notificaciones", notificacionRoutes);
 
 app.use("/api", (req, res) => {
@@ -34,12 +36,32 @@ app.use("/api", (req, res) => {
 
 // Errores de subida de archivos (tamaño, tipo) y otros no controlados
 app.use((error, req, res, next) => {
-    const esErrorDeSubida = error.name === "MulterError" || error.message === "Solo se permiten imágenes";
+    const esErrorDeSubida =
+        error.name === "MulterError" ||
+        error.message === "Solo se permiten imágenes" ||
+        error.message === "Solo se permiten videos";
+
     if (!esErrorDeSubida) console.error(error);
 
-    const mensaje = error.code === "LIMIT_FILE_SIZE" ? "La imagen no puede pesar más de 5 MB" : error.message;
-    res.status(400).json({ mensaje: mensaje || "Error en la petición" });
+    let mensaje = error.message || "Error en la petición";
+
+    if (error.code === "LIMIT_FILE_SIZE") {
+        const campo = error.field;
+
+        if (campo === "videos") {
+            mensaje = "Cada video puede pesar como máximo 100 MB";
+        } else if (campo === "imagenes" || campo === "fotoPerfil") {
+            mensaje = campo === "fotoPerfil"
+                ? "La foto de perfil no puede pesar más de 5 MB"
+                : "Cada imagen puede pesar como máximo 5 MB";
+        } else {
+            mensaje = "El archivo supera el tamaño máximo permitido";
+        }
+    }
+
+    res.status(400).json({ mensaje });
 });
+
 
 // Frontend en React (ya compilado con `npm run build`).
 // Cualquier ruta que no sea de la API regresa index.html y React Router decide qué pantalla mostrar.

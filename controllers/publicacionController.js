@@ -7,6 +7,13 @@ const {
     eliminarImagen
 } = require("../middleware/upload");
 
+const {
+    guardarVideo,
+    eliminarVideo
+} = require("../services/videoStorage");
+
+const fs = require("fs");
+
 const Comentario = require("../models/Comentario");
 const Respuesta = require("../models/Respuesta");
 
@@ -127,6 +134,7 @@ async function formatearPublicacion(publicacion, idUsuarioActual) {
         grupo: publicacion.grupo,
         imagenes,
         imagen: imagenes[0] || "",
+        videos: publicacion.videos || [],
         fechaCreacion: publicacion.fechaCreacion,
 
         autor: {
@@ -222,33 +230,67 @@ async function obtenerPublicacion(req, res) {
 // Crear publicación con hasta 10 imágenes.
 async function crearPublicacion(req, res) {
     const imagenesGuardadas = [];
+    const videosGuardados = [];
+
+    const archivos = req.files || {};
+    const archivosImagenes = archivos.imagenes || [];
+    const archivosVideos = archivos.videos || [];
+
+    // Eliminar archivos temporales que todavía existan.
+    async function limpiarTemporales() {
+        const todosLosArchivos = [
+            ...archivosImagenes,
+            ...archivosVideos
+        ];
+
+        await Promise.all(
+            todosLosArchivos.map((archivo) =>
+                archivo.path
+                    ? fs.promises.unlink(archivo.path).catch(() => {})
+                    : Promise.resolve()
+            )
+        );
+    }
 
     try {
         const cuerpo = req.body || {};
         const texto = (cuerpo.texto || "").trim();
 
         if (!texto) {
+            await limpiarTemporales();
+
             return res.status(400).json({
                 mensaje: "La publicación no puede estar vacía"
             });
         }
 
         if (texto.length > 1000) {
+            await limpiarTemporales();
+
             return res.status(400).json({
                 mensaje: "La publicación no puede pasar de 1000 caracteres"
             });
         }
 
-        // upload.array() coloca los archivos en req.files.
-        const archivos = req.files || [];
+        // Comprobar los límites de archivos.
+        if (archivosImagenes.length > 10) {
+            await limpiarTemporales();
 
-        if (archivos.length > 10) {
             return res.status(400).json({
                 mensaje: "Una publicación puede tener máximo 10 imágenes"
             });
         }
 
-        for (const archivo of archivos) {
+        if (archivosVideos.length > 5) {
+            await limpiarTemporales();
+
+            return res.status(400).json({
+                mensaje: "Una publicación puede tener máximo 5 videos"
+            });
+        }
+
+        // Guardar las imágenes.
+        for (const archivo of archivosImagenes) {
             const imagen = await guardarImagen(
                 archivo,
                 req.usuario.id
@@ -257,15 +299,36 @@ async function crearPublicacion(req, res) {
             imagenesGuardadas.push(imagen);
         }
 
+        // Guardar los videos en MongoDB GridFS.
+        for (const archivo of archivosVideos) {
+            try {
+                const video = await guardarVideo(
+                    archivo,
+                    req.usuario.id
+                );
+
+                videosGuardados.push(video);
+            } finally {
+                // El video ya se guardó en GridFS o falló la subida.
+                // En ambos casos, limpiar el archivo temporal.
+                if (archivo.path) {
+                    await fs.promises.unlink(archivo.path).catch(() => {});
+                }
+            }
+        }
+
+        // Crear la publicación con ambas listas multimedia.
         const nuevaPublicacion = await Publicacion.create({
             autor: req.usuario.id,
             texto,
             grupo: cuerpo.grupo || "",
-            imagenes: imagenesGuardadas
+            imagenes: imagenesGuardadas,
+            videos: videosGuardados
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
 
+        // Conservar el sistema actual de notificaciones por menciones.
         await notificarMenciones(
             texto,
             req.usuario.id,
@@ -273,14 +336,18 @@ async function crearPublicacion(req, res) {
             "una publicación"
         );
 
+        const publicacionFormateada = await formatearPublicacion(
+            nuevaPublicacion,
+            req.usuario.id
+        );
+
         return res.status(201).json({
             mensaje: "Publicación creada",
-            publicacion: formatearPublicacion(
-                nuevaPublicacion,
-                req.usuario.id
-            )
+            publicacion: publicacionFormateada
         });
+
     } catch (error) {
+        // Eliminar imágenes que ya se hayan guardado.
         for (const imagen of imagenesGuardadas) {
             await eliminarImagen(imagen).catch((errorLimpieza) => {
                 console.error(
@@ -289,6 +356,20 @@ async function crearPublicacion(req, res) {
                 );
             });
         }
+
+        // Eliminar videos que ya se hayan guardado en GridFS.
+        for (const video of videosGuardados) {
+            const idVideo = video.split("/").pop();
+
+            await eliminarVideo(idVideo).catch((errorLimpieza) => {
+                console.error(
+                    "No se pudo limpiar un video:",
+                    errorLimpieza
+                );
+            });
+        }
+
+        await limpiarTemporales();
 
         console.error("Error al crear publicación:", error);
 
@@ -299,20 +380,76 @@ async function crearPublicacion(req, res) {
 }
 
 // PUT /api/publicaciones/:id
-// Editar publicación y sus imágenes.
+// Editar publicación, imágenes y videos.
 async function actualizarPublicacion(req, res) {
     const imagenesNuevas = [];
+    const videosNuevos = [];
+
+    const archivos = req.files || {};
+    const archivosImagenes = archivos.imagenes || [];
+    const archivosVideos = archivos.videos || [];
+
+    async function limpiarTemporales() {
+        const todosLosArchivos = [
+            ...archivosImagenes,
+            ...archivosVideos
+        ];
+
+        await Promise.all(
+            todosLosArchivos.map((archivo) =>
+                archivo.path
+                    ? fs.promises.unlink(archivo.path).catch(() => {})
+                    : Promise.resolve()
+            )
+        );
+    }
+
+    function obtenerListaEliminada(valor, nombre) {
+        if (valor === undefined) {
+            return [];
+        }
+
+        let lista;
+
+        try {
+            lista = typeof valor === "string"
+                ? JSON.parse(valor)
+                : valor;
+        } catch {
+            throw new Error(
+                `La lista de ${nombre} eliminados no es válida`
+            );
+        }
+
+        if (
+            !Array.isArray(lista) ||
+            !lista.every((elemento) => typeof elemento === "string")
+        ) {
+            throw new Error(
+                `La lista de ${nombre} eliminados no es válida`
+            );
+        }
+
+        return lista;
+    }
 
     try {
         const publicacion = await buscarPorId(req.params.id);
 
         if (!publicacion) {
+            await limpiarTemporales();
+
             return res.status(404).json({
                 mensaje: "Publicación no encontrada"
             });
         }
 
-        if (String(publicacion.autor._id) !== String(req.usuario.id)) {
+        if (
+            String(publicacion.autor._id) !==
+            String(req.usuario.id)
+        ) {
+            await limpiarTemporales();
+
             return res.status(403).json({
                 mensaje: "Solo el autor puede editar esta publicación"
             });
@@ -321,17 +458,22 @@ async function actualizarPublicacion(req, res) {
         const {
             texto,
             grupo,
-            imagenesEliminadas
+            imagenesEliminadas,
+            videosEliminados
         } = req.body || {};
 
         if (texto !== undefined) {
             if (typeof texto !== "string" || !texto.trim()) {
+                await limpiarTemporales();
+
                 return res.status(400).json({
                     mensaje: "La publicación no puede estar vacía"
                 });
             }
 
             if (texto.trim().length > 1000) {
+                await limpiarTemporales();
+
                 return res.status(400).json({
                     mensaje: "La publicación no puede pasar de 1000 caracteres"
                 });
@@ -344,48 +486,80 @@ async function actualizarPublicacion(req, res) {
             publicacion.grupo = grupo;
         }
 
-        // Compatibilidad con publicaciones antiguas.
-        const actuales = publicacion.imagenes?.length
+        // Conservar las imágenes actuales.
+        const imagenesActuales = publicacion.imagenes?.length
             ? [...publicacion.imagenes]
             : (publicacion.imagen ? [publicacion.imagen] : []);
 
-        let eliminadas = [];
+        // Conservar los videos actuales.
+        const videosActuales = [...(publicacion.videos || [])];
 
-        if (imagenesEliminadas !== undefined) {
-            try {
-                eliminadas = JSON.parse(imagenesEliminadas);
+        let imagenesPorEliminar;
+        let videosPorEliminar;
 
-                if (
-                    !Array.isArray(eliminadas) ||
-                    !eliminadas.every(
-                        (imagen) => typeof imagen === "string"
-                    )
-                ) {
-                    return res.status(400).json({
-                        mensaje: "La lista de imágenes eliminadas no es válida"
-                    });
-                }
-            } catch {
-                return res.status(400).json({
-                    mensaje: "La lista de imágenes eliminadas no es válida"
-                });
-            }
+        try {
+            imagenesPorEliminar = obtenerListaEliminada(
+                imagenesEliminadas,
+                "imágenes"
+            );
+
+            videosPorEliminar = obtenerListaEliminada(
+                videosEliminados,
+                "videos"
+            );
+        } catch (error) {
+            await limpiarTemporales();
+
+            return res.status(400).json({
+                mensaje: error.message
+            });
         }
 
-        const restantes = actuales.filter(
-            (imagen) => !eliminadas.includes(imagen)
+        // Evitar que se intenten eliminar archivos que no pertenecen
+        // a esta publicación.
+        const imagenesNoEncontradas = imagenesPorEliminar.filter(
+            (imagen) => !imagenesActuales.includes(imagen)
         );
 
-        const archivos = req.files || [];
+        const videosNoEncontrados = videosPorEliminar.filter(
+            (video) => !videosActuales.includes(video)
+        );
 
-        // Comprobar el límite antes de guardar archivos.
-        if (restantes.length + archivos.length > 10) {
+        if (imagenesNoEncontradas.length || videosNoEncontrados.length) {
+            await limpiarTemporales();
+
+            return res.status(400).json({
+                mensaje: "La lista de archivos por eliminar no es válida"
+            });
+        }
+
+        const imagenesRestantes = imagenesActuales.filter(
+            (imagen) => !imagenesPorEliminar.includes(imagen)
+        );
+
+        const videosRestantes = videosActuales.filter(
+            (video) => !videosPorEliminar.includes(video)
+        );
+
+        // Comprobar límites antes de guardar los nuevos archivos.
+        if (imagenesRestantes.length + archivosImagenes.length > 10) {
+            await limpiarTemporales();
+
             return res.status(400).json({
                 mensaje: "Una publicación puede tener máximo 10 imágenes"
             });
         }
 
-        for (const archivo of archivos) {
+        if (videosRestantes.length + archivosVideos.length > 5) {
+            await limpiarTemporales();
+
+            return res.status(400).json({
+                mensaje: "Una publicación puede tener máximo 5 videos"
+            });
+        }
+
+        // Guardar las imágenes nuevas.
+        for (const archivo of archivosImagenes) {
             const imagen = await guardarImagen(
                 archivo,
                 req.usuario.id
@@ -394,15 +568,37 @@ async function actualizarPublicacion(req, res) {
             imagenesNuevas.push(imagen);
         }
 
-        const resultado = [...restantes, ...imagenesNuevas];
+        // Guardar los videos nuevos.
+        for (const archivo of archivosVideos) {
+            try {
+                const video = await guardarVideo(
+                    archivo,
+                    req.usuario.id
+                );
 
-        const anterioresEliminadas = actuales.filter(
-            (imagen) => eliminadas.includes(imagen)
-        );
+                videosNuevos.push(video);
+            } finally {
+                if (archivo.path) {
+                    await fs.promises.unlink(archivo.path).catch(() => {});
+                }
+            }
+        }
 
+        const imagenesFinales = [
+            ...imagenesRestantes,
+            ...imagenesNuevas
+        ];
+
+        const videosFinales = [
+            ...videosRestantes,
+            ...videosNuevos
+        ];
+
+        // Guardar la publicación antes de eliminar los archivos antiguos.
         try {
-            publicacion.imagenes = resultado;
+            publicacion.imagenes = imagenesFinales;
             publicacion.imagen = "";
+            publicacion.videos = videosFinales;
 
             await publicacion.save();
         } catch (error) {
@@ -410,10 +606,17 @@ async function actualizarPublicacion(req, res) {
                 await eliminarImagen(imagen).catch(() => {});
             }
 
+            for (const video of videosNuevos) {
+                const idVideo = video.split("/").pop();
+
+                await eliminarVideo(idVideo).catch(() => {});
+            }
+
             throw error;
         }
 
-        for (const imagen of anterioresEliminadas) {
+        // Eliminar las imágenes que el usuario quitó.
+        for (const imagen of imagenesPorEliminar) {
             await eliminarImagen(imagen).catch((error) => {
                 console.error(
                     "No se pudo eliminar una imagen:",
@@ -422,16 +625,43 @@ async function actualizarPublicacion(req, res) {
             });
         }
 
+        // Eliminar los videos que el usuario quitó.
+        for (const video of videosPorEliminar) {
+            const idVideo = video.split("/").pop();
+
+            await eliminarVideo(idVideo).catch((error) => {
+                console.error(
+                    "No se pudo eliminar un video:",
+                    error
+                );
+            });
+        }
+
         await publicacion.populate("autor", CAMPOS_AUTOR);
+
+        const publicacionFormateada = await formatearPublicacion(
+            publicacion,
+            req.usuario.id
+        );
 
         return res.json({
             mensaje: "Publicación actualizada",
-            publicacion: formatearPublicacion(
-                publicacion,
-                req.usuario.id
-            )
+            publicacion: publicacionFormateada
         });
+
     } catch (error) {
+        await limpiarTemporales();
+
+        for (const imagen of imagenesNuevas) {
+            await eliminarImagen(imagen).catch(() => {});
+        }
+
+        for (const video of videosNuevos) {
+            const idVideo = video.split("/").pop();
+
+            await eliminarVideo(idVideo).catch(() => {});
+        }
+
         console.error("Error al actualizar publicación:", error);
 
         return res.status(500).json({
@@ -451,18 +681,28 @@ async function eliminarPublicacion(req, res) {
             });
         }
 
-        if (String(publicacion.autor._id) !== String(req.usuario.id)) {
+        // Comprobar que el usuario sea el autor.
+        if (
+            String(publicacion.autor._id) !==
+            String(req.usuario.id)
+        ) {
             return res.status(403).json({
                 mensaje: "Solo el autor puede eliminar esta publicación"
             });
         }
 
+        // Obtener las imágenes, incluyendo publicaciones antiguas.
         const imagenes = publicacion.imagenes?.length
             ? [...publicacion.imagenes]
             : (publicacion.imagen ? [publicacion.imagen] : []);
 
+        // Obtener los videos asociados.
+        const videos = [...(publicacion.videos || [])];
+
+        // Eliminar la publicación de la base de datos.
         await publicacion.deleteOne();
 
+        // Eliminar sus imágenes almacenadas.
         for (const imagen of imagenes) {
             await eliminarImagen(imagen).catch((error) => {
                 console.error(
@@ -472,9 +712,22 @@ async function eliminarPublicacion(req, res) {
             });
         }
 
+        // Eliminar sus videos de GridFS.
+        for (const video of videos) {
+            const idVideo = video.split("/").pop();
+
+            await eliminarVideo(idVideo).catch((error) => {
+                console.error(
+                    "No se pudo eliminar un video:",
+                    error
+                );
+            });
+        }
+
         return res.json({
             mensaje: "Publicación eliminada"
         });
+
     } catch (error) {
         console.error("Error al eliminar publicación:", error);
 

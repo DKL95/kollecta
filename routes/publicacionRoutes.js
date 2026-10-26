@@ -19,7 +19,7 @@ const {
 } = require("../controllers/publicacionController");
 
 const { requiereAuth } = require("../middleware/auth");
-const { upload } = require("../middleware/upload");
+const { upload, validarArchivos } = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -27,8 +27,19 @@ router.use(requiereAuth);
 
 router.get("/", listarPublicaciones);
 
-// Crear publicación con hasta 10 imágenes
-router.post("/", upload.array("imagenes", 10), crearPublicacion);
+// Configuración para recibir imágenes y videos.
+const recibirMultimedia = upload.fields([
+    { name: "imagenes", maxCount: 10 },
+    { name: "videos", maxCount: 5 }
+]);
+
+// Crear publicación con hasta 10 imágenes y 5 videos.
+router.post(
+    "/",
+    recibirMultimedia,
+    validarArchivos,
+    crearPublicacion
+);
 
 // Comentarios
 router.get("/:id/comentarios", listarComentarios);
@@ -54,8 +65,13 @@ router.post(
 // Obtener publicación
 router.get("/:id", obtenerPublicacion);
 
-// Editar publicación y sus imágenes
-router.put("/:id", upload.array("imagenes", 10), actualizarPublicacion);
+// Editar publicación con imágenes y videos.
+router.put(
+    "/:id",
+    recibirMultimedia,
+    validarArchivos,
+    actualizarPublicacion
+);
 
 // Eliminar publicación
 router.delete("/:id", eliminarPublicacion);

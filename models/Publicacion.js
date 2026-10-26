@@ -26,6 +26,11 @@ const publicacionSchema = new mongoose.Schema(
       default: []
     },
 
+    videos: {
+      type: [String],
+      default: []
+    },
+
     likes: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: "Usuario",

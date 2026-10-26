@@ -2091,3 +2091,258 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   color: #ec7aff;
   text-decoration-thickness: 2px;
 }
+
+/* Videos dentro de las publicaciones */
+.post-video-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.post-video-item {
+  width: 100%;
+  max-width: 500px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #100c1c;
+}
+
+.post-video-item video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: 450px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+}
+
+.post-video-item p {
+  margin: 10px;
+  overflow-wrap: anywhere;
+  color: var(--text-muted, #a69ab9);
+}
+
+/* En pantallas pequeñas, el video ocupa el ancho disponible */
+@media (max-width: 560px) {
+  .post-video-item {
+    max-width: 100%;
+  }
+}
+
+/* Fotos y videos comparten la cuadrícula de las publicaciones */
+.post-photo-grid .post-video-item {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #211832;
+}
+
+.post-photo-grid .post-video-item video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+.post-photo-grid .post-video-item p {
+  padding: 10px;
+  overflow-wrap: anywhere;
+}
+
+/* Videos integrados visualmente con las fotos de la publicación */
+.post-video-grid {
+  width: 100%;
+  margin-top: 12px;
+  align-items: start;
+}
+
+.post-video-grid .post-video-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: auto;
+  overflow: hidden;
+  border-radius: 14px;
+  background: transparent;
+}
+
+.post-video-grid .post-video-player {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: 600px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  background: #100b19;
+}
+
+.post-video-grid .post-video-item p {
+  margin: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* Videos dentro de la galería multimedia compartida */
+
+.post-video-viewer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.post-photo-viewer-thumbnails button {
+  position: relative;
+  overflow: hidden;
+}
+
+.post-photo-viewer-thumbnails button img,
+.post-photo-viewer-thumbnails button video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-video-thumbnail-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+/* Videos integrados en la galería compartida */
+.post-photo-grid .post-gallery-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #0b0711;
+}
+
+.post-photo-grid .post-gallery-video-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  padding: 12px;
+  box-sizing: border-box;
+  background: #211832;
+  color: #b9accb;
+  text-align: center;
+  font-size: 13px;
+}
+
+.post-photo-grid .post-gallery-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 10, 24, 0.75);
+  color: white;
+  font-size: 18px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.post-photo-grid .post-media {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: #211832;
+}
+
+/* Botón para eliminar fotos y videos en la edición de publicaciones */
+.post-media-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+
+  background: rgba(25, 15, 40, 0.88);
+  color: #ffffff;
+
+  font-size: 17px;
+  font-weight: bold;
+  line-height: 1;
+
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.post-media-remove:hover {
+  background: #e63973;
+  transform: scale(1.08);
+}
+
+.post-media-remove:focus-visible {
+  outline: 2px solid #ff5ca8;
+  outline-offset: 3px;
+}
+
+.post-media-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(25, 15, 40, 0.9);
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.post-media-remove:hover {
+  background: #e63973;
+  transform: scale(1.08);
+}

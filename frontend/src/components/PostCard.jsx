@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { apiRequest, USER_KEY } from "../api/client";
+import { apiRequest, USER_KEY, TOKEN_KEY } from "../api/client";
 import { UserAvatar } from "./Avatar";
 import Icon from "./Icon";
 import Photo from "./Photo";
@@ -7,6 +7,7 @@ import { timeAgo } from "../utils/format";
 import UserHoverCard from "./UserHoverCard";
 
 const MAX_IMAGES = 10;
+const MAX_VIDEOS = 5;
 
 function MentionAutocomplete({
   value,
@@ -309,6 +310,11 @@ function renderTextWithMentions(text) {
 export default function PostCard({ post, onChange, onDelete }) {
   const author = post.autor || {};
   const images = post.imagenes || (post.imagen ? [post.imagen] : []); 
+  const videosExistentes = post.videos || [];
+  const mediaItems = [
+    ...images.map((src) => ({ type: "image", src })),
+    ...videosExistentes.map((src) => ({ type: "video", src })),
+  ];
 
   const usuarioGuardado = JSON.parse(
   localStorage.getItem(USER_KEY) || "null"
@@ -338,8 +344,75 @@ export default function PostCard({ post, onChange, onDelete }) {
   const [texto, setTexto] = useState(post.texto || "");
   const [photos, setPhotos] = useState([]);
   const [removedImages, setRemovedImages] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [removedVideos, setRemovedVideos] = useState([]);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [videoUrls, setVideoUrls] = useState({});
+  const [videoErrors, setVideoErrors] = useState({});
+
+  useEffect(() => {
+    let cancelado = false;
+    const urlsTemporales = [];
+
+    async function cargarVideos() {
+      const videos = post.videos || [];
+      const token = localStorage.getItem(TOKEN_KEY);
+      console.log("¿Hay token para cargar videos?:", Boolean(token));
+
+      if (videos.length === 0) {
+        setVideoUrls({});
+        setVideoErrors({});
+        return;
+      }
+
+      const nuevasUrls = {};
+      const nuevosErrores = {};
+
+      await Promise.all(
+        videos.map(async (video) => {
+          try {
+            const ruta = video.startsWith("/api/")
+              ? video
+              : `/api/videos/${video}`;
+
+            const respuesta = await fetch(ruta, {
+              headers: token
+                ? { Authorization: `Bearer ${token}` }
+                : {},
+            });
+
+            if (!respuesta.ok) {
+              throw new Error(`Error ${respuesta.status} al cargar el video`);
+            }
+
+            const archivo = await respuesta.blob();
+            const urlTemporal = URL.createObjectURL(archivo);
+
+            urlsTemporales.push(urlTemporal);
+            nuevasUrls[video] = urlTemporal;
+          } catch (error) {
+            nuevosErrores[video] = error.message;
+          }
+        })
+      );
+
+      if (cancelado) {
+        urlsTemporales.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      setVideoUrls(nuevasUrls);
+      setVideoErrors(nuevosErrores);
+    }
+
+    cargarVideos();
+
+    return () => {
+      cancelado = true;
+      urlsTemporales.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [post.videos]);
 
   // Estado y lógica de comentarios
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -376,6 +449,15 @@ export default function PostCard({ post, onChange, onDelete }) {
   ).length;
 
   const availableSlots = Math.max(0, MAX_IMAGES - keptImagesCount);
+
+  const keptVideosCount = videosExistentes.filter(
+    (video) => !removedVideos.includes(video)
+  ).length;
+
+  const availableVideoSlots = Math.max(
+    0,
+    MAX_VIDEOS - keptVideosCount
+  );
 
   async function handleLike() {
     onChange({
@@ -414,6 +496,8 @@ export default function PostCard({ post, onChange, onDelete }) {
     setTexto(post.texto || "");
     setPhotos([]);
     setRemovedImages([]);
+    setVideos([]);
+    setRemovedVideos([]);
     setEditError("");
     setEditing(true);
   }
@@ -421,6 +505,8 @@ export default function PostCard({ post, onChange, onDelete }) {
   function cancelEditing() {
     setPhotos([]);
     setRemovedImages([]);
+    setVideos([]);
+    setRemovedVideos([]);
     setEditError("");
     setEditing(false);
   }
@@ -433,6 +519,59 @@ export default function PostCard({ post, onChange, onDelete }) {
     );
 
     setEditError("");
+  }
+
+  function toggleRemoveVideo(video) {
+    setRemovedVideos((current) =>
+      current.includes(video)
+        ? current.filter((item) => item !== video)
+        : [...current, video]
+    );
+
+    setEditError("");
+  }
+
+  function handleVideoSelection(event) {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+
+    if (selectedFiles.length === 0) return;
+
+    const validVideos = selectedFiles.filter((file) =>
+      file.type.startsWith("video/")
+    );
+
+    if (validVideos.length !== selectedFiles.length) {
+      setEditError("Selecciona únicamente archivos de video.");
+    } else {
+      setEditError("");
+    }
+
+    const remainingVideos = validVideos.filter(
+      (file) =>
+        !videos.some(
+          (existing) =>
+            existing.name === file.name &&
+            existing.size === file.size &&
+            existing.lastModified === file.lastModified
+        )
+    );
+
+    const slots = Math.max(
+      0,
+      MAX_VIDEOS - keptVideosCount - videos.length
+    );
+
+    if (remainingVideos.length > slots) {
+      setEditError(
+        `Solo puedes agregar ${slots} video(s) más. El límite es de ${MAX_VIDEOS} videos por publicación.`
+      );
+    }
+
+    setVideos((current) => [
+      ...current,
+      ...remainingVideos.slice(0, slots),
+    ]);
   }
 
   function handlePhotoSelection(event) {
@@ -486,47 +625,70 @@ export default function PostCard({ post, onChange, onDelete }) {
     setEditError("");
   }
 
-  async function handleSaveEdit(event) {
-    event.preventDefault();
+    async function handleSaveEdit(event) {
+      event.preventDefault();
 
-    if (!texto.trim()) {
-      setEditError("La publicación no puede estar vacía.");
-      return;
+      if (!texto.trim()) {
+        setEditError("La publicación no puede estar vacía.");
+        return;
+      }
+
+      if (keptImagesCount + photos.length > MAX_IMAGES) {
+        setEditError("La publicación admite máximo 10 fotos en total.");
+        return;
+      }
+
+      if (keptVideosCount + videos.length > MAX_VIDEOS) {
+        setEditError("La publicación admite máximo 5 videos en total.");
+        return;
+      }
+
+      setSaving(true);
+      setEditError("");
+
+      try {
+        const body = new FormData();
+
+        // Texto de la publicación
+        body.append("texto", texto.trim());
+
+        // Fotos que se eliminarán
+        body.append(
+          "imagenesEliminadas",
+          JSON.stringify(removedImages)
+        );
+
+        // Videos que se eliminarán
+        body.append(
+          "videosEliminados",
+          JSON.stringify(removedVideos)
+        );
+
+        // Fotos nuevas
+        photos.forEach((photo) => {
+          body.append("imagenes", photo);
+        });
+
+        // Videos nuevos
+        videos.forEach((video) => {
+          body.append("videos", video);
+        });
+
+        const data = await apiRequest(`/publicaciones/${post.id}`, {
+          method: "PUT",
+          body,
+        });
+
+        onChange(data.publicacion);
+        cancelEditing();
+      } catch (error) {
+        setEditError(
+          error.message || "No se pudo actualizar la publicación."
+        );
+      } finally {
+        setSaving(false);
+      }
     }
-
-    if (keptImagesCount + photos.length > MAX_IMAGES) {
-      setEditError("La publicación admite máximo 10 fotos en total.");
-      return;
-    }
-
-    setSaving(true);
-    setEditError("");
-
-    try {
-      const body = new FormData();
-
-      body.append("texto", texto.trim());
-      body.append("imagenesEliminadas", JSON.stringify(removedImages));
-
-      photos.forEach((photo) => {
-        body.append("imagenes", photo);
-      });
-
-      const data = await apiRequest(`/publicaciones/${post.id}`, {
-        method: "PUT",
-        body,
-      });
-
-      onChange(data.publicacion);
-      cancelEditing();
-    } catch (error) {
-      setEditError(
-        error.message || "No se pudo actualizar la publicación."
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function toggleComments() {
     const shouldOpen = !commentsOpen;
@@ -1009,30 +1171,50 @@ async function handleDeleteReply(comment, reply) {
             />
           </div>
 
+          {/* FOTOS ACTUALES */}
           {images.length > 0 && (
             <div className="field">
               <label>Fotos actuales</label>
 
               <div className="post-photo-grid">
-                {images.map((image) => {
+                {images.map((image, index) => {
                   const removed = removedImages.includes(image);
 
                   return (
                     <div
-                      key={image}
+                      key={`${image}-${index}`}
                       className="post-photo-edit-item"
-                      style={{ opacity: removed ? 0.4 : 1 }}
+                      style={{
+                        position: "relative",
+                        opacity: removed ? 0.45 : 1,
+                      }}
                     >
-                      <Photo src={image} alt={post.texto} />
-
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => toggleRemoveImage(image)}
-                        disabled={saving}
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                        }}
                       >
-                        {removed ? "Conservar" : "Quitar"}
-                      </button>
+                        <Photo
+                          src={image}
+                          alt={post.texto || `Foto ${index + 1}`}
+                        />
+
+                        <button
+                          type="button"
+                          className="post-media-remove"
+                          onClick={() => toggleRemoveImage(image)}
+                          disabled={saving}
+                          aria-label={removed ? "Conservar foto" : "Eliminar foto"}
+                          title={removed ? "Conservar foto" : "Eliminar foto"}
+                        >
+                          {removed ? "↶" : "✕"}
+                        </button>
+                      </div>
+
+                      {removed && (
+                        <small>Se eliminará al guardar</small>
+                      )}
                     </div>
                   );
                 })}
@@ -1040,6 +1222,7 @@ async function handleDeleteReply(comment, reply) {
             </div>
           )}
 
+          {/* AGREGAR FOTOS NUEVAS */}
           <div className="field">
             <label htmlFor={`post-photos-${post.id}`}>
               Agregar fotos nuevas
@@ -1060,6 +1243,7 @@ async function handleDeleteReply(comment, reply) {
             </small>
           </div>
 
+          {/* LISTA DE FOTOS NUEVAS */}
           {photos.length > 0 && (
             <div className="field">
               <label>
@@ -1092,12 +1276,116 @@ async function handleDeleteReply(comment, reply) {
             </div>
           )}
 
+          {/* VIDEOS ACTUALES */}
+          {videosExistentes.filter((video) => !removedVideos.includes(video)).length > 0 && (
+            <div className="post-photo-grid post-video-grid">
+              {videosExistentes.map((video, index) => {
+                if (removedVideos.includes(video)) return null;
+
+                return (
+                  <div
+                    className="post-media post-video-item"
+                    key={`${video}-${index}`}
+                    style={{ position: "relative" }}
+                  >
+                    <button
+                      type="button"
+                      className="post-media-remove"
+                      onClick={() =>
+                        setRemovedVideos((current) => [...current, video])
+                      }
+                      aria-label="Eliminar video"
+                      title="Eliminar video"
+                    >
+                      ✕
+                    </button>
+
+                    {videoUrls[video] ? (
+                      <video
+                        src={videoUrls[video]}
+                        controls
+                        preload="metadata"
+                        className="post-video-player"
+                      />
+                    ) : videoErrors[video] ? (
+                      <p role="alert">
+                        No se pudo cargar el video: {videoErrors[video]}
+                      </p>
+                    ) : (
+                      <p>Cargando video...</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* AGREGAR VIDEOS NUEVOS */}
+          <div className="field">
+            <label htmlFor={`post-videos-${post.id}`}>
+              Agregar videos nuevos
+            </label>
+
+            <input
+              id={`post-videos-${post.id}`}
+              type="file"
+              accept="video/*"
+              multiple
+              onChange={handleVideoSelection}
+              disabled={saving || availableVideoSlots === 0}
+            />
+
+            <small>
+              Puedes añadir videos en varias selecciones. Tienes espacio
+              para {availableVideoSlots} video(s) nuevo(s).
+            </small>
+          </div>
+
+          {/* LISTA DE VIDEOS NUEVOS */}
+          {videos.length > 0 && (
+            <div className="field">
+              <label>
+                Videos nuevos seleccionados ({videos.length})
+              </label>
+
+              {videos.map((video, index) => (
+                <div
+                  key={`${video.name}-${video.lastModified}-${index}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
+                >
+                  <span>{video.name}</span>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() =>
+                      setVideos((current) =>
+                        current.filter((_, i) => i !== index)
+                      )
+                    }
+                    disabled={saving}
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* MENSAJE DE ERROR */}
           {editError && (
             <p className="form-error" role="alert">
               {editError}
             </p>
           )}
 
+          {/* BOTONES */}
           <div
             style={{
               display: "flex",
@@ -1127,24 +1415,76 @@ async function handleDeleteReply(comment, reply) {
         <>
           <p className="post-text">{renderTextWithMentions(post.texto)}</p>
 
-          {images.length > 0 && (
-            <div className={`post-photo-grid post-photo-grid-count-${Math.min(images.length, 4)}`}>
-              {images.slice(0, 4).map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  type="button"
-                  className={`post-media post-photo-open ${index === 3 && images.length > 4 ? "post-photo-more" : ""}`}
-                  onClick={() => setPhotoViewerIndex(index)}
-                  aria-label={index === 3 && images.length > 4 ? `Ver ${images.length - 4} fotos más` : `Ver foto ${index + 1}`}
-                >
-                  <Photo src={image} alt={post.texto || `Foto ${index + 1}`} />
-                  {index === 3 && images.length > 4 && (
-                    <span className="post-photo-more-count">+{images.length - 4}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const mediaItems = [
+              ...images.map((src) => ({ type: "image", src })),
+              ...videosExistentes.map((src) => ({ type: "video", src })),
+            ];
+
+            return mediaItems.length > 0 && (
+              <div
+                className={`post-photo-grid post-photo-grid-count-${Math.min(mediaItems.length, 4)}`}
+              >
+                {mediaItems.slice(0, 4).map((item, index) => {
+                  const isLastVisible = index === 3;
+                  const extraCount = mediaItems.length - 4;
+
+                  return (
+                    <button
+                      key={`${item.type}-${item.src}-${index}`}
+                      type="button"
+                      className={`post-media post-photo-open ${
+                        isLastVisible && extraCount > 0
+                          ? "post-photo-more"
+                          : ""
+                      }`}
+                      onClick={() => setPhotoViewerIndex(index)}
+                      aria-label={
+                        isLastVisible && extraCount > 0
+                          ? `Ver ${extraCount} elementos más`
+                          : item.type === "image"
+                            ? `Ver foto ${index + 1}`
+                            : `Ver video ${index + 1}`
+                      }
+                    >
+                      {item.type === "image" ? (
+                        <Photo
+                          src={item.src}
+                          alt={post.texto || `Foto ${index + 1}`}
+                        />
+                      ) : videoUrls[item.src] ? (
+                        <video
+                          src={videoUrls[item.src]}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="post-gallery-video"
+                        />
+                      ) : (
+                        <div className="post-gallery-video-placeholder">
+                          {videoErrors[item.src]
+                            ? "Video no disponible"
+                            : "Cargando video…"}
+                        </div>
+                      )}
+
+                      {item.type === "video" && (
+                        <span className="post-gallery-play" aria-hidden="true">
+                          ▶
+                        </span>
+                      )}
+
+                      {isLastVisible && extraCount > 0 && (
+                        <span className="post-photo-more-count">
+                          +{extraCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}   
         </>
       )}
 
@@ -1500,45 +1840,178 @@ async function handleDeleteReply(comment, reply) {
         </section>
       )}
 
-      {photoViewerIndex !== null && images.length > 0 && (
+      {photoViewerIndex !== null && mediaItems.length > 0 && (
         <div
           className="post-photo-viewer-backdrop"
           role="dialog"
           aria-modal="true"
-          aria-label="Visor de fotos de la publicación"
+          aria-label="Galería multimedia de la publicación"
           onClick={() => setPhotoViewerIndex(null)}
           onKeyDown={(event) => {
-            if (event.key === "Escape") setPhotoViewerIndex(null);
-            if (event.key === "ArrowRight") setPhotoViewerIndex((current) => (current + 1) % images.length);
-            if (event.key === "ArrowLeft") setPhotoViewerIndex((current) => (current - 1 + images.length) % images.length);
+            if (event.key === "Escape") {
+              setPhotoViewerIndex(null);
+            }
+
+            if (event.key === "ArrowRight") {
+              setPhotoViewerIndex(
+                (current) => (current + 1) % mediaItems.length
+              );
+            }
+
+            if (event.key === "ArrowLeft") {
+              setPhotoViewerIndex(
+                (current) =>
+                  (current - 1 + mediaItems.length) % mediaItems.length
+              );
+            }
           }}
           tabIndex={-1}
         >
-          <button type="button" className="post-photo-viewer-close" aria-label="Cerrar visor" onClick={() => setPhotoViewerIndex(null)}>×</button>
-          <div className="post-photo-viewer" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            className="post-photo-viewer-close"
+            aria-label="Cerrar visor"
+            onClick={() => setPhotoViewerIndex(null)}
+          >
+            ×
+          </button>
+
+          <div
+            className="post-photo-viewer"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="post-photo-viewer-stage">
-              {images.length > 1 && (
-                <button type="button" className="post-photo-viewer-arrow prev" aria-label="Foto anterior" onClick={() => setPhotoViewerIndex((current) => (current - 1 + images.length) % images.length)}>‹</button>
+              {mediaItems.length > 1 && (
+                <button
+                  type="button"
+                  className="post-photo-viewer-arrow prev"
+                  aria-label="Archivo anterior"
+                  onClick={() =>
+                    setPhotoViewerIndex(
+                      (current) =>
+                        (current - 1 + mediaItems.length) % mediaItems.length
+                    )
+                  }
+                >
+                  ‹
+                </button>
               )}
-              <img src={images[photoViewerIndex]} alt={post.texto || `Foto ${photoViewerIndex + 1}`} className="post-photo-viewer-image" />
-              {images.length > 1 && (
-                <button type="button" className="post-photo-viewer-arrow next" aria-label="Foto siguiente" onClick={() => setPhotoViewerIndex((current) => (current + 1) % images.length)}>›</button>
+
+              {mediaItems[photoViewerIndex].type === "image" ? (
+                <img
+                  src={mediaItems[photoViewerIndex].src}
+                  alt={post.texto || `Foto ${photoViewerIndex + 1}`}
+                  className="post-photo-viewer-image"
+                />
+              ) : (
+                <video
+                  key={mediaItems[photoViewerIndex].src}
+                  src={videoUrls[mediaItems[photoViewerIndex].src]}
+                  controls
+                  autoPlay={false}
+                  preload="metadata"
+                  className="post-photo-viewer-image post-video-viewer"
+                />
               )}
-              <span className="post-photo-viewer-counter">{photoViewerIndex + 1} / {images.length}</span>
+
+              {mediaItems.length > 1 && (
+                <button
+                  type="button"
+                  className="post-photo-viewer-arrow next"
+                  aria-label="Archivo siguiente"
+                  onClick={() =>
+                    setPhotoViewerIndex(
+                      (current) => (current + 1) % mediaItems.length
+                    )
+                  }
+                >
+                  ›
+                </button>
+              )}
+
+              <span className="post-photo-viewer-counter">
+                {photoViewerIndex + 1} / {mediaItems.length}
+              </span>
             </div>
+
             <aside className="post-photo-viewer-details">
               <div className="post-photo-viewer-author">
                 <UserAvatar user={author} size={42} />
-                <div><strong>{author.nombre || author.username || "Usuario"}</strong><small>@{author.username || ""} · {timeAgo(post.fechaCreacion)}</small></div>
+
+                <div>
+                  <strong>
+                    {author.nombre || author.username || "Usuario"}
+                  </strong>
+
+                  <small>
+                    @{author.username || ""} · {timeAgo(post.fechaCreacion)}
+                  </small>
+                </div>
               </div>
-              <div className="post-photo-viewer-caption">{renderTextWithMentions(post.texto)}</div>
-              {post.grupo && <span className="pill pink post-photo-viewer-group">{post.grupo}</span>}
+
+              <div className="post-photo-viewer-caption">
+                {renderTextWithMentions(post.texto)}
+              </div>
+
+              {post.grupo && (
+                <span className="pill pink post-photo-viewer-group">
+                  {post.grupo}
+                </span>
+              )}
+
               <div className="post-photo-viewer-actions">
-                <button type="button" className={`post-action-btn like-btn ${post.meGusta ? "liked" : ""}`} onClick={handleLike}><Icon name={post.meGusta ? "heartFilled" : "heart"} size={16} /> <span>{post.totalLikes}</span> Me gusta</button>
-                <button type="button" className="post-action-btn" onClick={() => { setPhotoViewerIndex(null); toggleComments(); }}><Icon name="comment" size={16} /> Ver comentarios ({post.totalComentarios || 0})</button>
+                <button
+                  type="button"
+                  className={`post-action-btn like-btn ${
+                    post.meGusta ? "liked" : ""
+                  }`}
+                  onClick={handleLike}
+                >
+                  <Icon
+                    name={post.meGusta ? "heartFilled" : "heart"}
+                    size={16}
+                  />
+
+                  <span>{post.totalLikes}</span> Me gusta
+                </button>
+
+                <button
+                  type="button"
+                  className="post-action-btn"
+                  onClick={() => {
+                    setPhotoViewerIndex(null);
+                    toggleComments();
+                  }}
+                >
+                  <Icon name="comment" size={16} />
+                  Ver comentarios ({post.totalComentarios || 0})
+                </button>
               </div>
+
               <div className="post-photo-viewer-thumbnails">
-                {images.map((image, index) => <button type="button" key={`${image}-thumb-${index}`} className={index === photoViewerIndex ? "active" : ""} onClick={() => setPhotoViewerIndex(index)} aria-label={`Ir a foto ${index + 1}`}><img src={image} alt="" /></button>)}
+                {mediaItems.map((item, index) => (
+                  <button
+                    type="button"
+                    key={`${item.type}-${item.src}-${index}`}
+                    className={index === photoViewerIndex ? "active" : ""}
+                    onClick={() => setPhotoViewerIndex(index)}
+                    aria-label={
+                      item.type === "image"
+                        ? `Ir a foto ${index + 1}`
+                        : `Ir a video ${index + 1}`
+                    }
+                  >
+                    {item.type === "image" ? (
+                      <img src={item.src} alt="" />
+                    ) : (
+                      <video src={item.src} muted preload="metadata" />
+                    )}
+
+                    {item.type === "video" && (
+                      <span className="post-video-thumbnail-icon">▶</span>
+                    )}
+                  </button>
+                ))}
               </div>
             </aside>
           </div>
