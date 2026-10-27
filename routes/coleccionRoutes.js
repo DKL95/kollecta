@@ -99,6 +99,46 @@ router.get("/usuario/:usuarioId", requiereAuth, async (req, res) => {
     }
 });
 
+// Obtener un artículo individual de la colección del usuario autenticado.
+router.get("/articulos/:articuloId", requiereAuth, async (req, res) => {
+    try {
+        const { articuloId } = req.params;
+
+        if (!mongoose.isValidObjectId(articuloId)) {
+            return res.status(400).json({
+                mensaje: "El identificador del artículo no es válido"
+            });
+        }
+
+        const coleccion = await Coleccion.findOne({
+            usuario: req.usuario.id
+        });
+
+        if (!coleccion) {
+            return res.status(404).json({
+                mensaje: "No se encontró tu colección"
+            });
+        }
+
+        const articulo = coleccion.articulos.id(articuloId);
+
+        if (!articulo) {
+            return res.status(404).json({
+                mensaje: "Artículo no encontrado"
+            });
+        }
+
+        res.json({ articulo });
+    } catch (error) {
+        console.error("Error al obtener el artículo:", error);
+
+        res.status(500).json({
+            mensaje: "No se pudo obtener el artículo"
+        });
+    }
+});
+
+
 // Añadir un artículo a la colección personal, incluyendo sus imágenes.
 router.post(
     "/articulos",

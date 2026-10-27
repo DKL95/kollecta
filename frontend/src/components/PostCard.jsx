@@ -351,68 +351,73 @@ export default function PostCard({ post, onChange, onDelete }) {
   const [videoUrls, setVideoUrls] = useState({});
   const [videoErrors, setVideoErrors] = useState({});
 
-  useEffect(() => {
-    let cancelado = false;
-    const urlsTemporales = [];
+    useEffect(() => {
+        let cancelado = false;
 
-    async function cargarVideos() {
-      const videos = post.videos || [];
-      const token = localStorage.getItem(TOKEN_KEY);
-      console.log("¿Hay token para cargar videos?:", Boolean(token));
+        async function cargarVideos() {
+            const videos = post.videos || [];
+            const token = localStorage.getItem(TOKEN_KEY);
 
-      if (videos.length === 0) {
-        setVideoUrls({});
-        setVideoErrors({});
-        return;
-      }
-
-      const nuevasUrls = {};
-      const nuevosErrores = {};
-
-      await Promise.all(
-        videos.map(async (video) => {
-          try {
-            const ruta = video.startsWith("/api/")
-              ? video
-              : `/api/videos/${video}`;
-
-            const respuesta = await fetch(ruta, {
-              headers: token
-                ? { Authorization: `Bearer ${token}` }
-                : {},
-            });
-
-            if (!respuesta.ok) {
-              throw new Error(`Error ${respuesta.status} al cargar el video`);
+            if (videos.length === 0) {
+                setVideoUrls({});
+                setVideoErrors({});
+                return;
             }
 
-            const archivo = await respuesta.blob();
-            const urlTemporal = URL.createObjectURL(archivo);
+            const nuevasUrls = {};
+            const nuevosErrores = {};
 
-            urlsTemporales.push(urlTemporal);
-            nuevasUrls[video] = urlTemporal;
-          } catch (error) {
-            nuevosErrores[video] = error.message;
-          }
-        })
-      );
+            await Promise.all(
+                videos.map(async (video) => {
+                    try {
+                        const idVideo = video.startsWith("/api/videos/")
+                          ? video.split("/").filter(Boolean).pop()
+                          : video;
 
-      if (cancelado) {
-        urlsTemporales.forEach((url) => URL.revokeObjectURL(url));
-        return;
-      }
+                        const respuesta = await fetch(
+                          `/api/videos/${encodeURIComponent(idVideo)}/playback-url`,
+                          {
+                            headers: token
+                              ? { Authorization: `Bearer ${token}` }
+                              : {}
+                          }
+                        );
 
-      setVideoUrls(nuevasUrls);
-      setVideoErrors(nuevosErrores);
-    }
+                        if (!respuesta.ok) {
+                            throw new Error(
+                                `Error ${respuesta.status} al preparar el video`
+                            );
+                        }
 
-    cargarVideos();
+                        const datos = await respuesta.json();
 
-    return () => {
-      cancelado = true;
-      urlsTemporales.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [post.videos]);
+                        if (!datos.url) {
+                            throw new Error(
+                                "El servidor no devolvió la URL del video"
+                            );
+                        }
+
+                        // No descargamos el archivo con blob().
+                        // El reproductor podrá solicitar fragmentos mediante Range.
+                        nuevasUrls[video] = datos.url;
+                    } catch (error) {
+                        nuevosErrores[video] = error.message;
+                    }
+                })
+            );
+
+            if (cancelado) return;
+
+            setVideoUrls(nuevasUrls);
+            setVideoErrors(nuevosErrores);
+        }
+
+        cargarVideos();
+
+        return () => {
+            cancelado = true;
+        };
+    }, [post.videos]);
 
   // Estado y lógica de comentarios
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -2004,7 +2009,11 @@ async function handleDeleteReply(comment, reply) {
                     {item.type === "image" ? (
                       <img src={item.src} alt="" />
                     ) : (
-                      <video src={item.src} muted preload="metadata" />
+                      <video
+                        src={videoUrls[item.src]}
+                        muted
+                        preload="metadata"
+                      />
                     )}
 
                     {item.type === "video" && (

@@ -48,14 +48,17 @@ function guardarVideo(archivo, idUsuario) {
 }
 
 // Recupera un video de GridFS para reproducirlo.
-function obtenerVideo(id) {
+function obtenerVideo(id, opciones = {}) {
     if (!ObjectId.isValid(id)) {
         throw new Error("ID de video inválido");
     }
 
     const bucket = obtenerBucket();
 
-    return bucket.openDownloadStream(new ObjectId(id));
+    return bucket.openDownloadStream(
+        new ObjectId(id),
+        opciones
+    );
 }
 
 // Elimina un video de GridFS.
