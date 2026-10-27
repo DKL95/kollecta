@@ -1091,6 +1091,324 @@ async function handleDeleteReply(comment, reply) {
     }
   }
 
+  const renderCommentsSection = () => (
+        <section className="post-comments" aria-label="Comentarios">
+          {loadingComments ? (
+            <p className="post-comments-empty">
+              Cargando comentarios...
+            </p>
+          ) : (
+            <div className="post-comments-list">
+              {comments.length === 0 ? (
+                <p className="post-comments-empty">
+                  Todavía no hay comentarios. ¡Sé el primero!
+                </p>
+              ) : (
+                comments.map((comment) => (
+                  <div className="post-comment" key={comment.id}>
+                    {comment.autor && (
+                      <UserHoverCard user={comment.autor}>
+                        <UserAvatar
+                          user={comment.autor}
+                          size={32}
+                        />
+                      </UserHoverCard>
+                    )}
+
+                    <div className="post-comment-content">
+                      <div className="post-comment-bubble">
+                        <strong>
+                          {comment.autor ? (
+                            <UserHoverCard user={comment.autor}>
+                              {comment.autor.nombre || comment.autor.username || "Usuario"}
+                            </UserHoverCard>
+                          ) : "Usuario"}
+                        </strong>
+
+                        {editingCommentId === comment.id ? (
+                          <div className="comment-edit-form">
+                            <MentionAutocomplete
+                              value={editCommentText}
+                              onChange={setEditCommentText}
+                              maxLength={500}
+                              rows={3}
+                              autoFocus
+                              ariaLabel="Editar comentario"
+                              disabled={savingComment}
+                            />
+                            <div className="comment-interactions">
+                              <button
+                                type="button"
+                                className="comment-interaction-btn"
+                                onClick={() => handleSaveComment(comment)}
+                                disabled={savingComment || !editCommentText.trim()}
+                              >
+                                {savingComment ? "Guardando..." : "Guardar"}
+                              </button>
+                              <button
+                                type="button"
+                                className="comment-interaction-btn"
+                                onClick={cancelEditComment}
+                                disabled={savingComment}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>{renderTextWithMentions(comment.texto)}</p>
+                        )}
+                      </div>
+
+                      <small>
+                        {comment.fecha
+                          ? timeAgo(comment.fecha)
+                          : "Ahora"}
+                      </small>
+
+                      {/* Acciones del comentario */}
+                      <div className="comment-interactions">
+                        <button
+                          type="button"
+                          className={`comment-interaction-btn ${
+                            comment.meGusta ? "liked" : ""
+                          }`}
+                          onClick={() => handleCommentLike(comment)}
+                          aria-label="Dar o quitar like al comentario"
+                        >
+                          ♥ {comment.totalLikes || 0}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="comment-interaction-btn"
+                          onClick={() => startReply(comment)}
+                        >
+                          Responder
+                        </button>
+
+                        {puedeEditarComentario(comment) && editingCommentId !== comment.id && (
+                          <button
+                            type="button"
+                            className="comment-interaction-btn"
+                            onClick={() => startEditComment(comment)}
+                            disabled={savingComment}
+                            aria-label="Editar comentario"
+                          >
+                            <Icon name="pencil" size={13} /> Editar
+                          </button>
+                        )}
+
+                        {puedeEliminarComentario(comment) && (
+                          <button
+                            type="button"
+                            className="comment-interaction-btn"
+                            onClick={() => handleDeleteComment(comment)}
+                            aria-label="Eliminar comentario"
+                          >
+                            <Icon name="trash" size={13} /> Eliminar
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Control para mostrar u ocultar las respuestas */}
+                      {(comment.respuestas || []).length > 0 && (
+                        <button
+                          type="button"
+                          className="comment-interaction-btn"
+                          onClick={() => toggleReplies(comment.id)}
+                          aria-expanded={expandedReplies.has(comment.id)}
+                        >
+                          {expandedReplies.has(comment.id)
+                            ? "Ocultar respuestas"
+                            : `Ver respuestas (${comment.respuestas.length})`}
+                        </button>
+                      )}
+
+                      {/* Las respuestas solo aparecen al desplegarlas */}
+                      {expandedReplies.has(comment.id) &&
+                        (comment.respuestas || []).map((reply) => (
+                        <div className="post-reply" key={reply.id}>
+                          {reply.autor && (
+                            <UserHoverCard user={reply.autor}>
+                              <UserAvatar user={reply.autor} size={28} />
+                            </UserHoverCard>
+                          )}
+
+                          <div className="post-comment-content">
+                            <div className="post-comment-bubble">
+                              <strong>
+                                {reply.autor ? (
+                                  <UserHoverCard user={reply.autor}>
+                                    {reply.autor.nombre || reply.autor.username || "Usuario"}
+                                  </UserHoverCard>
+                                ) : (
+                                  "Usuario"
+                                )}
+                              </strong>
+
+                              {editingReplyId === reply.id ? (
+                                <div className="comment-edit-form">
+                                  <textarea
+                                    value={editCommentText}
+                                    onChange={(event) => setEditCommentText(event.target.value)}
+                                    maxLength={500}
+                                    rows={3}
+                                    autoFocus
+                                    aria-label="Editar respuesta"
+                                    disabled={savingComment}
+                                  />
+                                  <div className="comment-interactions">
+                                    <button
+                                      type="button"
+                                      className="comment-interaction-btn"
+                                      onClick={() => handleSaveReply(comment, reply)}
+                                      disabled={savingComment || !editCommentText.trim()}
+                                    >
+                                      {savingComment ? "Guardando..." : "Guardar"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="comment-interaction-btn"
+                                      onClick={cancelEditComment}
+                                      disabled={savingComment}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p>{renderTextWithMentions(reply.texto)}</p>
+                              )}
+                            </div>
+
+                            <small>
+                              {reply.fecha ? timeAgo(reply.fecha) : "Ahora"}
+                            </small>
+
+                            <div className="comment-interactions">
+                              <button
+                                type="button"
+                                className={`comment-interaction-btn ${
+                                  reply.meGusta ? "liked" : ""
+                                }`}
+                                onClick={() => handleReplyLike(comment, reply)}
+                                aria-label="Dar o quitar like a la respuesta"
+                              >
+                                ♥ {reply.totalLikes || 0}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="comment-interaction-btn"
+                                onClick={() => startReply(comment, reply)}
+                              >
+                                Responder
+                              </button>
+
+                              {puedeEditarRespuesta(reply) && editingReplyId !== reply.id && (
+                                <button
+                                  type="button"
+                                  className="comment-interaction-btn"
+                                  onClick={() => startEditReply(reply)}
+                                  disabled={savingComment}
+                                  aria-label="Editar respuesta"
+                                >
+                                  <Icon name="pencil" size={13} /> Editar
+                                </button>
+                              )}
+
+                              {puedeEliminarRespuesta(reply) && (
+                                <button
+                                  type="button"
+                                  className="comment-interaction-btn"
+                                  onClick={() => handleDeleteReply(comment, reply)}
+                                  aria-label="Eliminar respuesta"
+                                >
+                                  <Icon name="trash" size={13} /> Eliminar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Formulario para responder al comentario */}
+                      {replyingTo?.commentId === comment.id && (
+                        <form
+                          className="post-reply-form"
+                          onSubmit={handleReplySubmit}
+                        >
+                          <MentionAutocomplete
+                            value={replyText}
+                            onChange={setReplyText}
+                            placeholder="Escribe una respuesta..."
+                            maxLength={500}
+                            disabled={sendingReply}
+                            ariaLabel="Escribe una respuesta"
+                            autoFocus
+                          />
+
+                          <button
+                            type="submit"
+                            className="btn btn-primary btn-sm"
+                            disabled={
+                              sendingReply || !replyText.trim()
+                            }
+                          >
+                            {sendingReply
+                              ? "Enviando..."
+                              : "Responder"}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              setReplyingTo(null);
+                              setReplyText("");
+                            }}
+                            disabled={sendingReply}
+                          >
+                            Cancelar
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Formulario para publicar un comentario */}
+          <form
+            className="post-comment-form"
+            onSubmit={handleCommentSubmit}
+          >
+            <MentionAutocomplete
+              value={commentText}
+              onChange={setCommentText}
+              placeholder="Escribe un comentario..."
+              maxLength={500}
+              disabled={sendingComment}
+              ariaLabel="Escribe un comentario"
+            />
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={
+                sendingComment || !commentText.trim()
+              }
+            >
+              {sendingComment ? "Enviando..." : "Enviar"}
+            </button>
+          </form>
+        </section>
+
+  );
+
   return (    <article className="card post">
       <div className="post-head">
         <UserHoverCard user={author}>
@@ -1528,322 +1846,9 @@ async function handleDeleteReply(comment, reply) {
         </button>
       </div>
 
-      {commentsOpen && (
-        <section className="post-comments" aria-label="Comentarios">
-          {loadingComments ? (
-            <p className="post-comments-empty">
-              Cargando comentarios...
-            </p>
-          ) : (
-            <div className="post-comments-list">
-              {comments.length === 0 ? (
-                <p className="post-comments-empty">
-                  Todavía no hay comentarios. ¡Sé el primero!
-                </p>
-              ) : (
-                comments.map((comment) => (
-                  <div className="post-comment" key={comment.id}>
-                    {comment.autor && (
-                      <UserHoverCard user={comment.autor}>
-                        <UserAvatar
-                          user={comment.autor}
-                          size={32}
-                        />
-                      </UserHoverCard>
-                    )}
-
-                    <div className="post-comment-content">
-                      <div className="post-comment-bubble">
-                        <strong>
-                          {comment.autor ? (
-                            <UserHoverCard user={comment.autor}>
-                              {comment.autor.nombre || comment.autor.username || "Usuario"}
-                            </UserHoverCard>
-                          ) : "Usuario"}
-                        </strong>
-
-                        {editingCommentId === comment.id ? (
-                          <div className="comment-edit-form">
-                            <MentionAutocomplete
-                              value={editCommentText}
-                              onChange={setEditCommentText}
-                              maxLength={500}
-                              rows={3}
-                              autoFocus
-                              ariaLabel="Editar comentario"
-                              disabled={savingComment}
-                            />
-                            <div className="comment-interactions">
-                              <button
-                                type="button"
-                                className="comment-interaction-btn"
-                                onClick={() => handleSaveComment(comment)}
-                                disabled={savingComment || !editCommentText.trim()}
-                              >
-                                {savingComment ? "Guardando..." : "Guardar"}
-                              </button>
-                              <button
-                                type="button"
-                                className="comment-interaction-btn"
-                                onClick={cancelEditComment}
-                                disabled={savingComment}
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p>{renderTextWithMentions(comment.texto)}</p>
-                        )}
-                      </div>
-
-                      <small>
-                        {comment.fecha
-                          ? timeAgo(comment.fecha)
-                          : "Ahora"}
-                      </small>
-
-                      {/* Acciones del comentario */}
-                      <div className="comment-interactions">
-                        <button
-                          type="button"
-                          className={`comment-interaction-btn ${
-                            comment.meGusta ? "liked" : ""
-                          }`}
-                          onClick={() => handleCommentLike(comment)}
-                          aria-label="Dar o quitar like al comentario"
-                        >
-                          ♥ {comment.totalLikes || 0}
-                        </button>
-
-                        <button
-                          type="button"
-                          className="comment-interaction-btn"
-                          onClick={() => startReply(comment)}
-                        >
-                          Responder
-                        </button>
-
-                        {puedeEditarComentario(comment) && editingCommentId !== comment.id && (
-                          <button
-                            type="button"
-                            className="comment-interaction-btn"
-                            onClick={() => startEditComment(comment)}
-                            disabled={savingComment}
-                            aria-label="Editar comentario"
-                          >
-                            <Icon name="pencil" size={13} /> Editar
-                          </button>
-                        )}
-
-                        {puedeEliminarComentario(comment) && (
-                          <button
-                            type="button"
-                            className="comment-interaction-btn"
-                            onClick={() => handleDeleteComment(comment)}
-                            aria-label="Eliminar comentario"
-                          >
-                            <Icon name="trash" size={13} /> Eliminar
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Control para mostrar u ocultar las respuestas */}
-                      {(comment.respuestas || []).length > 0 && (
-                        <button
-                          type="button"
-                          className="comment-interaction-btn"
-                          onClick={() => toggleReplies(comment.id)}
-                          aria-expanded={expandedReplies.has(comment.id)}
-                        >
-                          {expandedReplies.has(comment.id)
-                            ? "Ocultar respuestas"
-                            : `Ver respuestas (${comment.respuestas.length})`}
-                        </button>
-                      )}
-
-                      {/* Las respuestas solo aparecen al desplegarlas */}
-                      {expandedReplies.has(comment.id) &&
-                        (comment.respuestas || []).map((reply) => (
-                        <div className="post-reply" key={reply.id}>
-                          {reply.autor && (
-                            <UserHoverCard user={reply.autor}>
-                              <UserAvatar user={reply.autor} size={28} />
-                            </UserHoverCard>
-                          )}
-
-                          <div className="post-comment-content">
-                            <div className="post-comment-bubble">
-                              <strong>
-                                {reply.autor ? (
-                                  <UserHoverCard user={reply.autor}>
-                                    {reply.autor.nombre || reply.autor.username || "Usuario"}
-                                  </UserHoverCard>
-                                ) : (
-                                  "Usuario"
-                                )}
-                              </strong>
-
-                              {editingReplyId === reply.id ? (
-                                <div className="comment-edit-form">
-                                  <textarea
-                                    value={editCommentText}
-                                    onChange={(event) => setEditCommentText(event.target.value)}
-                                    maxLength={500}
-                                    rows={3}
-                                    autoFocus
-                                    aria-label="Editar respuesta"
-                                    disabled={savingComment}
-                                  />
-                                  <div className="comment-interactions">
-                                    <button
-                                      type="button"
-                                      className="comment-interaction-btn"
-                                      onClick={() => handleSaveReply(comment, reply)}
-                                      disabled={savingComment || !editCommentText.trim()}
-                                    >
-                                      {savingComment ? "Guardando..." : "Guardar"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="comment-interaction-btn"
-                                      onClick={cancelEditComment}
-                                      disabled={savingComment}
-                                    >
-                                      Cancelar
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p>{renderTextWithMentions(reply.texto)}</p>
-                              )}
-                            </div>
-
-                            <small>
-                              {reply.fecha ? timeAgo(reply.fecha) : "Ahora"}
-                            </small>
-
-                            <div className="comment-interactions">
-                              <button
-                                type="button"
-                                className={`comment-interaction-btn ${
-                                  reply.meGusta ? "liked" : ""
-                                }`}
-                                onClick={() => handleReplyLike(comment, reply)}
-                                aria-label="Dar o quitar like a la respuesta"
-                              >
-                                ♥ {reply.totalLikes || 0}
-                              </button>
-
-                              <button
-                                type="button"
-                                className="comment-interaction-btn"
-                                onClick={() => startReply(comment, reply)}
-                              >
-                                Responder
-                              </button>
-
-                              {puedeEditarRespuesta(reply) && editingReplyId !== reply.id && (
-                                <button
-                                  type="button"
-                                  className="comment-interaction-btn"
-                                  onClick={() => startEditReply(reply)}
-                                  disabled={savingComment}
-                                  aria-label="Editar respuesta"
-                                >
-                                  <Icon name="pencil" size={13} /> Editar
-                                </button>
-                              )}
-
-                              {puedeEliminarRespuesta(reply) && (
-                                <button
-                                  type="button"
-                                  className="comment-interaction-btn"
-                                  onClick={() => handleDeleteReply(comment, reply)}
-                                  aria-label="Eliminar respuesta"
-                                >
-                                  <Icon name="trash" size={13} /> Eliminar
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Formulario para responder al comentario */}
-                      {replyingTo?.commentId === comment.id && (
-                        <form
-                          className="post-reply-form"
-                          onSubmit={handleReplySubmit}
-                        >
-                          <MentionAutocomplete
-                            value={replyText}
-                            onChange={setReplyText}
-                            placeholder="Escribe una respuesta..."
-                            maxLength={500}
-                            disabled={sendingReply}
-                            ariaLabel="Escribe una respuesta"
-                            autoFocus
-                          />
-
-                          <button
-                            type="submit"
-                            className="btn btn-primary btn-sm"
-                            disabled={
-                              sendingReply || !replyText.trim()
-                            }
-                          >
-                            {sendingReply
-                              ? "Enviando..."
-                              : "Responder"}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              setReplyingTo(null);
-                              setReplyText("");
-                            }}
-                            disabled={sendingReply}
-                          >
-                            Cancelar
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* Formulario para publicar un comentario */}
-          <form
-            className="post-comment-form"
-            onSubmit={handleCommentSubmit}
-          >
-            <MentionAutocomplete
-              value={commentText}
-              onChange={setCommentText}
-              placeholder="Escribe un comentario..."
-              maxLength={500}
-              disabled={sendingComment}
-              ariaLabel="Escribe un comentario"
-            />
-
-            <button
-              type="submit"
-              className="btn btn-primary btn-sm"
-              disabled={
-                sendingComment || !commentText.trim()
-              }
-            >
-              {sendingComment ? "Enviando..." : "Enviar"}
-            </button>
-          </form>
-        </section>
-      )}
+      {commentsOpen &&
+        photoViewerIndex === null &&
+        renderCommentsSection()}
 
       {photoViewerIndex !== null && mediaItems.length > 0 && (
         <div
@@ -1939,6 +1944,7 @@ async function handleDeleteReply(comment, reply) {
               </span>
             </div>
 
+          
             <aside className="post-photo-viewer-details">
               <div className="post-photo-viewer-author">
                 <UserAvatar user={author} size={42} />
@@ -1983,15 +1989,21 @@ async function handleDeleteReply(comment, reply) {
                 <button
                   type="button"
                   className="post-action-btn"
-                  onClick={() => {
-                    setPhotoViewerIndex(null);
-                    toggleComments();
+                  onClick={async () => {
+                    if (!commentsOpen) {
+                      await toggleComments();
+                    }
                   }}
                 >
                   <Icon name="comment" size={16} />
-                  Ver comentarios ({post.totalComentarios || 0})
+
+                  {commentsOpen ? "Comentarios abiertos" : "Ver comentarios"} (
+                  {post.totalComentarios || 0})
                 </button>
               </div>
+
+              {/* COMENTARIOS DENTRO DEL VISOR */}
+              {commentsOpen && renderCommentsSection()}
 
               <div className="post-photo-viewer-thumbnails">
                 {mediaItems.map((item, index) => (
