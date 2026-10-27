@@ -843,8 +843,43 @@ p { margin: 0; }
 .seller-card .info .s { font-size: 12px; color: var(--text-faint); }
 
 /* ---------- Messages ---------- */
-.messages-shell { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - var(--header-h)); }
-.thread-list { border-right: 1px solid var(--border); overflow-y: auto; }
+
+.messages-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  height: calc(100vh - var(--header-h));
+  min-height: 0;
+  overflow: hidden;
+}
+
+.thread-list {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.chat-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chat-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.chat-header,
+.chat-form {
+  flex-shrink: 0;
+}
 .thread-item { display: flex; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .thread-item:hover { background: rgba(255,255,255,0.03); }
 .thread-item.active { background: rgba(255,79,163,0.08); }

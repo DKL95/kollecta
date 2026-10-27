@@ -26,9 +26,26 @@ const mensajeSchema = new mongoose.Schema(
             default: []
         },
 
+        // Estado de entrega
+        entregado: {
+            type: Boolean,
+            default: false
+        },
+
+        entregadoEn: {
+            type: Date,
+            default: null
+        },
+
+        // Estado de lectura
         leido: {
             type: Boolean,
             default: false
+        },
+
+        leidoEn: {
+            type: Date,
+            default: null
         }
     },
     {
@@ -37,6 +54,9 @@ const mensajeSchema = new mongoose.Schema(
     }
 );
 
-mensajeSchema.index({ conversacion: 1, createdAt: 1 });
+mensajeSchema.index({
+    conversacion: 1,
+    createdAt: 1
+});
 
 module.exports = mongoose.model("Mensaje", mensajeSchema);

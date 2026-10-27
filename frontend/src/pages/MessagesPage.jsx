@@ -222,74 +222,137 @@ export default function MessagesPage() {
     };
   }, [activeId]);
 
-  // Escuchar mensajes nuevos en tiempo real.
-  useEffect(() => {
-    function recibirMensaje(mensaje) {
-      const conversacionId =
+  function recibirMensaje(mensaje) {
+    const conversacionId =
         mensaje.conversacion?._id || mensaje.conversacion;
 
-      if (String(conversacionId) !== String(activeId)) {
+    // Ignorar mensajes de otras conversaciones.
+    if (String(conversacionId) !== String(activeId)) {
         return;
-      }
-
-      setMessages((anteriores) => {
-        const yaExiste = anteriores.some(
-          (item) => item._id === mensaje._id
-        );
-
-        if (yaExiste) return anteriores;
-
-        return [...anteriores, mensaje];
-      });
-
-      cargarConversaciones();
     }
 
-    socket.on("mensaje:nuevo", recibirMensaje);
+    const miId = user?._id || user?.id;
+
+    const remitenteId =
+        mensaje.remitente?._id || mensaje.remitente;
+
+    const esMio =
+        String(remitenteId) === String(miId);
+
+    // Si el mensaje es de otra persona, confirmar su entrega.
+    if (!esMio) {
+        socket.emit(
+            "mensaje:confirmar-entrega",
+            mensaje._id,
+            (respuesta) => {
+                if (!respuesta?.ok) {
+                    console.error(
+                        "No se pudo confirmar la entrega:",
+                        respuesta?.mensaje
+                    );
+                }
+            }
+        );
+    }
+
+    // Agregar el mensaje sin duplicarlo.
+    setMessages((anteriores) => {
+        const yaExiste = anteriores.some(
+            (item) => item._id === mensaje._id
+        );
+
+        if (yaExiste) {
+            return anteriores;
+        }
+
+        return [...anteriores, mensaje];
+    });
+
+    cargarConversaciones();
+}
+
+  // Escuchar los mensajes nuevos en tiempo real.
+  useEffect(() => {
+    function escucharMensajeNuevo(mensaje) {
+      console.log("📩 Mensaje recibido por Socket.IO:", mensaje);
+
+      recibirMensaje(mensaje);
+    }
+
+    socket.on("mensaje:nuevo", escucharMensajeNuevo);
 
     return () => {
-      socket.off("mensaje:nuevo", recibirMensaje);
+      socket.off("mensaje:nuevo", escucharMensajeNuevo);
     };
-  }, [activeId, cargarConversaciones]);
+  }, [activeId, user, cargarConversaciones]);
 
-  // Conectar Socket.IO y entrar a la conversación activa.
+    // Conectar Socket.IO y entrar a la conversación activa.
   useEffect(() => {
     if (!activeId) return;
 
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    socket.on("connect", () => {
-      console.log("🟢 Socket conectado:", socket.id);
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("🔴 Error de Socket.IO:", error.message);
-    });
-
     function unirseAConversacion() {
+      console.log("🔵 Entrando a la conversación:", activeId);
+
       socket.emit("conversacion:unirse", activeId, (respuesta) => {
-        if (!respuesta?.ok) {
+        if (respuesta?.ok) {
+          console.log("✅ Entraste a la sala:", activeId);
+        } else {
           console.error(
-            "No se pudo entrar a la sala:",
+            "❌ No se pudo entrar a la sala:",
             respuesta?.mensaje
           );
         }
       });
     }
 
-    if (socket.connected) {
+    function alConectar() {
+      console.log("🟢 Socket conectado:", socket.id);
       unirseAConversacion();
     }
 
-    socket.on("connect", unirseAConversacion);
+    if (socket.connected) {
+      unirseAConversacion();
+    } else {
+      socket.connect();
+      socket.on("connect", alConectar);
+    }
+
+    socket.on("connect_error", (error) => {
+      console.error("🔴 Error de Socket.IO:", error.message);
+    });
 
     return () => {
-      socket.off("connect", unirseAConversacion);
+      socket.off("connect", alConectar);
       socket.emit("conversacion:salir", activeId);
     };
   }, [activeId]);
+  
+  // Escuchar los cambios de estado de los mensajes enviados.
+  useEffect(() => {
+      function actualizarEstadoMensaje(estado) {
+          setMessages((anteriores) =>
+              anteriores.map((mensaje) => {
+                  if (String(mensaje._id) !== String(estado._id)) {
+                      return mensaje;
+                  }
+
+                  return {
+                      ...mensaje,
+                      entregado: estado.entregado,
+                      entregadoEn: estado.entregadoEn,
+                      leido: estado.leido,
+                      leidoEn: estado.leidoEn
+                  };
+              })
+          );
+      }
+
+      socket.on("mensaje:estado", actualizarEstadoMensaje);
+
+      return () => {
+          socket.off("mensaje:estado", actualizarEstadoMensaje);
+      };
+  }, []);
 
   // Bajar automáticamente al mensaje más reciente.
   useEffect(() => {
@@ -515,7 +578,33 @@ export default function MessagesPage() {
                         />
                       )}
 
-                      <div className="bubble">{message.texto}</div>
+                      <div className="bubble">
+                        {message.texto}
+
+                        {esMio && (
+                            <span
+                                title={
+                                    message.leido
+                                        ? "Leído"
+                                        : message.entregado
+                                        ? "Entregado"
+                                        : "Enviado"
+                                }
+                                style={{
+                                    display: "inline-block",
+                                    marginLeft: "8px",
+                                    fontSize: "12px",
+                                    whiteSpace: "nowrap"
+                                }}
+                            >
+                                {message.leido
+                                    ? "✓✓"
+                                    : message.entregado
+                                    ? "✓✓"
+                                    : "✓"}
+                            </span>
+                        )}
+                    </div>  
                     </div>
                   );
                 })

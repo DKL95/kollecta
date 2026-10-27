@@ -85,7 +85,7 @@ async function obtenerOCrearConversacion(req, res) {
     }
 }
 
-// Obtener los mensajes de una conversación
+// Obtener los mensajes de una conversación y marcar los recibidos como leídos.
 async function obtenerMensajes(req, res) {
     try {
         const { conversacionId } = req.params;
@@ -108,27 +108,62 @@ async function obtenerMensajes(req, res) {
             });
         }
 
+        const io = req.app.get("io");
+
+        // Marcar como leídos los mensajes recibidos que aún no se han leído.
+        const mensajesActualizados = await Mensaje.find({
+            conversacion: conversacionId,
+            remitente: { $ne: usuarioId },
+            leido: false
+        }).select("_id remitente");
+
+        const idsActualizados = mensajesActualizados.map(
+            (mensaje) => mensaje._id
+        );
+
+        if (idsActualizados.length > 0) {
+            const fechaLectura = new Date();
+
+            await Mensaje.updateMany(
+                { _id: { $in: idsActualizados } },
+                {
+                    $set: {
+                        leido: true,
+                        leidoEn: fechaLectura,
+                        entregado: true,
+                        entregadoEn: fechaLectura
+                    }
+                }
+            );
+
+            // Avisar a cada remitente de que sus mensajes fueron leídos.
+            if (io) {
+                for (const mensaje of mensajesActualizados) {
+                    io.to(`usuario:${mensaje.remitente}`).emit(
+                        "mensaje:estado",
+                        {
+                            _id: mensaje._id,
+                            conversacion: conversacionId,
+                            entregado: true,
+                            entregadoEn: fechaLectura,
+                            leido: true,
+                            leidoEn: fechaLectura
+                        }
+                    );
+                }
+            }
+        }
+
         const mensajes = await Mensaje.find({
             conversacion: conversacionId
         })
             .populate("remitente", "nombre username fotoPerfil")
             .sort({ createdAt: 1 });
 
-        // Marcar como leídos los mensajes de la otra persona
-        await Mensaje.updateMany(
-            {
-                conversacion: conversacionId,
-                remitente: { $ne: usuarioId },
-                leido: false
-            },
-            {
-                $set: { leido: true }
-            }
-        );
-
         res.json(mensajes);
     } catch (error) {
         console.error("Error al obtener mensajes:", error);
+
         res.status(500).json({
             mensaje: "Error al obtener los mensajes"
         });
@@ -201,7 +236,11 @@ async function enviarMensaje(req, res) {
         const mensaje = await Mensaje.create({
             conversacion: conversacionId,
             remitente: usuarioId,
-            texto
+            texto,
+            entregado: false,
+            entregadoEn: null,
+            leido: false,
+            leidoEn: null
         });
 
         conversacion.ultimoMensaje = mensaje._id;
@@ -218,6 +257,10 @@ async function enviarMensaje(req, res) {
         const io = req.app.get("io");
 
         if (io) {
+            console.log(
+                "📨 Emitiendo mensaje a la conversación:",
+                String(conversacionId)
+            );
             // Actualizar el chat de quienes estén dentro de la conversación.
             io.to(`conversacion:${conversacionId}`).emit(
                 "mensaje:nuevo",
@@ -241,6 +284,23 @@ async function enviarMensaje(req, res) {
             mensaje: "Error al enviar el mensaje"
         });
     }
+}
+
+// Notificar al remitente cuando cambia el estado de un mensaje.
+function notificarEstadoMensaje(io, mensaje) {
+    if (!io || !mensaje) return;
+
+    io.to(`usuario:${mensaje.remitente}`).emit(
+        "mensaje:estado",
+        {
+            _id: mensaje._id,
+            conversacion: mensaje.conversacion,
+            entregado: mensaje.entregado,
+            entregadoEn: mensaje.entregadoEn,
+            leido: mensaje.leido,
+            leidoEn: mensaje.leidoEn
+        }
+    );
 }
 
 module.exports = {
