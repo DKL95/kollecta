@@ -10,6 +10,7 @@ const publicacionRoutes = require("./routes/publicacionRoutes");
 const imagenRoutes = require("./routes/imagenRoutes");
 const videoRoutes = require("./routes/videoRoutes");
 const mensajeRoutes = require("./routes/mensajeRoutes");
+const coleccionRoutes = require("./routes/coleccionRoutes");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
 // sin abrir el puerto real ni conectarse a la base de datos de Atlas.
@@ -27,6 +28,7 @@ app.use("/uploads", express.static(CARPETA_UPLOADS));
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/publicaciones", publicacionRoutes);
+app.use("/api/coleccion", coleccionRoutes);
 app.use("/api/imagenes", imagenRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/mensajes", mensajeRoutes);
