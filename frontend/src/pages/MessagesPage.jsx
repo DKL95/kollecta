@@ -55,6 +55,12 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [openingChat, setOpeningChat] = useState(false);
 
+  // En móvil se muestra primero la lista; el chat se abre al seleccionar uno.
+  const [mobileView, setMobileView] = useState("list");
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [messageSearchOpen, setMessageSearchOpen] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
+
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -67,6 +73,29 @@ export default function MessagesPage() {
   const activeThread = threads.find(
     (thread) => thread._id === activeId
   );
+
+  const matchingMessages = messageSearchQuery.trim()
+    ? messages.filter((message) =>
+        String(message.texto || "")
+          .toLocaleLowerCase("es-MX")
+          .includes(messageSearchQuery.trim().toLocaleLowerCase("es-MX"))
+      )
+    : [];
+
+  function irAlMensaje(messageId) {
+    setMessageSearchOpen(false);
+    setChatMenuOpen(false);
+    window.setTimeout(() => {
+      const elemento = document.getElementById(`message-${messageId}`);
+      elemento?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  }
+
+  useEffect(() => {
+    setChatMenuOpen(false);
+    setMessageSearchOpen(false);
+    setMessageSearchQuery("");
+  }, [activeId]);
 
   // Cargar conversaciones guardadas en MongoDB.
   const cargarConversaciones = useCallback(async () => {
@@ -174,6 +203,8 @@ export default function MessagesPage() {
 
       setThreads(Array.isArray(data) ? data : []);
       setActiveId(conversacion._id || conversacion.id);
+      setMobileView("chat");
+      setChatMenuOpen(false);
       setSearch("");
       setSearchResults([]);
       setDraft("");
@@ -401,7 +432,9 @@ export default function MessagesPage() {
   }
 
   return (
-    <main className="messages-shell">
+    <main className={`messages-shell ${activeThread ? "has-active-chat" : ""} ${
+      mobileView === "chat" ? "mobile-chat-open" : "mobile-list-open"
+    }`}>
       <div className="thread-list">
         {/* Buscador de personas */}
         <div className="message-search">
@@ -476,13 +509,19 @@ export default function MessagesPage() {
                 className={`thread-item ${
                   thread._id === activeId ? "active" : ""
                 }`}
-                onClick={() => setActiveId(thread._id)}
+                onClick={() => {
+                  setActiveId(thread._id);
+                  setMobileView("chat");
+                  setChatMenuOpen(false);
+                }}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     setActiveId(thread._id);
+                    setMobileView("chat");
+                    setChatMenuOpen(false);
                   }
                 }}
               >
@@ -517,6 +556,18 @@ export default function MessagesPage() {
         {activeThread ? (
           <>
             <div className="chat-head">
+              <button
+                type="button"
+                className="chat-mobile-back"
+                onClick={() => {
+                  setMobileView("list");
+                  setChatMenuOpen(false);
+                }}
+                aria-label="Volver a la lista de conversaciones"
+              >
+                ←
+              </button>
+
               <Avatar
                 initials={obtenerIniciales(
                   obtenerOtroParticipante(activeThread, user)
@@ -536,7 +587,104 @@ export default function MessagesPage() {
 
                 <div className="status">Mensajes privados</div>
               </div>
+
+              <div className="chat-menu-wrap">
+                <button
+                  type="button"
+                  className="chat-menu-trigger"
+                  aria-label="Opciones de conversación"
+                  aria-expanded={chatMenuOpen}
+                  onClick={() => setChatMenuOpen((open) => !open)}
+                >
+                  ⋮
+                </button>
+
+                {chatMenuOpen && (
+                  <div className="chat-menu">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChatMenuOpen(false);
+                        setMessageSearchOpen((open) => !open);
+                        setMessageSearchQuery("");
+                      }}
+                    >
+                      <span aria-hidden="true">⌕</span> Buscar en conversación
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChatMenuOpen(false);
+                        cargarConversaciones();
+                      }}
+                    >
+                      Actualizar conversaciones
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChatMenuOpen(false);
+                        setMobileView("list");
+                      }}
+                    >
+                      Volver a la lista
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {messageSearchOpen && (
+              <section className="message-history-search" aria-label="Buscar mensajes">
+                <div className="message-history-search-field">
+                  <span aria-hidden="true">⌕</span>
+                  <input
+                    type="search"
+                    autoFocus
+                    placeholder="Buscar una palabra o frase..."
+                    value={messageSearchQuery}
+                    onChange={(event) => setMessageSearchQuery(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessageSearchOpen(false);
+                      setMessageSearchQuery("");
+                    }}
+                    aria-label="Cerrar búsqueda"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {messageSearchQuery.trim() && (
+                  <div className="message-history-search-results">
+                    {matchingMessages.length > 0 ? (
+                      matchingMessages.map((message) => {
+                        const remitenteId = message.remitente?._id || message.remitente;
+                        const esMio = String(remitenteId) === String(user?._id || user?.id);
+                        return (
+                          <button
+                            type="button"
+                            className="message-history-result"
+                            key={message._id}
+                            onClick={() => irAlMensaje(message._id)}
+                          >
+                            <span className="message-history-result-meta">
+                              {esMio ? "Tú" : obtenerNombre(message.remitente)}
+                              <span>{formatearHora(message.createdAt)}</span>
+                            </span>
+                            <span>{message.texto}</span>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="messages-search-status">No se encontraron mensajes.</p>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
 
             <div className="chat-body" ref={chatBody}>
               {loadingMessages ? (
@@ -559,6 +707,7 @@ export default function MessagesPage() {
 
                   return (
                     <div
+                      id={`message-${message._id}`}
                       key={message._id}
                       className={`msg-row ${esMio ? "mine" : ""}`}
                     >

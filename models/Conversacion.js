@@ -28,6 +28,22 @@ const conversacionSchema = new mongoose.Schema(
         fechaActividad: {
             type: Date,
             default: Date.now
+        },
+
+        ocultasPor: {
+            type: [{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Usuario"
+            }],
+            default: []
+        },
+
+        silenciadosPor: {
+            type: [{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Usuario"
+            }],
+            default: []
         }
     },
     {

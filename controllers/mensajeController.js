@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const Conversacion = require("../models/Conversacion");
 const Mensaje = require("../models/Mensaje");
@@ -9,7 +10,8 @@ async function obtenerConversaciones(req, res) {
         const usuarioId = req.usuario.id;
 
         const conversaciones = await Conversacion.find({
-            participantes: usuarioId
+            participantes: usuarioId,
+            ocultasPor: { $ne: usuarioId }
         })
             .populate("participantes", "nombre username fotoPerfil")
             .populate({
@@ -71,6 +73,16 @@ async function obtenerOCrearConversacion(req, res) {
             });
         }
 
+        // Si el usuario había eliminado el chat de su lista,
+        // volver a mostrarlo cuando lo abra.
+        conversacion.ocultasPor = (
+            conversacion.ocultasPor || []
+        ).filter(
+            (id) => String(id) !== String(usuarioId)
+        );
+
+        await conversacion.save();
+
         await conversacion.populate(
             "participantes",
             "nombre username fotoPerfil"
@@ -81,6 +93,99 @@ async function obtenerOCrearConversacion(req, res) {
         console.error("Error al abrir conversación:", error);
         res.status(500).json({
             mensaje: "Error al abrir la conversación"
+        });
+    }
+}
+
+// Silenciar o activar las notificaciones de una conversación
+async function alternarSilencioConversacion(req, res) {
+    try {
+        const { conversacionId } = req.params;
+        const usuarioId = req.usuario.id;
+
+        if (!mongoose.isValidObjectId(conversacionId)) {
+            return res.status(400).json({
+                mensaje: "El identificador de la conversación no es válido"
+            });
+        }
+
+        const conversacion = await Conversacion.findOne({
+            _id: conversacionId,
+            participantes: usuarioId
+        });
+
+        if (!conversacion) {
+            return res.status(404).json({
+                mensaje: "Conversación no encontrada"
+            });
+        }
+
+        const silenciadosPor = conversacion.silenciadosPor || [];
+
+        const yaSilenciada = silenciadosPor.some(
+            (id) => String(id) === String(usuarioId)
+        );
+
+        if (yaSilenciada) {
+            conversacion.silenciadosPor.pull(usuarioId);
+        } else {
+            conversacion.silenciadosPor.addToSet(usuarioId);
+        }
+
+        await conversacion.save();
+
+        res.json({
+            silenciada: !yaSilenciada,
+            mensaje: yaSilenciada
+                ? "Notificaciones activadas"
+                : "Conversación silenciada"
+        });
+
+    } catch (error) {
+        console.error("Error al cambiar silencio:", error);
+
+        res.status(500).json({
+            mensaje: "No se pudo cambiar el silencio"
+        });
+    }
+}
+
+// Eliminar una conversación solamente de la lista del usuario actual
+async function eliminarConversacion(req, res) {
+    try {
+        const { conversacionId } = req.params;
+        const usuarioId = req.usuario.id;
+
+        if (!mongoose.isValidObjectId(conversacionId)) {
+            return res.status(400).json({
+                mensaje: "El identificador de la conversación no es válido"
+            });
+        }
+
+        const conversacion = await Conversacion.findOne({
+            _id: conversacionId,
+            participantes: usuarioId
+        });
+
+        if (!conversacion) {
+            return res.status(404).json({
+                mensaje: "Conversación no encontrada"
+            });
+        }
+
+        conversacion.ocultasPor.addToSet(usuarioId);
+
+        await conversacion.save();
+
+        res.json({
+            mensaje: "Conversación eliminada de tu lista"
+        });
+
+    } catch (error) {
+        console.error("Error al eliminar conversación:", error);
+
+        res.status(500).json({
+            mensaje: "No se pudo eliminar la conversación"
         });
     }
 }
@@ -175,13 +280,16 @@ async function obtenerMensajesNoLeidos(req, res) {
     try {
         const usuarioId = req.usuario.id;
 
+        const conversaciones = await Conversacion.find({
+            participantes: usuarioId,
+            ocultasPor: { $ne: usuarioId }
+        }).distinct("_id");
+
         const total = await Mensaje.countDocuments({
             remitente: { $ne: usuarioId },
             leido: false,
             conversacion: {
-                $in: await Conversacion.find({
-                    participantes: usuarioId
-                }).distinct("_id")
+                $in: conversaciones
             }
         });
 
@@ -200,6 +308,7 @@ async function enviarMensaje(req, res) {
     try {
         const { conversacionId } = req.params;
         const usuarioId = req.usuario.id;
+
         const texto = typeof req.body.texto === "string"
             ? req.body.texto.trim()
             : "";
@@ -233,6 +342,14 @@ async function enviarMensaje(req, res) {
             });
         }
 
+        // Si el usuario vuelve a enviar un mensaje,
+        // el chat deja de estar oculto para él.
+        conversacion.ocultasPor = (
+            conversacion.ocultasPor || []
+        ).filter(
+            (id) => String(id) !== String(usuarioId)
+        );
+
         const mensaje = await Mensaje.create({
             conversacion: conversacionId,
             remitente: usuarioId,
@@ -261,7 +378,7 @@ async function enviarMensaje(req, res) {
                 "📨 Emitiendo mensaje a la conversación:",
                 String(conversacionId)
             );
-            // Actualizar el chat de quienes estén dentro de la conversación.
+
             io.to(`conversacion:${conversacionId}`).emit(
                 "mensaje:nuevo",
                 mensaje
@@ -280,6 +397,7 @@ async function enviarMensaje(req, res) {
         res.status(201).json(mensaje);
     } catch (error) {
         console.error("Error al enviar mensaje:", error);
+
         res.status(500).json({
             mensaje: "Error al enviar el mensaje"
         });
@@ -308,5 +426,7 @@ module.exports = {
     obtenerOCrearConversacion,
     obtenerMensajes,
     enviarMensaje,
-    obtenerMensajesNoLeidos
+    obtenerMensajesNoLeidos,
+    alternarSilencioConversacion,
+    eliminarConversacion
 };

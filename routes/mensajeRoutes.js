@@ -1,3 +1,4 @@
+
 const express = require("express");
 const router = express.Router();
 
@@ -8,7 +9,9 @@ const {
     obtenerOCrearConversacion,
     obtenerMensajes,
     enviarMensaje,
-    obtenerMensajesNoLeidos
+    obtenerMensajesNoLeidos,
+    alternarSilencioConversacion,
+    eliminarConversacion
 } = require("../controllers/mensajeController");
 
 router.use(requiereAuth);
@@ -21,6 +24,18 @@ router.post("/conversaciones/:usuarioId", obtenerOCrearConversacion);
 
 // Obtener el contador de mensajes sin leer
 router.get("/no-leidos", obtenerMensajesNoLeidos);
+
+// Silenciar o activar las notificaciones de una conversación
+router.patch(
+    "/:conversacionId/silenciar",
+    alternarSilencioConversacion
+);
+
+// Eliminar una conversación de la lista del usuario actual
+router.delete(
+    "/:conversacionId",
+    eliminarConversacion
+);
 
 // Obtener los mensajes de una conversación
 router.get("/:conversacionId", obtenerMensajes);
