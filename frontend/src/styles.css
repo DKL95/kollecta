@@ -3922,3 +3922,201 @@ textarea {
     display: none !important;
   }
 }
+
+
+
+/* ==========================================
+   KOLLECTA — MEJORAS DEL FEED EN MÓVILES
+   ========================================== */
+
+@media (max-width: 640px) {
+
+  /* Evitar que el contenido se comprima */
+  .layout-2col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .layout-2col > div {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Publicador */
+  .composer {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px;
+    margin-bottom: 16px;
+  }
+
+  .composer-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .composer-body > input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 11px 13px;
+    font-size: 13px;
+  }
+
+  /* Acciones del publicador en dos columnas */
+  .composer-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .composer-actions > .btn,
+  .composer-actions > label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 39px;
+    padding: 8px 6px;
+    margin: 0 !important;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+
+  .composer-actions > label {
+    gap: 5px;
+  }
+
+  .composer-group-select {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 11px;
+  }
+
+  /* Filtros horizontales desplazables */
+  .filter-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 10px;
+    margin-bottom: 14px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-row .chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 8px 13px;
+    font-size: 12px;
+  }
+
+  /* Tarjetas de publicaciones */
+  .post {
+    width: 100%;
+    min-width: 0;
+    padding: 13px;
+    margin-bottom: 12px;
+  }
+
+  .post-head {
+    min-width: 0;
+  }
+
+  .post-head > div:not(:last-child) {
+    min-width: 0;
+  }
+
+  .post-text {
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  /* Imágenes y videos */
+  .post-media {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .post-media img,
+  .post-media video {
+    max-width: 100%;
+  }
+
+  /* Acciones de las publicaciones */
+  .post-actions {
+    gap: 3px;
+  }
+
+  .post-action-btn {
+    min-width: 0;
+    padding: 10px 3px;
+    font-size: 11px;
+  }
+}
+
+/* Teléfonos pequeños */
+@media (max-width: 380px) {
+  .composer {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .composer .avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .composer-actions {
+    gap: 6px;
+  }
+
+  .composer-actions > .btn,
+  .composer-actions > label {
+    font-size: 10.5px;
+    padding-inline: 4px;
+  }
+
+  .post {
+    padding: 11px;
+  }
+}
+
+
+
+/* Videos dentro de publicaciones en móvil */
+@media (max-width: 640px) {
+  .post-media video {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 480px;
+    object-fit: contain;
+    margin-inline: auto;
+    background: #080610;
+  }
+
+  .post-media:has(video) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: auto;
+    min-height: 200px;
+    max-height: 480px;
+    background: #080610;
+  }
+}
