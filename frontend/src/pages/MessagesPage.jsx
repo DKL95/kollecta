@@ -3,6 +3,7 @@ import Avatar, { UserAvatar } from "../components/Avatar";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../api/client";
 import { socket } from "../api/socket";
+import { useNavigate } from "react-router-dom";
 
 function obtenerIniciales(usuario) {
   const nombre = usuario?.nombre || usuario?.username || "?";
@@ -44,7 +45,7 @@ function formatearHora(fecha) {
 
 export default function MessagesPage() {
   const { user } = useAuth();
-
+  const navigate = useNavigate();
   const [threads, setThreads] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -431,6 +432,70 @@ export default function MessagesPage() {
     }
   }
 
+  
+  // Abrir el perfil del otro participante.
+  function verPerfilContacto() {
+    const contacto = obtenerOtroParticipante(activeThread, user);
+
+    if (!contacto?.username) {
+      setError("No se encontró el perfil de este usuario.");
+      return;
+    }
+
+    setChatMenuOpen(false);
+
+    navigate(`/perfil/${encodeURIComponent(contacto.username)}`);
+  }
+
+  // Silenciar o activar las notificaciones.
+  async function alternarSilencio() {
+    if (!activeId) return;
+
+    try {
+      await apiRequest(`/mensajes/${activeId}/silenciar`, {
+        method: "PATCH"
+      });
+
+      await cargarConversaciones();
+
+      setChatMenuOpen(false);
+    } catch (err) {
+      setError(err.message || "No se pudo cambiar el silencio.");
+    }
+  }
+
+  // Eliminar la conversación de nuestra lista.
+  async function eliminarChat() {
+    if (!activeId) return;
+
+    const confirmar = window.confirm(
+      "¿Quieres eliminar esta conversación de tu lista?"
+    );
+
+    if (!confirmar) return;
+
+    try {
+      await apiRequest(`/mensajes/${activeId}`, {
+        method: "DELETE"
+      });
+
+      setThreads((anteriores) =>
+        anteriores.filter((thread) => thread._id !== activeId)
+      );
+
+      setActiveId(null);
+      setMessages([]);
+      setDraft("");
+      setChatMenuOpen(false);
+      setMessageSearchOpen(false);
+      setMobileView("list");
+
+    } catch (err) {
+      setError(err.message || "No se pudo eliminar la conversación.");
+    }
+  }
+  
+
   return (
     <main className={`messages-shell ${activeThread ? "has-active-chat" : ""} ${
       mobileView === "chat" ? "mobile-chat-open" : "mobile-list-open"
@@ -599,38 +664,52 @@ export default function MessagesPage() {
                   ⋮
                 </button>
 
-                {chatMenuOpen && (
-                  <div className="chat-menu">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChatMenuOpen(false);
-                        setMessageSearchOpen((open) => !open);
-                        setMessageSearchQuery("");
-                      }}
-                    >
-                      <span aria-hidden="true">⌕</span> Buscar en conversación
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChatMenuOpen(false);
-                        cargarConversaciones();
-                      }}
-                    >
-                      Actualizar conversaciones
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChatMenuOpen(false);
-                        setMobileView("list");
-                      }}
-                    >
-                      Volver a la lista
-                    </button>
-                  </div>
-                )}
+
+                  {chatMenuOpen && (
+                    <div className="chat-menu">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChatMenuOpen(false);
+                          setMessageSearchOpen(true);
+                          setMessageSearchQuery("");
+                        }}
+                      >
+                        <span>⌕</span>
+                        Buscar en conversación
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={verPerfilContacto}
+                      >
+                        <span>♙</span>
+                        Ver perfil
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={alternarSilencio}
+                      >
+                        <span>♧</span>
+                        {activeThread.silenciadosPor?.some(
+                          (id) => String(id) === String(user?._id || user?.id)
+                        )
+                          ? "Activar notificaciones"
+                          : "Silenciar notificaciones"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="chat-menu-danger"
+                        onClick={eliminarChat}
+                      >
+                        <span>⌫</span>
+                        Eliminar conversación
+                      </button>
+                    </div>
+                  )}
+
               </div>
             </div>
 
