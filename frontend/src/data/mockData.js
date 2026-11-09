@@ -15,6 +15,7 @@ export const GROUPS = [
   { name: "ATEEZ", fandom: "ATINY", agency: "KQ Entertainment", members: 8, debut: 2018, color: "linear-gradient(135deg,#f43f5e,#1e293b)", initials: "ATZ", img: "/assets/img/groups/ateez.jpg" },
   { name: "ITZY", fandom: "MIDZY", agency: "JYP Entertainment", members: 5, debut: 2019, color: "linear-gradient(135deg,#facc15,#ef4444)", initials: "ITZY", img: "/assets/img/groups/itzy.jpg" },
   { name: "TXT", fandom: "MOA", agency: "HYBE / BIGHIT MUSIC", members: 5, debut: 2019, color: "linear-gradient(135deg,#34d399,#0ea5e9)", initials: "TXT", img: "/assets/img/groups/txt.jpg" },
+  { name: "ILLIT", fandom: "GLLIT", agency: "BELIFT LAB", members: 5, debut: 2024, color: "linear-gradient(135deg, #f472b6, #a78bfa)", initials: "ILLIT", img: "/assets/img/groups/illit.jpg"},
 ];
 
 export const GROUP_NAMES = GROUPS.map((group) => group.name);

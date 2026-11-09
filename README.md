@@ -9,7 +9,7 @@ Proyecto integrador de **Programación Web II** — Facultad de Ciencias Físico
 | Nombre | Matrícula | Rol |
 |---|---|---|
 | Derek Alejandro Luna Hernandez | 1969757 | |
-| [Nombre integrante 2] | [Matrícula] | |
+| Jesús Antonio González Leal | 2072116 | |
 | [Nombre integrante 3] | [Matrícula] | |
 | [Nombre integrante 4] | [Matrícula] | |
 
@@ -151,6 +151,16 @@ Requisitos: Node.js 18 o superior.
    npm start
    ```
    Abrir http://localhost:3000
+
+### Pruebas automáticas
+
+Agrega `MONGODB_URI_TEST` a tu `.env` (puede ser la misma URI de Atlas: las pruebas usan bases separadas `kpop_test_*` que se borran solas y nunca tocan `kpop`) y corre:
+
+```bash
+npm test
+```
+
+Cubre registro, login, JWT, perfil, búsqueda, publicaciones (CRUD, likes y permisos), imágenes y las utilidades del frontend. Requiere Node 21 o superior.
 
 ### Fotos subidas antes de guardarlas en MongoDB
 

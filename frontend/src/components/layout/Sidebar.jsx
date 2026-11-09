@@ -1,12 +1,92 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { apiRequest } from "../../api/client";
 import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
 import { NAV_SECTIONS } from "./navItems";
+import { socket } from "../../api/socket";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
+  const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
+
+  // Cargar el contador de notificaciones.
+  const cargarNotificaciones = useCallback(async () => {
+    if (!user) {
+      setNotificacionesNoLeidas(0);
+      return;
+    }
+
+    try {
+      const data = await apiRequest("/notificaciones");
+      setNotificacionesNoLeidas(data.noLeidas || 0);
+    } catch (error) {
+      console.error("Error al cargar notificaciones:", error);
+    }
+  }, [user]);
+
+  // Cargar el contador real de mensajes sin leer.
+  const cargarMensajesNoLeidos = useCallback(async () => {
+    if (!user) {
+      setMensajesNoLeidos(0);
+      return;
+    }
+
+    try {
+      const data = await apiRequest("/mensajes/no-leidos");
+      setMensajesNoLeidos(data.noLeidos || 0);
+    } catch (error) {
+      console.error("Error al cargar mensajes sin leer:", error);
+    }
+  }, [user]);
+
+  // Escuchar las actualizaciones de las notificaciones.
+  useEffect(() => {
+    cargarNotificaciones();
+
+    window.addEventListener(
+      "notificaciones-actualizadas",
+      cargarNotificaciones
+    );
+
+    return () => {
+      window.removeEventListener(
+        "notificaciones-actualizadas",
+        cargarNotificaciones
+      );
+    };
+  }, [cargarNotificaciones]);
+
+  // Escuchar los mensajes nuevos y actualizar el contador.
+  useEffect(() => {
+    cargarMensajesNoLeidos();
+
+    window.addEventListener(
+      "mensajes-actualizados",
+      cargarMensajesNoLeidos
+    );
+
+    socket.on(
+      "mensajes:contador-actualizar",
+      cargarMensajesNoLeidos
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mensajes-actualizados",
+        cargarMensajesNoLeidos
+      );
+
+      socket.off(
+        "mensajes:contador-actualizar",
+        cargarMensajesNoLeidos
+      );
+    };
+  }, [cargarMensajesNoLeidos]);
 
   function handleLogout() {
     logout();
@@ -25,13 +105,43 @@ export default function Sidebar() {
       {NAV_SECTIONS.map((section) => (
         <div className="nav-group" key={section.label}>
           <div className="nav-label">{section.label}</div>
+
           {section.items.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "active" : ""}`
+              }
+            >
               <span className="ic">
                 <Icon name={item.icon} size={18} />
               </span>
+
               <span>{item.label}</span>
-              {item.count && <span className="count">{item.count}</span>}
+
+              {item.to === "/notificaciones" ? (
+                notificacionesNoLeidas > 0 && (
+                  <span className="count">
+                    {notificacionesNoLeidas > 9
+                      ? "9+"
+                      : notificacionesNoLeidas}
+                  </span>
+                )
+              ) : item.to === "/mensajes" ? (
+                mensajesNoLeidos > 0 && (
+                  <span className="count">
+                    {mensajesNoLeidos > 9
+                      ? "9+"
+                      : mensajesNoLeidos}
+                  </span>
+                )
+              ) : (
+                item.count && (
+                  <span className="count">{item.count}</span>
+                )
+              )}
             </NavLink>
           ))}
         </div>
@@ -39,19 +149,36 @@ export default function Sidebar() {
 
       <div className="sidebar-cta">
         <h4>¿Nueva pieza en tu colección?</h4>
-        <p>Publícala en segundos y encuentra comprador o intercambio.</p>
-        <Link className="btn btn-primary btn-sm btn-block" to="/vender">
+        <p>
+          Publícala en segundos y encuentra comprador o intercambio.
+        </p>
+
+        <Link
+          className="btn btn-primary btn-sm btn-block"
+          to="/vender"
+        >
           Publicar merch
         </Link>
       </div>
 
       <div className="sidebar-user">
         <UserAvatar user={user} size={38} fontSize={13} />
+
         <div className="info">
-          <div className="name">{user.nombre || user.username}</div>
-          <div className="handle">@{user.username}</div>
+          <div className="name">
+            {user?.nombre || user?.username}
+          </div>
+
+          <div className="handle">
+            @{user?.username}
+          </div>
         </div>
-        <button id="logout-btn" title="Cerrar sesión" onClick={handleLogout}>
+
+        <button
+          id="logout-btn"
+          title="Cerrar sesión"
+          onClick={handleLogout}
+        >
           <Icon name="power" size={16} />
         </button>
       </div>

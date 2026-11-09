@@ -18,6 +18,7 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 
+const { conectarMongo } = require("../config/db");
 const Usuario = require("../models/Usuario");
 const Publicacion = require("../models/Publicacion");
 const { guardarImagen, CARPETA_UPLOADS } = require("../middleware/upload");
@@ -45,7 +46,7 @@ async function migrarRuta(ruta, idUsuario) {
 }
 
 async function migrar() {
-    await mongoose.connect(process.env.MONGODB_URI, { dbName: process.env.MONGODB_DB || "kpop" });
+    await conectarMongo(process.env.MONGODB_URI, { dbName: process.env.MONGODB_DB || "kpop" });
 
     let migradas = 0;
     let faltantes = 0;

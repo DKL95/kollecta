@@ -6,6 +6,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import CollectionPage from "./pages/CollectionPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
 import GroupsPage from "./pages/GroupsPage";
+import PostDetailPage from "./pages/PostDetailPage";
 import HomePage from "./pages/HomePage";
 import MarketplacePage from "./pages/MarketplacePage";
 import MessagesPage from "./pages/MessagesPage";
@@ -24,12 +25,16 @@ const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
+      { path: "/publicaciones/:id", element: <PostDetailPage />, handle: { title: "Publicación", subtitle: "Detalle de publicación" } },
       { path: "/inicio", element: <HomePage />, handle: { title: "Inicio", subtitle: "Lo último de tus grupos y amigos" } },
       { path: "/buscar", element: <SearchPage />, handle: { title: "Buscar", subtitle: "Grupos, merch y personas en un solo lugar" } },
       { path: "/notificaciones", element: <NotificationsPage />, handle: { title: "Notificaciones" } },
       { path: "/mensajes", element: <MessagesPage />, handle: { title: "Mensajes" } },
       { path: "/marketplace", element: <MarketplacePage />, handle: { title: "Marketplace", subtitle: "Compra, vende e intercambia merch oficial" } },
       { path: "/marketplace/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Marketplace" } },
+      { path: "/articulo/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Mi colección" } },
+      { path: "/marketplace/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Marketplace" } },
+      { path: "/articulo/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Mi colección" } },
       { path: "/vender", element: <SellPage />, handle: { title: "Vender / Intercambiar", subtitle: "Publica una pieza de tu colección" } },
       { path: "/coleccion", element: <CollectionPage />, handle: { title: "Mi colección", subtitle: "Tu vitrina personal de merch" } },
       { path: "/perfil", element: <ProfilePage />, handle: { title: "Mi perfil" } },
