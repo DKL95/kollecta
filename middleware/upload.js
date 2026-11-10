@@ -41,9 +41,10 @@ const upload = multer({
     },
 
     fileFilter: function (req, file, cb) {
-        if (file.fieldname === "imagenes") {
+        // La foto de perfil (registro y edición de perfil) también es una imagen.
+        if (file.fieldname === "imagenes" || file.fieldname === "fotoPerfil") {
             if (!file.mimetype.startsWith("image/")) {
-                return cb(new Error("Solo se permiten imágenes en el campo imagenes"));
+                return cb(new Error("Solo se permiten imágenes"));
             }
 
             return cb(null, true);
