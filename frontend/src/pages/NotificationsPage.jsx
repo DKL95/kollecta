@@ -21,6 +21,7 @@ function iconoPorTipo(tipo) {
     comentario: "message-circle",
     seguidor: "user-plus",
     sistema: "bell",
+    orden: "bag",
   };
 
   return iconos[tipo] || "bell";

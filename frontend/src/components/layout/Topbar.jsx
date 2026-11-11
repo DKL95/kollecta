@@ -1,7 +1,7 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiRequest } from "../../api/client";
+import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 import { useAuth } from "../../context/AuthContext";
 import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
@@ -10,38 +10,7 @@ export default function Topbar({ title, subtitle }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [noLeidas, setNoLeidas] = useState(0);
-
-  const cargarContador = useCallback(async () => {
-    if (!user) {
-      setNoLeidas(0);
-      return;
-    }
-
-    try {
-      const data = await apiRequest("/notificaciones");
-      setNoLeidas(data.noLeidas || 0);
-    } catch (error) {
-      console.error("Error al consultar notificaciones:", error);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    cargarContador();
-
-    function actualizar() {
-      cargarContador();
-    }
-
-    window.addEventListener("notificaciones-actualizadas", actualizar);
-
-    return () => {
-      window.removeEventListener(
-        "notificaciones-actualizadas",
-        actualizar
-      );
-    };
-  }, [cargarContador]);
+  const noLeidas = useNotificacionesNoLeidas();
 
   function handleSearch(event) {
     event.preventDefault();

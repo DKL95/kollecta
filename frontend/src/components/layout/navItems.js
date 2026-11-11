@@ -13,6 +13,7 @@ export const NAV_SECTIONS = [
     items: [
       { label: "Explorar merch", icon: "bag", to: "/marketplace" },
       { label: "Vender / Intercambiar", icon: "plus", to: "/vender" },
+      { label: "Mis órdenes", icon: "package", to: "/ordenes" },
     ],
   },
   {

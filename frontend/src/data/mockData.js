@@ -1,6 +1,7 @@
 /* ==========================================================================
    Datos de ejemplo para las secciones que todavía no tienen backend
-   (marketplace, colección, grupos, mensajes, notificaciones).
+   (catálogo de grupos, amigos sugeridos). El marketplace y la colección ya
+   vienen de la base de datos.
    Usuarios y publicaciones ya vienen de la base de datos.
    ========================================================================== */
 
@@ -20,33 +21,8 @@ export const GROUPS = [
 
 export const GROUP_NAMES = GROUPS.map((group) => group.name);
 
-export const CATEGORIES = ["Photocard", "Álbum", "Lightstick", "Ropa", "Poster", "Accesorio"];
-
-export const PRODUCTS = [
-  { id: "p1", title: "Photocard Jimin — 'Face' PC Album", group: "BTS", type: "Photocard", price: 280, mode: "Venta", tag: "Oficial", seller: "mina.cards", sellerInit: "MC", img: "/assets/img/products/p1.jpg" },
-  { id: "p2", title: "Lightstick Ver.3 'Bomb' + funda", group: "BTS", type: "Lightstick", price: 950, mode: "Venta", tag: "Como nuevo", seller: "army_mty", sellerInit: "AM", img: "/assets/img/products/p2.jpg" },
-  { id: "p3", title: "Photocard Set Jennie — 'Born Pink'", group: "BLACKPINK", type: "Photocard", price: 0, mode: "Intercambio", tag: "Busco: Rosé", seller: "blinknena", sellerInit: "BN", img: "/assets/img/products/p3.jpg" },
-  { id: "p4", title: "Álbum 'Born Pink' (sellado)", group: "BLACKPINK", type: "Álbum", price: 620, mode: "Venta", tag: "Sellado", seller: "pink.vault", sellerInit: "PV", img: "/assets/img/products/p4.jpg" },
-  { id: "p5", title: "Hoodie Oficial 'Ready to Be' Tour", group: "TWICE", type: "Ropa", price: 1150, mode: "Venta", tag: "Talla M", seller: "onceforever", sellerInit: "OF", img: "/assets/img/products/p5.jpg" },
-  { id: "p6", title: "Photocard Felix — 'Rock-Star'", group: "Stray Kids", type: "Photocard", price: 190, mode: "Venta", tag: "Oficial", seller: "stay_norte", sellerInit: "SN", img: "/assets/img/products/p6.jpg" },
-  { id: "p7", title: "Keyring acrílico set 8pcs", group: "Stray Kids", type: "Accesorio", price: 340, mode: "Venta", tag: "Fanmade", seller: "chan.shop", sellerInit: "CS", img: "/assets/img/products/p7.jpg" },
-  { id: "p8", title: "Poster oficial 'God of Music'", group: "SEVENTEEN", type: "Poster", price: 260, mode: "Venta", tag: "Edición limitada", seller: "caratmx", sellerInit: "CX", img: "/assets/img/products/p8.jpg" },
-  { id: "p9", title: "Photocard Hoshi — busco Wonwoo", group: "SEVENTEEN", type: "Photocard", price: 0, mode: "Intercambio", tag: "Busco: Wonwoo", seller: "svt.trades", sellerInit: "ST", img: "/assets/img/products/p9.jpg" },
-  { id: "p10", title: "Álbum 'Get Up' + photobook", group: "NewJeans", type: "Álbum", price: 540, mode: "Venta", tag: "Con extras", seller: "bunny.dept", sellerInit: "BD", img: "/assets/img/products/p10.jpg" },
-  { id: "p11", title: "Lightstick oficial aespa", group: "aespa", type: "Lightstick", price: 890, mode: "Venta", tag: "Nuevo", seller: "myworld_mx", sellerInit: "MW", img: "/assets/img/products/p11.jpg" },
-  { id: "p12", title: "Photocard set completo — 'Golden Hour'", group: "ATEEZ", type: "Photocard", price: 420, mode: "Venta", tag: "Set completo (8)", seller: "atiny.station", sellerInit: "AS", img: "/assets/img/products/p12.jpg" },
-];
-
-export const MY_COLLECTION = [
-  { id: "c1", title: "Photocard Chaeyoung — 'Ready to Be'", group: "TWICE", type: "Photocard", value: 230, img: "/assets/img/collection/1.jpg" },
-  { id: "c2", title: "Álbum 'With YOU-th' (sellado)", group: "TWICE", type: "Álbum", value: 550, img: "/assets/img/collection/2.jpg" },
-  { id: "c3", title: "Lightstick Candy Bong Ver.3", group: "TWICE", type: "Lightstick", value: 900, img: "/assets/img/collection/3.jpg" },
-  { id: "c4", title: "Photocard Nayeon — 'Fancy You'", group: "TWICE", type: "Photocard", value: 195, img: "/assets/img/collection/4.jpeg" },
-  { id: "c5", title: "Álbum 'The Story Goes On'", group: "TWICE", type: "Álbum", value: 480, img: "/assets/img/collection/5.jpg" },
-  { id: "c6", title: "Poster 'Formula of Love' edición limitada", group: "TWICE", type: "Poster", value: 220, img: "/assets/img/collection/6.jpg" },
-  { id: "c7", title: "Álbum 'Feel Special' — portada Momo", group: "TWICE", type: "Álbum", value: 460, img: "/assets/img/collection/7.jpg" },
-  { id: "c8", title: "Álbum 'Drama' — portada Karina", group: "aespa", type: "Álbum", value: 350, img: "/assets/img/collection/8.jpg" },
-];
+// Deben coincidir con el enum "categoria" de models/Coleccion.js.
+export const CATEGORIES = ["Photocard", "Álbum", "Lightstick", "Merch", "Poster", "Otro"];
 
 export const FRIENDS = [
   { name: "Mina Cardona", handle: "@mina.cards", initials: "MC", mutual: 12, online: true },

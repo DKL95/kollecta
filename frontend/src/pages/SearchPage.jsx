@@ -5,7 +5,8 @@ import { UserAvatar } from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import GroupCard from "../components/GroupCard";
 import ProductCard from "../components/ProductCard";
-import { GROUPS, PRODUCTS } from "../data/mockData";
+import { GROUPS } from "../data/mockData";
+import { adaptarArticuloMarketplace } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 const TABS = ["Todo", "Merch", "Grupos", "Personas"];
@@ -19,6 +20,7 @@ export default function SearchPage() {
   const query = searchParams.get("q") || "";
   const [activeTab, setActiveTab] = useState("Todo");
   const [people, setPeople] = useState([]);
+  const [products, setProducts] = useState([]);
   const { isFollowing, toggleFollow } = useFollowedGroups();
 
   useEffect(() => {
@@ -27,7 +29,12 @@ export default function SearchPage() {
       .catch(() => setPeople([]));
   }, [query]);
 
-  const products = PRODUCTS.filter((product) => matches(product.title, query) || matches(product.group, query));
+  useEffect(() => {
+    apiRequest(`/coleccion/marketplace?q=${encodeURIComponent(query)}`)
+      .then((data) => setProducts(data.articulos.map(adaptarArticuloMarketplace)))
+      .catch(() => setProducts([]));
+  }, [query]);
+
   const groups = GROUPS.filter((group) => matches(group.name, query) || matches(group.fandom, query));
   const show = (tab) => activeTab === "Todo" || activeTab === tab;
 

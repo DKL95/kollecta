@@ -65,6 +65,22 @@ const articuloColeccionSchema = new mongoose.Schema(
         disponibleCompra: {
             type: Boolean,
             default: false
+        },
+
+        // Precio de venta en el marketplace (MXN). Si es null se usa valorEstimado,
+        // así los artículos que ya existían siguen teniendo precio.
+        precio: {
+            type: Number,
+            min: 0,
+            default: null
+        },
+
+        // Orden aceptada que tiene apartado el artículo. Mientras exista,
+        // nadie más lo puede comprar ni intercambiar.
+        reservadoPor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Orden",
+            default: null
         }
     },
     {

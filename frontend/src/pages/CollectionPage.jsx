@@ -85,7 +85,7 @@ export default function CollectionPage() {
             <Icon name="package" size={14} /> Ver estadísticas
           </button>
 
-          <Link to="/vender" className="btn btn-primary btn-sm">
+          <Link to="/coleccion/agregar" className="btn btn-primary btn-sm">
             <Icon name="plus" size={14} /> Agregar pieza
           </Link>
         </div>
@@ -137,7 +137,7 @@ export default function CollectionPage() {
           </p>
 
           <div style={{ marginTop: 18 }}>
-            <Link to="/vender" className="btn btn-primary btn-sm">
+            <Link to="/coleccion/agregar" className="btn btn-primary btn-sm">
               <Icon name="plus" size={14} /> Agregar pieza
             </Link>
           </div>

@@ -1,26 +1,51 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiRequest } from "../api/client";
 import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
 import ProductCard from "../components/ProductCard";
-import { PRODUCTS } from "../data/mockData";
+import { GROUP_NAMES } from "../data/mockData";
+import { adaptarArticuloMarketplace } from "../utils/coleccion";
 
 const MODE_TABS = [
-  { value: "Todos", label: "Todo" },
-  { value: "Venta", label: "En venta" },
-  { value: "Intercambio", label: "Para intercambio" },
+  { value: "todos", label: "Todo" },
+  { value: "venta", label: "En venta" },
+  { value: "intercambio", label: "Para intercambio" },
 ];
-
-const MARKET_GROUPS = ["BTS", "BLACKPINK", "TWICE", "Stray Kids", "SEVENTEEN", "NewJeans", "aespa", "ATEEZ"];
 
 export default function MarketplacePage() {
   const [activeGroup, setActiveGroup] = useState("Todos");
-  const [activeMode, setActiveMode] = useState("Todos");
+  const [activeMode, setActiveMode] = useState("todos");
+  const [items, setItems] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
 
-  const items = PRODUCTS.filter(
-    (product) =>
-      (activeGroup === "Todos" || product.group === activeGroup) && (activeMode === "Todos" || product.mode === activeMode)
-  );
+  useEffect(() => {
+    let cancelado = false;
+    const params = new URLSearchParams({ tipo: activeMode });
+    if (activeGroup !== "Todos") params.set("grupo", activeGroup);
+
+    setCargando(true);
+    setError("");
+    apiRequest(`/coleccion/marketplace?${params}`)
+      .then((data) => {
+        if (!cancelado) setItems(data.articulos.map(adaptarArticuloMarketplace));
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          setItems([]);
+          setError(err.message);
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargando(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [activeGroup, activeMode]);
+
   const plural = items.length === 1 ? "" : "s";
 
   return (
@@ -33,22 +58,31 @@ export default function MarketplacePage() {
         ))}
       </div>
 
-      <FilterChips options={MARKET_GROUPS} active={activeGroup} onChange={setActiveGroup} allLabel="Todos los grupos" />
+      <FilterChips options={GROUP_NAMES} active={activeGroup} onChange={setActiveGroup} allLabel="Todos los grupos" />
 
       <div className="page-header" style={{ marginBottom: 16 }}>
         <div className="sub">
-          {items.length} artículo{plural} encontrado{plural}
+          {cargando ? "Cargando artículos..." : `${items.length} artículo${plural} encontrado${plural}`}
         </div>
-        <Link to="/vender" className="btn btn-primary btn-sm">
-          + Publicar merch
-        </Link>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link to="/ordenes" className="btn btn-secondary btn-sm">
+            Mis órdenes
+          </Link>
+          <Link to="/vender" className="btn btn-primary btn-sm">
+            + Publicar merch
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-4">
         {items.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
-        {items.length === 0 && <EmptyState icon="search">Sin resultados con estos filtros.</EmptyState>}
+        {!cargando && items.length === 0 && (
+          <EmptyState icon="search">
+            {error || "Todavía no hay artículos con estos filtros. ¡Publica uno desde tu colección!"}
+          </EmptyState>
+        )}
       </div>
     </main>
   );

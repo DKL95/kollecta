@@ -1,8 +1,10 @@
 import { apiRequest } from "../api/client";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { UserAvatar } from "../components/Avatar";
+import CollectionPickerDialog from "../components/CollectionPickerDialog";
 import Icon from "../components/Icon";
+import Photo from "../components/Photo";
 import { useAuth } from "../context/AuthContext";
 import { CATEGORIES, GROUP_NAMES } from "../data/mockData";
 import { categoryClass, categoryIcon } from "../utils/categories";
@@ -20,9 +22,34 @@ const CONDITIONS = [
 const MAX_FOTOS = 10;
 const MAX_TAMANO_FOTO = 5 * 1024 * 1024;
 
-export default function SellPage() {
+// El formulario usa "Con desgaste visible"; el modelo guarda "Con detalles".
+const ESTADO_A_MODELO = {
+  "Nuevo / sellado": "Nuevo / sellado",
+  "Como nuevo": "Como nuevo",
+  "Buen estado": "Buen estado",
+  "Con desgaste visible": "Con detalles",
+};
+const ESTADO_A_FORM = {
+  "Nuevo / sellado": "Nuevo / sellado",
+  "Como nuevo": "Como nuevo",
+  "Buen estado": "Buen estado",
+  "Con detalles": "Con desgaste visible",
+};
+
+// Dos usos del mismo formulario:
+// - /coleccion/agregar (soloColeccion): guarda la pieza en la colección, sin venderla.
+// - /vender: publica en el marketplace. Puede partir de una pieza que ya está en la
+//   colección ("Añadir artículo de la colección"); en ese caso se actualiza esa misma
+//   pieza en lugar de crear otra.
+export default function SellPage({ soloColeccion = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Pieza de la colección de la que parte la publicación (null = pieza nueva).
+  const [origen, setOrigen] = useState(null);
+  const [fotosExistentes, setFotosExistentes] = useState([]);
+  const [selectorAbierto, setSelectorAbierto] = useState(false);
 
   // Referencia al input que permite seleccionar archivos.
   const inputFotosRef = useRef(null);
@@ -43,6 +70,44 @@ export default function SellPage() {
     wants: "",
     description: "",
   });
+
+  function aplicarOrigen(articulo) {
+    setOrigen(articulo);
+    setFotosExistentes(articulo.imagenes || []);
+    setFotos([]);
+    setErrorFotos("");
+    setErrorPublicacion("");
+    setForm((actual) => ({
+      ...actual,
+      title: articulo.titulo || "",
+      group: articulo.grupo || actual.group,
+      type: articulo.categoria || actual.type,
+      condition: ESTADO_A_FORM[articulo.estado] || actual.condition,
+      description: articulo.descripcion || "",
+      price: String(articulo.precio ?? (articulo.valorEstimado || "")),
+    }));
+    setSelectorAbierto(false);
+  }
+
+  function quitarOrigen() {
+    setOrigen(null);
+    setFotosExistentes([]);
+    setForm((actual) => ({ ...actual, title: "", description: "", price: "" }));
+  }
+
+  // /vender?articulo=<id> llega desde "Poner a la venta" en el detalle de una pieza.
+  useEffect(() => {
+    const articuloId = searchParams.get("articulo");
+    if (soloColeccion || !articuloId) return;
+
+    apiRequest(`/coleccion/articulos/${articuloId}`)
+      .then((data) => {
+        if (data.esMio && !data.articulo.reservado) aplicarOrigen(data.articulo);
+      })
+      .catch(() => {});
+    // Solo al abrir la pantalla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Liberar las URL temporales de las imágenes al desmontar
   // el componente o cuando se eliminen fotos.
@@ -88,7 +153,7 @@ export default function SellPage() {
     }
 
     setFotos((actuales) => {
-      const espacioDisponible = MAX_FOTOS - actuales.length;
+      const espacioDisponible = MAX_FOTOS - fotosExistentes.length - actuales.length;
 
       if (espacioDisponible <= 0) {
         setErrorFotos("Ya alcanzaste el máximo de 10 fotos.");
@@ -165,53 +230,71 @@ export default function SellPage() {
     setErrorPublicacion("");
 
     try {
+      const seVende = !soloColeccion && form.mode !== "Intercambio";
+      const seIntercambia = !soloColeccion && form.mode !== "Venta";
+
+      if (seVende && !(Number(form.price) > 0)) {
+        setErrorPublicacion("Ponle un precio mayor a $0 para venderlo.");
+        return;
+      }
+
+      // Lo que se busca a cambio va al final de la descripción.
+      const descripcion =
+        seIntercambia && form.wants.trim() && !form.description.includes("Busco a cambio:")
+          ? `${form.description.trim()}\n\nBusco a cambio: ${form.wants.trim()}`.trim()
+          : form.description;
+
+      if (origen) {
+        // Pieza que ya estaba en la colección: se suben las fotos nuevas y se pone a la venta.
+        if (fotos.length > 0) {
+          const datosFotos = new FormData();
+          fotos.forEach((foto) => datosFotos.append("imagenes", foto.archivo));
+          await apiRequest(`/coleccion/articulos/${origen._id}/imagenes`, { method: "POST", body: datosFotos });
+        }
+
+        await apiRequest(`/coleccion/articulos/${origen._id}`, {
+          method: "PUT",
+          body: {
+            titulo: form.title.trim(),
+            grupo: form.group,
+            categoria: form.type,
+            estado: ESTADO_A_MODELO[form.condition],
+            descripcion,
+            disponibleCompra: seVende,
+            disponibleIntercambio: seIntercambia,
+            precio: seVende ? Number(form.price) : null,
+          },
+        });
+
+        navigate(`/marketplace/${origen._id}`);
+        return;
+      }
+
       const datos = new FormData();
 
       // Datos principales del artículo
       datos.append("titulo", form.title.trim());
       datos.append("grupo", form.group);
       datos.append("categoria", form.type);
-      datos.append("descripcion", form.description);
-      datos.append(
-        "valorEstimado",
-        form.price !== "" ? form.price : "0"
-      );
+      datos.append("descripcion", descripcion);
+      datos.append("valorEstimado", form.price !== "" ? form.price : "0");
+      datos.append("estado", ESTADO_A_MODELO[form.condition]);
 
-      // Adaptar el estado al enum del modelo de MongoDB
-      const estados = {
-        "Nuevo / sellado": "Nuevo / sellado",
-        "Como nuevo": "Como nuevo",
-        "Buen estado": "Buen estado",
-        "Con desgaste visible": "Con detalles",
-      };
+      // Modalidad: en "Agregar a mi colección" la pieza nunca queda a la venta.
+      datos.append("disponibleCompra", String(seVende));
+      datos.append("disponibleIntercambio", String(seIntercambia));
+      if (seVende) datos.append("precio", form.price);
 
-      datos.append("estado", estados[form.condition]);
-
-      // Modalidad de publicación
-      datos.append(
-        "disponibleCompra",
-        String(form.mode !== "Intercambio")
-      );
-
-      datos.append(
-        "disponibleIntercambio",
-        String(form.mode !== "Venta")
-      );
-
-      // Fotografías seleccionadas
       fotos.forEach((foto) => {
         datos.append("imagenes", foto.archivo);
       });
 
-      // Enviar al backend
       const respuesta = await apiRequest("/coleccion/articulos", {
         method: "POST",
         body: datos,
       });
 
-      alert(respuesta.mensaje || "¡Artículo publicado correctamente!");
-
-      navigate("/coleccion");
+      navigate(soloColeccion ? "/coleccion" : `/marketplace/${respuesta.articulo._id}`);
     } catch (error) {
       console.error("Error al publicar el artículo:", error);
 
@@ -233,6 +316,28 @@ export default function SellPage() {
           style={{ padding: 24 }}
           onSubmit={handleSubmit}
         >
+          {!soloColeccion && (
+            <div className="sell-from-collection">
+              {origen ? (
+                <>
+                  <span>
+                    <Icon name="folder" size={16} /> Desde tu colección: <b>{origen.titulo}</b>
+                  </span>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={quitarOrigen}>
+                    Mejor publicar una pieza nueva
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>¿Ya la tienes en tu colección? Pasa sus datos y fotos sin volver a capturarlos.</span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectorAbierto(true)}>
+                    <Icon name="folder" size={14} /> Añadir artículo de la colección
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="section-title">
             <h3>Datos del artículo</h3>
           </div>
@@ -352,7 +457,7 @@ export default function SellPage() {
                 className="hint"
                 style={{ marginTop: 4 }}
               >
-                {fotos.length} de {MAX_FOTOS} fotos seleccionadas
+                {fotosExistentes.length + fotos.length} de {MAX_FOTOS} fotos
               </div>
             </div>
 
@@ -364,6 +469,16 @@ export default function SellPage() {
               onChange={manejarSeleccion}
               style={{ display: "none" }}
             />
+
+            {fotosExistentes.length > 0 && (
+              <div className="sell-existing-photos">
+                {fotosExistentes.map((url, indice) => (
+                  <span key={url} className="sell-existing-photo" title="Foto de tu colección">
+                    <Photo src={url} alt={`Foto ${indice + 1} de tu colección`} cover />
+                  </span>
+                ))}
+              </div>
+            )}
 
             {errorFotos && (
               <p
@@ -454,54 +569,31 @@ export default function SellPage() {
             )}
           </div>
 
-          <div
-            className="section-title"
-            style={{ marginTop: 8 }}
-          >
-            <h3>Modalidad</h3>
-          </div>
-
-          <div className="trade-toggle">
-            {MODES.map((mode) => (
-              <div
-                key={mode}
-                role="button"
-                tabIndex={0}
-                className={`opt ${
-                  form.mode === mode ? "active" : ""
-                }`}
-                onClick={() =>
-                  setForm((actual) => ({
-                    ...actual,
-                    mode,
-                  }))
-                }
-                onKeyDown={(event) => {
-                  if (
-                    event.key === "Enter" ||
-                    event.key === " "
-                  ) {
-                    event.preventDefault();
-
-                    setForm((actual) => ({
-                      ...actual,
-                      mode,
-                    }));
-                  }
-                }}
-              >
-                {mode}
+          {!soloColeccion && (
+            <>
+              <div className="section-title" style={{ marginTop: 8 }}>
+                <h3>Modalidad</h3>
               </div>
-            ))}
-          </div>
 
-          {!isTrade && (
-            <div className="field-row">
+              <div className="trade-toggle">
+                {MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`opt ${form.mode === mode ? "active" : ""}`}
+                    onClick={() => setForm((actual) => ({ ...actual, mode }))}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="field-row">
+            {(soloColeccion || !isTrade) && (
               <div className="field">
-                <label htmlFor="s-price">
-                  Precio (MXN)
-                </label>
-
+                <label htmlFor="s-price">{soloColeccion ? "Valor estimado (MXN, opcional)" : "Precio (MXN)"}</label>
                 <input
                   type="number"
                   id="s-price"
@@ -509,34 +601,26 @@ export default function SellPage() {
                   placeholder="0.00"
                   min="0"
                   step="0.01"
+                  required={!soloColeccion}
                   value={form.price}
                   onChange={updateField}
                 />
               </div>
+            )}
 
-              <div className="field">
-                <label htmlFor="s-condition">Estado</label>
-
-                <select
-                  id="s-condition"
-                  name="condition"
-                  value={form.condition}
-                  onChange={updateField}
-                >
-                  {CONDITIONS.map((condition) => (
-                    <option
-                      key={condition}
-                      value={condition}
-                    >
-                      {condition}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="field">
+              <label htmlFor="s-condition">Estado</label>
+              <select id="s-condition" name="condition" value={form.condition} onChange={updateField}>
+                {CONDITIONS.map((condition) => (
+                  <option key={condition} value={condition}>
+                    {condition}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+          </div>
 
-          {form.mode !== "Venta" && (
+          {!soloColeccion && form.mode !== "Venta" && (
             <div className="field">
               <label htmlFor="s-wants">
                 ¿Qué buscas a cambio?
@@ -584,7 +668,13 @@ export default function SellPage() {
               className="btn btn-primary btn-block"
               disabled={publicando}
             >
-              {publicando ? "Publicando..." : "Publicar artículo"}
+              {publicando
+                ? "Guardando..."
+                : soloColeccion
+                  ? "Guardar en mi colección"
+                  : origen
+                    ? "Poner a la venta"
+                    : "Publicar artículo"}
             </button>
 
             <button
@@ -608,9 +698,9 @@ export default function SellPage() {
               <div
                 className={`thumb ${categoryClass(form.type)}`}
               >
-                {fotos.length > 0 ? (
+                {fotos.length > 0 || fotosExistentes.length > 0 ? (
                   <img
-                    src={fotos[0].preview}
+                    src={fotos[0]?.preview || fotosExistentes[0]}
                     alt={form.title || "Vista previa del artículo"}
                     style={{
                       width: "100%",
@@ -632,7 +722,7 @@ export default function SellPage() {
                     isTrade ? "cyan" : "pink"
                   }`}
                 >
-                  {form.mode}
+                  {soloColeccion ? "Colección" : form.mode}
                 </span>
               </div>
 
@@ -647,7 +737,11 @@ export default function SellPage() {
 
                 <div className="price-row">
                   <span className="price">
-                    {isTrade ? (
+                    {soloColeccion ? (
+                      <>
+                        {formatMoney(form.price || 0)} <small>valor estimado</small>
+                      </>
+                    ) : isTrade ? (
                       <>
                         <Icon name="repeat" size={14} />{" "}
                         Intercambio
@@ -675,7 +769,7 @@ export default function SellPage() {
           </div>
 
           <div className="card side-card">
-            <h4>Consejos para vender rápido</h4>
+            <h4>{soloColeccion ? "Sobre tu colección" : "Consejos para vender rápido"}</h4>
 
             <ul
               style={{
@@ -686,6 +780,12 @@ export default function SellPage() {
                 paddingLeft: 18,
               }}
             >
+              {soloColeccion && (
+                <li>
+                  Las piezas de tu colección se ven en tu perfil, pero no están a la venta. Para venderla, ve a
+                  "Vender" y elige "Añadir artículo de la colección".
+                </li>
+              )}
               <li>
                 Usa buena iluminación y fotos del artículo real.
               </li>
@@ -697,6 +797,10 @@ export default function SellPage() {
           </div>
         </div>
       </div>
+
+      {selectorAbierto && (
+        <CollectionPickerDialog onClose={() => setSelectorAbierto(false)} onPick={aplicarOrigen} />
+      )}
     </main>
   );
 }

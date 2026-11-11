@@ -3,8 +3,10 @@ export const CATEGORY_ICON = {
   Photocard: "card",
   Álbum: "disc",
   Lightstick: "wand",
+  Merch: "hoodie",
   Ropa: "hoodie",
   Poster: "frame",
+  Otro: "key",
   Accesorio: "key",
 };
 
@@ -12,8 +14,10 @@ const CATEGORY_SLUGS = {
   Photocard: "photocard",
   Álbum: "album",
   Lightstick: "lightstick",
+  Merch: "ropa",
   Ropa: "ropa",
   Poster: "poster",
+  Otro: "accesorio",
   Accesorio: "accesorio",
 };
 

@@ -7,7 +7,8 @@ import Icon from "../components/Icon";
 import Photo from "../components/Photo";
 import PostCard from "../components/PostCard";
 import ProductCard from "../components/ProductCard";
-import { GROUPS, PRODUCTS } from "../data/mockData";
+import { GROUPS } from "../data/mockData";
+import { adaptarArticuloMarketplace } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 const TABS = ["Merch disponible", "Publicaciones de la comunidad"];
@@ -18,12 +19,16 @@ export default function GroupDetailPage() {
   const { isFollowing, toggleFollow } = useFollowedGroups();
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [posts, setPosts] = useState([]);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     if (!group) return;
     apiRequest(`/publicaciones?grupo=${encodeURIComponent(group.name)}`)
       .then((data) => setPosts(data.publicaciones))
       .catch(() => setPosts([]));
+    apiRequest(`/coleccion/marketplace?grupo=${encodeURIComponent(group.name)}`)
+      .then((data) => setProducts(data.articulos.map(adaptarArticuloMarketplace)))
+      .catch(() => setProducts([]));
   }, [group]);
 
   if (!group) {
@@ -34,7 +39,6 @@ export default function GroupDetailPage() {
     );
   }
 
-  const products = PRODUCTS.filter((product) => product.group === group.name);
   const following = isFollowing(group.name);
 
   function handlePostChange(updatedPost) {

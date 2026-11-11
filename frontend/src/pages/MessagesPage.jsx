@@ -3,8 +3,9 @@ import Avatar, { UserAvatar } from "../components/Avatar";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../api/client";
 import { socket } from "../api/socket";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import GroupChatDialog from "../components/GroupChatDialog";
+import Icon from "../components/Icon";
 
 function esGrupo(conversacion) {
   return conversacion?.tipo === "grupo";
@@ -99,6 +100,30 @@ export default function MessagesPage() {
 
   const chatBody = useRef(null);
   const searchTimeout = useRef(null);
+  const chatMenuRef = useRef(null);
+
+  // Cerrar el menú ⋮ al hacer clic afuera o con Escape.
+  useEffect(() => {
+    if (!chatMenuOpen) return undefined;
+
+    function alClicAfuera(event) {
+      if (chatMenuRef.current && !chatMenuRef.current.contains(event.target)) {
+        setChatMenuOpen(false);
+      }
+    }
+
+    function alPresionarTecla(event) {
+      if (event.key === "Escape") setChatMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", alClicAfuera);
+    document.addEventListener("keydown", alPresionarTecla);
+
+    return () => {
+      document.removeEventListener("mousedown", alClicAfuera);
+      document.removeEventListener("keydown", alPresionarTecla);
+    };
+  }, [chatMenuOpen]);
 
   const activeThread = threads.find(
     (thread) => thread._id === activeId
@@ -128,6 +153,10 @@ export default function MessagesPage() {
   }, [activeId]);
 
   // Cargar conversaciones guardadas en MongoDB.
+  // /mensajes?c=<id> abre directamente esa conversación (p. ej. desde una orden).
+  const [searchParams] = useSearchParams();
+  const conversacionPedida = useRef(searchParams.get("c"));
+
   const cargarConversaciones = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -139,6 +168,13 @@ export default function MessagesPage() {
       setThreads(conversaciones);
 
       setActiveId((actual) => {
+        const pedida = conversacionPedida.current;
+        if (pedida && conversaciones.some((thread) => thread._id === pedida)) {
+          conversacionPedida.current = null;
+          setMobileView("chat");
+          return pedida;
+        }
+
         if (
           actual &&
           conversaciones.some((thread) => thread._id === actual)
@@ -744,7 +780,7 @@ export default function MessagesPage() {
                 );
               })()}
 
-              <div className="chat-menu-wrap">
+              <div className="chat-menu-wrap" ref={chatMenuRef}>
                 <button
                   type="button"
                   className="chat-menu-trigger"
@@ -766,7 +802,7 @@ export default function MessagesPage() {
                           setMessageSearchQuery("");
                         }}
                       >
-                        <span>⌕</span>
+                        <Icon name="search" size={15} />
                         Buscar en conversación
                       </button>
 
@@ -778,7 +814,7 @@ export default function MessagesPage() {
                             setGroupDialog("info");
                           }}
                         >
-                          <span>♙</span>
+                          <Icon name="user" size={15} />
                           Información del grupo
                         </button>
                       ) : (
@@ -786,7 +822,7 @@ export default function MessagesPage() {
                           type="button"
                           onClick={verPerfilContacto}
                         >
-                          <span>♙</span>
+                          <Icon name="user" size={15} />
                           Ver perfil
                         </button>
                       )}
@@ -795,7 +831,7 @@ export default function MessagesPage() {
                         type="button"
                         onClick={alternarSilencio}
                       >
-                        <span>♧</span>
+                        <Icon name="bell" size={15} />
                         {activeThread.silenciadosPor?.some(
                           (id) => String(id) === String(user?._id || user?.id)
                         )
@@ -808,7 +844,7 @@ export default function MessagesPage() {
                         className="chat-menu-danger"
                         onClick={eliminarChat}
                       >
-                        <span>⌫</span>
+                        <Icon name="trash" size={15} />
                         Eliminar conversación
                       </button>
                     </div>

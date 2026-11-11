@@ -12,6 +12,8 @@ import MarketplacePage from "./pages/MarketplacePage";
 import MessagesPage from "./pages/MessagesPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import OrderDetailPage from "./pages/OrderDetailPage";
+import OrdersPage from "./pages/OrdersPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import SearchPage from "./pages/SearchPage";
@@ -33,9 +35,10 @@ const router = createBrowserRouter([
       { path: "/marketplace", element: <MarketplacePage />, handle: { title: "Marketplace", subtitle: "Compra, vende e intercambia merch oficial" } },
       { path: "/marketplace/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Marketplace" } },
       { path: "/articulo/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Mi colección" } },
-      { path: "/marketplace/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Marketplace" } },
-      { path: "/articulo/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Mi colección" } },
+      { path: "/ordenes", element: <OrdersPage />, handle: { title: "Mis órdenes", subtitle: "Compras, ventas e intercambios" } },
+      { path: "/ordenes/:id", element: <OrderDetailPage />, handle: { title: "Detalle de orden", subtitle: "Mis órdenes" } },
       { path: "/vender", element: <SellPage />, handle: { title: "Vender / Intercambiar", subtitle: "Publica una pieza de tu colección" } },
+      { path: "/coleccion/agregar", element: <SellPage soloColeccion />, handle: { title: "Agregar a mi colección", subtitle: "Guarda una pieza sin ponerla a la venta" } },
       { path: "/coleccion", element: <CollectionPage />, handle: { title: "Mi colección", subtitle: "Tu vitrina personal de merch" } },
       { path: "/perfil", element: <ProfilePage />, handle: { title: "Mi perfil" } },
       { path: "/perfil/:username", element: <ProfilePage />, handle: { title: "Perfil" } },

@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 
 import { formatMoney, getInitials, timeAgo } from "../frontend/src/utils/format.js";
 import { categoryClass, categoryIcon, CATEGORY_ICON } from "../frontend/src/utils/categories.js";
-import { CATEGORIES, GROUPS, GROUP_NAMES, MY_COLLECTION, PRODUCTS, THREADS } from "../frontend/src/data/mockData.js";
+import { CATEGORIES, GROUPS, THREADS } from "../frontend/src/data/mockData.js";
+import { adaptarArticuloMarketplace, modalidad } from "../frontend/src/utils/coleccion.js";
+import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 
 describe("Frontend: utilidades de formato", () => {
     it("formatMoney usa formato de México", () => {
@@ -37,16 +39,12 @@ describe("Frontend: utilidades de formato", () => {
 });
 
 describe("Frontend: datos de ejemplo consistentes", () => {
-    it("los ids de productos y de colección no se repiten", () => {
-        assert.equal(new Set(PRODUCTS.map((p) => p.id)).size, PRODUCTS.length);
-        assert.equal(new Set(MY_COLLECTION.map((c) => c.id)).size, MY_COLLECTION.length);
-    });
-
-    it("cada producto y pieza de colección usa un grupo y una categoría que existen", () => {
-        for (const item of [...PRODUCTS, ...MY_COLLECTION]) {
-            assert.ok(GROUP_NAMES.includes(item.group), `${item.title}: grupo ${item.group}`);
-            assert.ok(CATEGORIES.includes(item.type), `${item.title}: categoría ${item.type}`);
-        }
+    it("las categorías del formulario son las mismas que acepta el backend", async () => {
+        const { createRequire } = await import("node:module");
+        const require = createRequire(import.meta.url);
+        const Coleccion = require("../models/Coleccion.js");
+        const enumBackend = Coleccion.schema.path("articulos").schema.path("categoria").enumValues;
+        assert.deepEqual([...CATEGORIES].sort(), [...enumBackend].sort());
     });
 
     it("todas las categorías tienen ícono", () => {
@@ -55,18 +53,8 @@ describe("Frontend: datos de ejemplo consistentes", () => {
         }
     });
 
-    it("los productos de intercambio no tienen precio y los de venta sí", () => {
-        for (const producto of PRODUCTS) {
-            if (producto.mode === "Intercambio") {
-                assert.equal(producto.price, 0, producto.title);
-            } else {
-                assert.ok(producto.price > 0, producto.title);
-            }
-        }
-    });
-
     it("las rutas de imagen son absolutas (empiezan con /) para funcionar en rutas anidadas", () => {
-        for (const item of [...GROUPS, ...PRODUCTS, ...MY_COLLECTION]) {
+        for (const item of GROUPS) {
             assert.ok(item.img.startsWith("/assets/img/"), item.img);
         }
     });
@@ -75,5 +63,38 @@ describe("Frontend: datos de ejemplo consistentes", () => {
         for (const hilo of THREADS) {
             assert.ok(hilo.messages.length > 0, hilo.name);
         }
+    });
+});
+
+describe("Frontend: compra-venta", () => {
+    it("adapta un artículo del marketplace al formato de la tarjeta", () => {
+        const tarjeta = adaptarArticuloMarketplace({
+            _id: "a1", titulo: "PC Nayeon", grupo: "TWICE", categoria: "Photocard", imagenes: ["/api/imagenes/x"],
+            precioVenta: 250, estado: "Como nuevo", disponibleCompra: true, disponibleIntercambio: true,
+            vendedor: { username: "mina" }, esMio: false
+        });
+        assert.equal(tarjeta.id, "a1");
+        assert.equal(tarjeta.price, 250);
+        assert.equal(tarjeta.mode, "Ambos");
+        assert.equal(tarjeta.seller, "mina");
+        assert.equal(tarjeta.img, "/api/imagenes/x");
+    });
+
+    it("la modalidad sale de la disponibilidad", () => {
+        assert.equal(modalidad({ disponibleCompra: true }), "Venta");
+        assert.equal(modalidad({ disponibleIntercambio: true }), "Intercambio");
+        assert.equal(modalidad({ disponibleCompra: true, disponibleIntercambio: true }), "Ambos");
+    });
+
+    it("cada quien ve solo las acciones que el backend le permite", () => {
+        const estados = (o) => accionesDisponibles(o).map((a) => a.estado);
+        assert.deepEqual(estados({ estado: "pendiente", miRol: "vendedor" }), ["aceptada", "rechazada"]);
+        assert.deepEqual(estados({ estado: "pendiente", miRol: "comprador" }), ["retirar"]);
+        assert.deepEqual(estados({ estado: "aceptada", miRol: "vendedor", entrega: "envio" }), ["enviada", "cancelada"]);
+        assert.deepEqual(estados({ estado: "aceptada", miRol: "comprador", entrega: "envio" }), ["cancelada"]);
+        assert.deepEqual(estados({ estado: "aceptada", miRol: "comprador", entrega: "en_persona" }), ["recibida", "cancelada"]);
+        assert.deepEqual(estados({ estado: "recibida", miRol: "vendedor" }), ["completada"]);
+        assert.deepEqual(estados({ estado: "completada", miRol: "comprador" }), []);
+        assert.deepEqual(estados({ estado: "pendiente", miRol: null }), [], "moderación solo mira");
     });
 });

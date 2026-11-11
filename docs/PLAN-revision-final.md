@@ -271,3 +271,21 @@ canceladas, conversión gratis → Plus, y retención a 30 días.
 - **Imágenes de publicaciones**: una sola foto ahora se ve completa, sin cortar
   caras; las galerías de 2 a 4 fotos se adaptan al ancho; en teléfono una foto
   sola ya no sale a media pantalla. Se quitaron ~2 KB de reglas CSS que se contradecían.
+
+## 7. Ronda del 11 de noviembre (rama local `dev`, sin subir)
+
+- **Compra-venta fase 1 (§3) iniciada y funcionando**: modelo `Orden` (colección `ordenes`),
+  campos `precio` y `reservadoPor` en los artículos, endpoints de `/api/ordenes`,
+  `GET /api/coleccion/marketplace`, mensaje automático en el chat y notificación en cada
+  cambio, traspaso de artículos al completar, calificación y reputación del vendedor.
+  Marketplace, Buscar y Detalle de grupo ya leen datos reales; nuevas pantallas
+  "Mis órdenes" y "Detalle de orden". Falta: mostrar la reputación en el perfil.
+- **Colección primero, venta después**: "Agregar pieza" (`/coleccion/agregar`) guarda la pieza
+  sin ponerla a la venta. En "Vender", el botón "Añadir artículo de la colección" pasa los
+  datos y fotos de una pieza al formulario y, al publicar, pone **esa misma pieza** a la venta
+  (no se duplica). En el detalle, el dueño tiene "Poner a la venta" / "Quitar de la venta";
+  quitarla cierra las solicitudes pendientes y avisa a los compradores. Vender exige precio > 0.
+- **Roles**: base en `middleware/roles.js` y `/api/admin`; plan completo en `docs/PLAN-roles.md`.
+- **Arreglos**: botón "+ Grupo" visible en escritorio, menú ⋮ del chat se cierra solo y
+  tiene íconos, una sola petición de notificaciones por página, categorías de "Vender"
+  alineadas con el backend ("Ropa" y "Accesorio" hacían fallar la publicación).

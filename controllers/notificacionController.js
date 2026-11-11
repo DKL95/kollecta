@@ -111,7 +111,8 @@ async function crearNotificacion({
         "seguidor",
         "sistema",
         "solicitud_amistad",
-        "mencion"
+        "mencion",
+        "orden"
     ];
 
     if (!tiposPermitidos.includes(tipo)) {

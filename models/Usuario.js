@@ -24,8 +24,10 @@ const usuarioSchema = new mongoose.Schema(
             required: true
         },
 
+        // usuario < moderador < administrador (ver middleware/roles.js y docs/PLAN-roles.md)
         rol: {
             type: String,
+            enum: ["usuario", "moderador", "administrador"],
             default: "usuario"
         },
 

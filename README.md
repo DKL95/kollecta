@@ -39,7 +39,10 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Perfil (ver, editar, publicaciones del usuario) | Conectado a la base de datos |
 | Seguir grupos | Conectado (se guarda en `gruposFavoritos` del usuario) |
 | Búsqueda de personas | Conectado a la base de datos |
-| Marketplace, colección, mensajes, notificaciones | Pantallas en React con datos de ejemplo (`frontend/src/data/mockData.js`), pendiente su backend |
+| Colección, mensajes (directos y grupales), notificaciones | Conectado a la base de datos |
+| Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colección `ordenes`) |
+| Roles usuario / moderador / administrador | Base hecha (`middleware/roles.js`, `/api/admin`); plan en `docs/PLAN-roles.md` |
+| Catálogo de grupos K-pop y amigos sugeridos | Datos de ejemplo (`frontend/src/data/mockData.js`) |
 
 ## Estructura de carpetas
 
@@ -100,8 +103,11 @@ WEB2/
 | Notificaciones | `/notificaciones` | Likes, intercambios, seguidores |
 | Mensajes | `/mensajes` | Conversaciones directas entre usuarios |
 | Marketplace | `/marketplace` | Artículos en venta / intercambio con filtros por grupo |
-| Detalle de artículo | `/marketplace/:productId` | Información de un artículo, contactar al vendedor o proponer intercambio |
-| Vender / Intercambiar | `/vender` | Formulario para publicar un artículo con vista previa |
+| Detalle de artículo | `/marketplace/:productId` | Información de un artículo; comprar o proponer intercambio |
+| Mis órdenes | `/ordenes` | Mis compras y mis ventas, filtradas por estado |
+| Detalle de orden | `/ordenes/:id` | Línea de tiempo, acciones según el rol (aceptar, enviar, recibir, completar), chat y calificación |
+| Vender / Intercambiar | `/vender` | Publicar en el marketplace: una pieza nueva o una de tu colección ("Añadir artículo de la colección", sin duplicarla) |
+| Agregar a mi colección | `/coleccion/agregar` | Guardar una pieza en la colección; queda fuera de la venta |
 | Mi colección | `/coleccion` | Vitrina personal de merch coleccionado |
 | Mi perfil | `/perfil` | Perfil propio: datos, editar perfil, publicaciones, grupos que sigue |
 | Perfil de otro usuario | `/perfil/:username` | Perfil público de cualquier usuario |
@@ -130,6 +136,18 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 | DELETE 🔒 | `/publicaciones/:id` | Eliminar publicación (solo el autor) |
 | POST 🔒 | `/publicaciones/:id/like` | Dar o quitar like |
 | GET | `/imagenes/:id` | Devuelve una imagen subida (pública, para usarla en `<img src>`) |
+| GET 🔒 | `/coleccion/marketplace?tipo=venta\|intercambio&grupo=&categoria=&q=` | Artículos de todas las colecciones disponibles y sin apartar |
+| POST 🔒 | `/coleccion/articulos/:id/imagenes` | Agregar fotos a una pieza propia (máximo 10 en total) |
+| PUT 🔒 | `/coleccion/articulos/:id` | Editar una pieza propia; con `disponibleCompra`/`disponibleIntercambio`/`precio` se pone o quita de la venta (al quitarla se cierran sus solicitudes pendientes) |
+| POST 🔒 | `/ordenes` | Crear orden `{ articuloId, tipo: compra\|intercambio, entrega: envio\|en_persona, nota, ofrecidos[] }` |
+| GET 🔒 | `/ordenes?rol=comprador\|vendedor&estado=activas` | Mis compras o mis ventas |
+| GET 🔒 | `/ordenes/:id` | Detalle (participantes, o moderador/admin) |
+| PATCH 🔒 | `/ordenes/:id/estado` | `{ estado }`: aceptada, rechazada, enviada, recibida, completada o cancelada (según quién la pide) |
+| DELETE 🔒 | `/ordenes/:id` | El comprador retira su solicitud pendiente |
+| POST 🔒 | `/ordenes/:id/calificacion` | `{ estrellas: 1-5, comentario }` (comprador, orden completada) |
+| GET 🔒 | `/ordenes/resumen/:username` | Reputación del vendedor: operaciones, calificaciones y promedio |
+| GET 🔒 | `/admin/usuarios?q=&rol=` | Listar usuarios con su rol (solo administrador) |
+| PATCH 🔒 | `/admin/usuarios/:id/rol` | Cambiar el rol de alguien (solo administrador) |
 
 ## Cómo ejecutar
 

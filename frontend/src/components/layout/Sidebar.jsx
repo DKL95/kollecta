@@ -6,28 +6,14 @@ import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
 import { NAV_SECTIONS } from "./navItems";
 import { socket } from "../../api/socket";
+import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
+  const notificacionesNoLeidas = useNotificacionesNoLeidas();
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
-
-  // Cargar el contador de notificaciones.
-  const cargarNotificaciones = useCallback(async () => {
-    if (!user) {
-      setNotificacionesNoLeidas(0);
-      return;
-    }
-
-    try {
-      const data = await apiRequest("/notificaciones");
-      setNotificacionesNoLeidas(data.noLeidas || 0);
-    } catch (error) {
-      console.error("Error al cargar notificaciones:", error);
-    }
-  }, [user]);
 
   // Cargar el contador real de mensajes sin leer.
   const cargarMensajesNoLeidos = useCallback(async () => {
@@ -42,24 +28,9 @@ export default function Sidebar() {
     } catch (error) {
       console.error("Error al cargar mensajes sin leer:", error);
     }
-  }, [user]);
-
-  // Escuchar las actualizaciones de las notificaciones.
-  useEffect(() => {
-    cargarNotificaciones();
-
-    window.addEventListener(
-      "notificaciones-actualizadas",
-      cargarNotificaciones
-    );
-
-    return () => {
-      window.removeEventListener(
-        "notificaciones-actualizadas",
-        cargarNotificaciones
-      );
-    };
-  }, [cargarNotificaciones]);
+    // Solo se vuelve a pedir si cambia la persona, no cada vez que se refresca su perfil.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id || user?._id]);
 
   // Escuchar los mensajes nuevos y actualizar el contador.
   useEffect(() => {
