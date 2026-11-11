@@ -59,6 +59,7 @@ async function obtenerOCrearConversacion(req, res) {
         }
 
         let conversacion = await Conversacion.findOne({
+            tipo: { $ne: "grupo" },
             participantes: {
                 $all: [usuarioId, otroUsuarioId]
             },
@@ -215,8 +216,12 @@ async function obtenerMensajes(req, res) {
 
         const io = req.app.get("io");
 
+        if (conversacion.tipo === "grupo") {
+            await marcarLeidosEnGrupo(conversacion, usuarioId, io);
+        }
+
         // Marcar como leídos los mensajes recibidos que aún no se han leído.
-        const mensajesActualizados = await Mensaje.find({
+        const mensajesActualizados = conversacion.tipo === "grupo" ? [] : await Mensaje.find({
             conversacion: conversacionId,
             remitente: { $ne: usuarioId },
             leido: false
@@ -283,15 +288,31 @@ async function obtenerMensajesNoLeidos(req, res) {
         const conversaciones = await Conversacion.find({
             participantes: usuarioId,
             ocultasPor: { $ne: usuarioId }
-        }).distinct("_id");
+        }).select("_id tipo");
 
-        const total = await Mensaje.countDocuments({
-            remitente: { $ne: usuarioId },
-            leido: false,
-            conversacion: {
-                $in: conversaciones
-            }
-        });
+        const idsDirectas = conversaciones
+            .filter((conversacion) => conversacion.tipo !== "grupo")
+            .map((conversacion) => conversacion._id);
+
+        const idsGrupos = conversaciones
+            .filter((conversacion) => conversacion.tipo === "grupo")
+            .map((conversacion) => conversacion._id);
+
+        // En chats directos basta "leido"; en grupos cada quien lleva su lectura.
+        const [directos, grupos] = await Promise.all([
+            Mensaje.countDocuments({
+                conversacion: { $in: idsDirectas },
+                remitente: { $ne: usuarioId },
+                leido: false
+            }),
+            Mensaje.countDocuments({
+                conversacion: { $in: idsGrupos },
+                remitente: { $ne: usuarioId },
+                leidoPor: { $ne: usuarioId }
+            })
+        ]);
+
+        const total = directos + grupos;
 
         res.json({ noLeidos: total });
     } catch (error) {
@@ -404,6 +425,324 @@ async function enviarMensaje(req, res) {
     }
 }
 
+/* ==========================================================================
+   Chats grupales
+   ========================================================================== */
+
+const CAMPOS_USUARIO = "nombre username fotoPerfil";
+const MAX_NOMBRE_GRUPO = 60;
+
+function esAdministrador(conversacion, usuarioId) {
+    return (conversacion.administradores || []).some(
+        (id) => String(id) === String(usuarioId)
+    );
+}
+
+// Valida una lista de IDs y regresa solo los usuarios activos que existen.
+async function validarUsuarios(ids) {
+    if (!Array.isArray(ids)) {
+        return { error: "Debes indicar una lista de participantes" };
+    }
+
+    const unicos = [...new Set(ids.map(String))];
+
+    if (unicos.some((id) => !mongoose.isValidObjectId(id))) {
+        return { error: "Algún participante tiene un identificador no válido" };
+    }
+
+    const usuarios = await Usuario.find({
+        _id: { $in: unicos },
+        activo: { $ne: false }
+    }).select("_id");
+
+    if (usuarios.length !== unicos.length) {
+        return { error: "Algún participante no existe o ya no está activo" };
+    }
+
+    return { ids: usuarios.map((usuario) => usuario._id) };
+}
+
+function validarNombreGrupo(nombre) {
+    const limpio = typeof nombre === "string" ? nombre.trim() : "";
+
+    if (!limpio) return { error: "El grupo necesita un nombre" };
+
+    if (limpio.length > MAX_NOMBRE_GRUPO) {
+        return { error: `El nombre no puede superar los ${MAX_NOMBRE_GRUPO} caracteres` };
+    }
+
+    return { nombre: limpio };
+}
+
+// Busca un grupo del que el usuario forme parte.
+async function buscarGrupo(conversacionId, usuarioId) {
+    if (!mongoose.isValidObjectId(conversacionId)) return null;
+
+    return Conversacion.findOne({
+        _id: conversacionId,
+        tipo: "grupo",
+        participantes: usuarioId
+    });
+}
+
+// Avisa a los usuarios indicados que su lista de chats cambió.
+function avisarCambioConversaciones(req, usuarioIds) {
+    const io = req.app.get("io");
+    if (!io) return;
+
+    for (const id of usuarioIds) {
+        io.to(`usuario:${id}`).emit("conversaciones:actualizar");
+    }
+}
+
+async function responderGrupo(res, conversacion, status = 200) {
+    await conversacion.populate("participantes", CAMPOS_USUARIO);
+    res.status(status).json(conversacion);
+}
+
+// Marca como leídos por este usuario los mensajes del grupo y, cuando ya los
+// leyeron todos los demás, avisa al remitente con el mismo evento que los chats directos.
+async function marcarLeidosEnGrupo(conversacion, usuarioId, io) {
+    const pendientes = await Mensaje.find({
+        conversacion: conversacion._id,
+        remitente: { $ne: usuarioId },
+        leidoPor: { $ne: usuarioId }
+    }).select("_id remitente leidoPor");
+
+    if (pendientes.length === 0) return;
+
+    const fecha = new Date();
+
+    await Mensaje.updateMany(
+        { _id: { $in: pendientes.map((mensaje) => mensaje._id) } },
+        { $addToSet: { leidoPor: usuarioId }, $set: { entregado: true } }
+    );
+
+    const participantes = conversacion.participantes.map(String);
+
+    for (const mensaje of pendientes) {
+        const lectores = new Set([...mensaje.leidoPor.map(String), String(usuarioId)]);
+        const faltan = participantes.filter(
+            (id) => id !== String(mensaje.remitente) && !lectores.has(id)
+        );
+
+        if (faltan.length > 0) continue;
+
+        await Mensaje.updateOne(
+            { _id: mensaje._id },
+            { $set: { leido: true, leidoEn: fecha, entregadoEn: fecha } }
+        );
+
+        if (io) {
+            io.to(`usuario:${mensaje.remitente}`).emit("mensaje:estado", {
+                _id: mensaje._id,
+                conversacion: conversacion._id,
+                entregado: true,
+                entregadoEn: fecha,
+                leido: true,
+                leidoEn: fecha
+            });
+        }
+    }
+}
+
+// Crear un chat grupal. El creador queda como administrador.
+async function crearGrupo(req, res) {
+    try {
+        const usuarioId = req.usuario.id;
+
+        const { nombre, error: errorNombre } = validarNombreGrupo(req.body?.nombre);
+        if (errorNombre) return res.status(400).json({ mensaje: errorNombre });
+
+        const otros = (Array.isArray(req.body?.participantes) ? req.body.participantes : [])
+            .map(String)
+            .filter((id) => id !== String(usuarioId));
+
+        if (otros.length < 2) {
+            return res.status(400).json({
+                mensaje: "Agrega al menos a dos personas para crear un grupo"
+            });
+        }
+
+        if (otros.length + 1 > Conversacion.MAX_PARTICIPANTES_GRUPO) {
+            return res.status(400).json({
+                mensaje: `Un grupo puede tener hasta ${Conversacion.MAX_PARTICIPANTES_GRUPO} participantes`
+            });
+        }
+
+        const { ids, error } = await validarUsuarios(otros);
+        if (error) return res.status(400).json({ mensaje: error });
+
+        const conversacion = await Conversacion.create({
+            tipo: "grupo",
+            nombre,
+            creador: usuarioId,
+            administradores: [usuarioId],
+            participantes: [usuarioId, ...ids]
+        });
+
+        avisarCambioConversaciones(req, ids);
+
+        await responderGrupo(res, conversacion, 201);
+    } catch (error) {
+        console.error("Error al crear grupo:", error);
+        res.status(500).json({ mensaje: "No se pudo crear el grupo" });
+    }
+}
+
+// Cambiar el nombre del grupo (solo administradores).
+async function actualizarGrupo(req, res) {
+    try {
+        const usuarioId = req.usuario.id;
+        const conversacion = await buscarGrupo(req.params.conversacionId, usuarioId);
+
+        if (!conversacion) {
+            return res.status(404).json({ mensaje: "Grupo no encontrado" });
+        }
+
+        if (!esAdministrador(conversacion, usuarioId)) {
+            return res.status(403).json({
+                mensaje: "Solo los administradores pueden editar el grupo"
+            });
+        }
+
+        const { nombre, error } = validarNombreGrupo(req.body?.nombre);
+        if (error) return res.status(400).json({ mensaje: error });
+
+        conversacion.nombre = nombre;
+        await conversacion.save();
+
+        avisarCambioConversaciones(req, conversacion.participantes);
+
+        await responderGrupo(res, conversacion);
+    } catch (error) {
+        console.error("Error al actualizar grupo:", error);
+        res.status(500).json({ mensaje: "No se pudo actualizar el grupo" });
+    }
+}
+
+// Agregar personas al grupo (solo administradores).
+async function agregarParticipantes(req, res) {
+    try {
+        const usuarioId = req.usuario.id;
+        const conversacion = await buscarGrupo(req.params.conversacionId, usuarioId);
+
+        if (!conversacion) {
+            return res.status(404).json({ mensaje: "Grupo no encontrado" });
+        }
+
+        if (!esAdministrador(conversacion, usuarioId)) {
+            return res.status(403).json({
+                mensaje: "Solo los administradores pueden agregar personas"
+            });
+        }
+
+        const actuales = new Set(conversacion.participantes.map(String));
+        const nuevos = (Array.isArray(req.body?.usuarios) ? req.body.usuarios : [])
+            .map(String)
+            .filter((id) => !actuales.has(id));
+
+        if (nuevos.length === 0) {
+            return res.status(400).json({
+                mensaje: "Selecciona al menos a una persona que no esté en el grupo"
+            });
+        }
+
+        if (actuales.size + nuevos.length > Conversacion.MAX_PARTICIPANTES_GRUPO) {
+            return res.status(400).json({
+                mensaje: `Un grupo puede tener hasta ${Conversacion.MAX_PARTICIPANTES_GRUPO} participantes`
+            });
+        }
+
+        const { ids, error } = await validarUsuarios(nuevos);
+        if (error) return res.status(400).json({ mensaje: error });
+
+        conversacion.participantes.push(...ids);
+        await conversacion.save();
+
+        avisarCambioConversaciones(req, conversacion.participantes);
+
+        await responderGrupo(res, conversacion);
+    } catch (error) {
+        console.error("Error al agregar participantes:", error);
+        res.status(500).json({ mensaje: "No se pudieron agregar las personas" });
+    }
+}
+
+// Quitar a alguien del grupo. Un administrador puede quitar a cualquiera;
+// cualquier participante puede quitarse a sí mismo (salir del grupo).
+async function quitarParticipante(req, res) {
+    try {
+        const usuarioId = req.usuario.id;
+        const objetivoId = req.params.usuarioId;
+
+        if (!mongoose.isValidObjectId(objetivoId)) {
+            return res.status(400).json({ mensaje: "El identificador del usuario no es válido" });
+        }
+
+        const conversacion = await buscarGrupo(req.params.conversacionId, usuarioId);
+
+        if (!conversacion) {
+            return res.status(404).json({ mensaje: "Grupo no encontrado" });
+        }
+
+        const esSalida = String(objetivoId) === String(usuarioId);
+
+        if (!esSalida && !esAdministrador(conversacion, usuarioId)) {
+            return res.status(403).json({
+                mensaje: "Solo los administradores pueden quitar personas"
+            });
+        }
+
+        const estaEnGrupo = conversacion.participantes.some(
+            (id) => String(id) === String(objetivoId)
+        );
+
+        if (!estaEnGrupo) {
+            return res.status(404).json({ mensaje: "Esa persona no está en el grupo" });
+        }
+
+        const avisarA = conversacion.participantes.map(String);
+
+        conversacion.participantes.pull(objetivoId);
+        conversacion.administradores.pull(objetivoId);
+        conversacion.ocultasPor.pull(objetivoId);
+        conversacion.silenciadosPor.pull(objetivoId);
+
+        // Si el grupo se queda vacío se borra junto con sus mensajes.
+        if (conversacion.participantes.length === 0) {
+            await Mensaje.deleteMany({ conversacion: conversacion._id });
+            await conversacion.deleteOne();
+
+            return res.json({ mensaje: "Saliste del grupo" });
+        }
+
+        // El grupo nunca se queda sin administrador.
+        if (conversacion.administradores.length === 0) {
+            conversacion.administradores.push(conversacion.participantes[0]);
+        }
+
+        await conversacion.save();
+
+        // Sacar a la persona de la sala en tiempo real.
+        const io = req.app.get("io");
+        if (io) {
+            io.in(`usuario:${objetivoId}`).socketsLeave(`conversacion:${conversacion._id}`);
+        }
+
+        avisarCambioConversaciones(req, avisarA);
+
+        if (esSalida) {
+            return res.json({ mensaje: "Saliste del grupo" });
+        }
+
+        await responderGrupo(res, conversacion);
+    } catch (error) {
+        console.error("Error al quitar participante:", error);
+        res.status(500).json({ mensaje: "No se pudo quitar a la persona del grupo" });
+    }
+}
+
 // Notificar al remitente cuando cambia el estado de un mensaje.
 function notificarEstadoMensaje(io, mensaje) {
     if (!io || !mensaje) return;
@@ -428,5 +767,9 @@ module.exports = {
     enviarMensaje,
     obtenerMensajesNoLeidos,
     alternarSilencioConversacion,
-    eliminarConversacion
+    eliminarConversacion,
+    crearGrupo,
+    actualizarGrupo,
+    agregarParticipantes,
+    quitarParticipante
 };

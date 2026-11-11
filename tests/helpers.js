@@ -38,6 +38,8 @@ async function iniciarApi(nombre) {
     const url = `http://127.0.0.1:${servidor.address().port}`;
 
     async function detener() {
+        // fetch deja conexiones keep-alive abiertas; sin cerrarlas, close() nunca termina.
+        servidor.closeAllConnections();
         await new Promise((resolve) => servidor.close(resolve));
         await mongoose.connection.dropDatabase();
         await mongoose.disconnect();

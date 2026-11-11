@@ -23,14 +23,16 @@ async function buscarUsuarios(req, res) {
         // Escapar caracteres especiales para tratar la búsqueda como texto literal.
         const escapado = texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+        // No mostrar cuentas desactivadas.
         const filtro = texto
             ? {
+                activo: true,
                 $or: [
                     { username: new RegExp(escapado, "i") },
                     { nombre: new RegExp(escapado, "i") }
                 ]
             }
-            : {};
+            : { activo: true };
 
         // Obtener las amistades del usuario autenticado.
         const usuarioActual = await Usuario.findById(req.usuario.id)

@@ -4,6 +4,32 @@ import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../api/client";
 import { socket } from "../api/socket";
 import { useNavigate } from "react-router-dom";
+import GroupChatDialog from "../components/GroupChatDialog";
+
+function esGrupo(conversacion) {
+  return conversacion?.tipo === "grupo";
+}
+
+// Datos para pintar una conversación (directa o grupal) en la lista y el encabezado.
+function datosConversacion(conversacion, usuarioActual) {
+  if (esGrupo(conversacion)) {
+    const nombre = conversacion.nombre || "Grupo";
+    return {
+      nombre,
+      iniciales: obtenerIniciales({ nombre }),
+      foto: null,
+      estado: `${conversacion.participantes?.length || 0} participantes`,
+    };
+  }
+
+  const otro = obtenerOtroParticipante(conversacion, usuarioActual);
+  return {
+    nombre: obtenerNombre(otro),
+    iniciales: obtenerIniciales(otro),
+    foto: otro?.fotoPerfil,
+    estado: "Mensajes privados",
+  };
+}
 
 function obtenerIniciales(usuario) {
   const nombre = usuario?.nombre || usuario?.username || "?";
@@ -67,6 +93,9 @@ export default function MessagesPage() {
   const [searching, setSearching] = useState(false);
 
   const [error, setError] = useState("");
+
+  // null | "nuevo" | "info"
+  const [groupDialog, setGroupDialog] = useState(null);
 
   const chatBody = useRef(null);
   const searchTimeout = useRef(null);
@@ -133,6 +162,33 @@ export default function MessagesPage() {
   useEffect(() => {
     cargarConversaciones();
   }, [cargarConversaciones]);
+
+  // Recargar la lista cuando nos agregan a un grupo, lo renombran o nos sacan.
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    socket.on("conversaciones:actualizar", cargarConversaciones);
+
+    return () => {
+      socket.off("conversaciones:actualizar", cargarConversaciones);
+    };
+  }, [cargarConversaciones]);
+
+  // Al crear o editar un grupo desde el diálogo.
+  async function alGuardarGrupo(grupo, { cerrar = true } = {}) {
+    await cargarConversaciones();
+    setActiveId(grupo._id);
+    setMobileView("chat");
+    if (cerrar) setGroupDialog(null);
+  }
+
+  function alSalirDelGrupo(grupoId) {
+    setThreads((anteriores) => anteriores.filter((thread) => thread._id !== grupoId));
+    setActiveId(null);
+    setMessages([]);
+    setGroupDialog(null);
+    setMobileView("list");
+  }
 
   // Evitar que el temporizador de búsqueda quede activo al salir.
   useEffect(() => {
@@ -503,12 +559,21 @@ export default function MessagesPage() {
       <div className="thread-list">
         {/* Buscador de personas */}
         <div className="message-search">
-          <input
-            type="search"
-            placeholder="Buscar personas..."
-            value={search}
-            onChange={manejarBusqueda}
-          />
+          <div className="message-search-row">
+            <input
+              type="search"
+              placeholder="Buscar personas..."
+              value={search}
+              onChange={manejarBusqueda}
+            />
+            <button
+              type="button"
+              className="btn btn-primary btn-sm message-new-group"
+              onClick={() => setGroupDialog("nuevo")}
+            >
+              + Grupo
+            </button>
+          </div>
 
           {searching && (
             <p className="messages-search-status">
@@ -565,8 +630,14 @@ export default function MessagesPage() {
           </p>
         ) : (
           threads.map((thread) => {
-            const otroUsuario = obtenerOtroParticipante(thread, user);
+            const datos = datosConversacion(thread, user);
             const ultimoMensaje = thread.ultimoMensaje;
+            const autorUltimo =
+              esGrupo(thread) && ultimoMensaje?.remitente
+                ? String(ultimoMensaje.remitente._id) === String(user?._id || user?.id)
+                  ? "Tú: "
+                  : `${obtenerNombre(ultimoMensaje.remitente).split(" ")[0]}: `
+                : "";
 
             return (
               <div
@@ -590,12 +661,17 @@ export default function MessagesPage() {
                   }
                 }}
               >
-                <Avatar initials={obtenerIniciales(otroUsuario)} src={otroUsuario?.fotoPerfil} alt={obtenerNombre(otroUsuario)} />
+                <Avatar
+                  initials={datos.iniciales}
+                  src={datos.foto}
+                  alt={datos.nombre}
+                  className={esGrupo(thread) ? "avatar-group" : ""}
+                />
 
                 <div className="info">
                   <div className="top-line">
                     <span className="n">
-                      {obtenerNombre(otroUsuario)}
+                      {datos.nombre}
                     </span>
 
                     <span className="t">
@@ -607,7 +683,11 @@ export default function MessagesPage() {
                   </div>
 
                   <div className="preview">
-                    {ultimoMensaje?.texto || "Inicia la conversación"}
+                    {ultimoMensaje?.texto
+                      ? `${autorUltimo}${ultimoMensaje.texto}`
+                      : esGrupo(thread)
+                        ? "Grupo creado. ¡Saluda!"
+                        : "Inicia la conversación"}
                   </div>
                 </div>
               </div>
@@ -633,25 +713,36 @@ export default function MessagesPage() {
                 ←
               </button>
 
-              <Avatar
-                initials={obtenerIniciales(
-                  obtenerOtroParticipante(activeThread, user)
-                )}
-                src={obtenerOtroParticipante(activeThread, user)?.fotoPerfil}
-                alt={obtenerNombre(
-                  obtenerOtroParticipante(activeThread, user)
-                )}
-              />
+              {(() => {
+                const datos = datosConversacion(activeThread, user);
+                const contenido = (
+                  <>
+                    <Avatar
+                      initials={datos.iniciales}
+                      src={datos.foto}
+                      alt={datos.nombre}
+                      className={esGrupo(activeThread) ? "avatar-group" : ""}
+                    />
+                    <div>
+                      <div className="n">{datos.nombre}</div>
+                      <div className="status">{datos.estado}</div>
+                    </div>
+                  </>
+                );
 
-              <div>
-                <div className="n">
-                  {obtenerNombre(
-                    obtenerOtroParticipante(activeThread, user)
-                  )}
-                </div>
-
-                <div className="status">Mensajes privados</div>
-              </div>
+                return esGrupo(activeThread) ? (
+                  <button
+                    type="button"
+                    className="chat-head-group"
+                    onClick={() => setGroupDialog("info")}
+                    aria-label="Ver información del grupo"
+                  >
+                    {contenido}
+                  </button>
+                ) : (
+                  contenido
+                );
+              })()}
 
               <div className="chat-menu-wrap">
                 <button
@@ -679,13 +770,26 @@ export default function MessagesPage() {
                         Buscar en conversación
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={verPerfilContacto}
-                      >
-                        <span>♙</span>
-                        Ver perfil
-                      </button>
+                      {esGrupo(activeThread) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChatMenuOpen(false);
+                            setGroupDialog("info");
+                          }}
+                        >
+                          <span>♙</span>
+                          Información del grupo
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={verPerfilContacto}
+                        >
+                          <span>♙</span>
+                          Ver perfil
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -807,6 +911,11 @@ export default function MessagesPage() {
                       )}
 
                       <div className="bubble">
+                        {esGrupo(activeThread) && !esMio && (
+                          <span className="bubble-author">
+                            {obtenerNombre(message.remitente)}
+                          </span>
+                        )}
                         {message.texto}
 
                         {esMio && (
@@ -869,6 +978,16 @@ export default function MessagesPage() {
           </div>
         )}
       </div>
+
+      {groupDialog && (
+        <GroupChatDialog
+          grupo={groupDialog === "info" && esGrupo(activeThread) ? activeThread : null}
+          usuarioActual={user}
+          onCerrar={() => setGroupDialog(null)}
+          onGuardado={alGuardarGrupo}
+          onSalir={alSalirDelGrupo}
+        />
+      )}
 
       {error && (
         <div className="messages-error" role="alert">

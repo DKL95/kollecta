@@ -96,6 +96,22 @@ async function validarArchivos(req, res, next) {
     next();
 }
 
+// Rechaza la foto de perfil si pesa más de 5 MB, antes de crear o
+// modificar al usuario (multer solo limita a 100 MB por los videos).
+async function validarFotoPerfil(req, res, next) {
+    if (req.file && req.file.size > MAX_TAMANO_IMAGEN) {
+        if (req.file.path) {
+            await fs.promises.unlink(req.file.path).catch(() => {});
+        }
+
+        return res.status(400).json({
+            mensaje: "La imagen no puede pesar más de 5 MB"
+        });
+    }
+
+    next();
+}
+
 // Guarda una imagen en MongoDB.
 // Admite archivos temporales en disco y buffers por compatibilidad.
 async function guardarImagen(archivo, idUsuario) {
@@ -135,6 +151,7 @@ async function eliminarImagen(url) {
 module.exports = {
     upload,
     validarArchivos,
+    validarFotoPerfil,
     guardarImagen,
     eliminarImagen,
     CARPETA_UPLOADS,

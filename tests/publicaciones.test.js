@@ -39,7 +39,7 @@ describe("Publicaciones (/api/publicaciones)", () => {
     it("crea una publicación con texto, grupo e imagen", async () => {
         const res = await api("POST", "/api/publicaciones", {
             token: autor.token,
-            form: { texto: "  Mi nueva photocard  ", grupo: "TWICE", imagen: imagenPng() }
+            form: { texto: "  Mi nueva photocard  ", grupo: "TWICE", imagenes: imagenPng() }
         });
 
         assert.equal(res.status, 201);
@@ -47,6 +47,7 @@ describe("Publicaciones (/api/publicaciones)", () => {
         assert.equal(publicacion.texto, "Mi nueva photocard", "se quitan los espacios sobrantes");
         assert.equal(publicacion.grupo, "TWICE");
         assert.match(publicacion.imagen, /^\/api\/imagenes\//);
+        assert.deepEqual(publicacion.imagenes, [publicacion.imagen]);
         assert.equal(publicacion.autor.username, autor.usuario.username);
         assert.equal(publicacion.totalLikes, 0);
         assert.equal(publicacion.meGusta, false);
@@ -144,7 +145,7 @@ describe("Publicaciones (/api/publicaciones)", () => {
         it("solo el autor puede eliminar, y se borra su imagen", async () => {
             const conImagen = await api("POST", "/api/publicaciones", {
                 token: autor.token,
-                form: { texto: "Con foto para borrar", imagen: imagenPng() }
+                form: { texto: "Con foto para borrar", imagenes: imagenPng() }
             });
             const { id, imagen } = conImagen.body.publicacion;
 

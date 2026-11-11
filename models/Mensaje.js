@@ -46,6 +46,16 @@ const mensajeSchema = new mongoose.Schema(
         leidoEn: {
             type: Date,
             default: null
+        },
+
+        // En grupos, quién ya leyó el mensaje. "leido" se vuelve true
+        // cuando todos los demás participantes lo leyeron.
+        leidoPor: {
+            type: [{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Usuario"
+            }],
+            default: []
         }
     },
     {

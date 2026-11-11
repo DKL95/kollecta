@@ -15,6 +15,9 @@ export default function ProductDetailPage() {
   const esColeccion = window.location.pathname.startsWith("/articulo/");
 
   const [articuloColeccion, setArticuloColeccion] = useState(null);
+  // Dueño de la pieza: puede ser el usuario actual u otra persona.
+  const [propietario, setPropietario] = useState(null);
+  const [esMio, setEsMio] = useState(true);
   const [cargando, setCargando] = useState(esColeccion);
   const [error, setError] = useState("");
   const [imagenSeleccionada, setImagenSeleccionada] = useState(0);
@@ -35,6 +38,8 @@ export default function ProductDetailPage() {
 
         if (!cancelado) {
           setArticuloColeccion(respuesta.articulo);
+          setPropietario(respuesta.propietario || null);
+          setEsMio(respuesta.esMio !== false);
           setImagenSeleccionada(0);
         }
       } catch (err) {
@@ -118,6 +123,18 @@ export default function ProductDetailPage() {
         images: productoMarketplace.img ? [productoMarketplace.img] : [],
       };
 
+  const coleccionAjena = esColeccion && !esMio && propietario;
+  const volverA = !esColeccion
+    ? "/marketplace"
+    : coleccionAjena
+      ? `/perfil/${encodeURIComponent(propietario.username)}`
+      : "/coleccion";
+  const volverTexto = !esColeccion
+    ? "marketplace"
+    : coleccionAjena
+      ? `la colección de @${propietario.username}`
+      : "mi colección";
+
   const isTrade = product.mode === "Intercambio";
   const isBoth = product.mode === "Ambos";
   const imagenes = product.images.length ? product.images : [""];
@@ -127,12 +144,9 @@ export default function ProductDetailPage() {
 
   return (
     <main className="page product-detail-page">
-      <Link
-        to={esColeccion ? "/coleccion" : "/marketplace"}
-        className="detail-back"
-      >
+      <Link to={volverA} className="detail-back">
         <span aria-hidden="true">←</span>
-        Volver a {esColeccion ? "mi colección" : "marketplace"}
+        Volver a {volverTexto}
       </Link>
 
       <div className="detail-grid">
@@ -193,7 +207,11 @@ export default function ProductDetailPage() {
           {esColeccion && (
             <div className="gallery-note">
               <Icon name="check" size={16} />
-              <span>Artículo guardado en tu colección</span>
+              <span>
+                {coleccionAjena
+                  ? `En la colección de @${propietario.username}`
+                  : "Artículo guardado en tu colección"}
+              </span>
             </div>
           )}
         </section>

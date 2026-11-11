@@ -7,7 +7,7 @@ import EmptyState from "../components/EmptyState";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
-import { MY_COLLECTION } from "../data/mockData";
+import { adaptarArticulo } from "../utils/coleccion";
 
 const TABS = ["Publicaciones", "Colección", "Grupos que sigo"];
 
@@ -19,6 +19,9 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  // null = cargando, [] = vacía
+  const [collection, setCollection] = useState(null);
+  const [collectionError, setCollectionError] = useState("");
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
@@ -44,6 +47,35 @@ export default function ProfilePage() {
       })
       .catch((requestError) => setError(requestError.message));
   }, [username]);
+
+  // Cargar la colección real del perfil (propio o ajeno).
+  const profileId = profile?.id;
+
+  useEffect(() => {
+    setCollection(null);
+    setCollectionError("");
+
+    if (!profileId) return;
+
+    let cancelled = false;
+
+    apiRequest(`/coleccion/usuario/${profileId}`)
+      .then((data) => {
+        if (!cancelled) {
+          setCollection((data.articulos || []).map(adaptarArticulo));
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setCollection([]);
+          setCollectionError(requestError.message);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId]);
 
   // Consultar el estado de la amistad al entrar en un perfil
   useEffect(() => {
@@ -438,16 +470,29 @@ export default function ProfilePage() {
       )}
 
       {activeTab === "Colección" &&
-        (isOwnProfile ? (
+        (collection === null ? (
+          <div className="card side-card">
+            <p>Cargando colección...</p>
+          </div>
+        ) : collectionError ? (
+          <EmptyState icon="folder">{collectionError}</EmptyState>
+        ) : collection.length === 0 ? (
+          <EmptyState icon="folder">
+            {isOwnProfile ? (
+              <>
+                Tu colección está vacía.{" "}
+                <Link to="/vender">Agrega tu primera pieza</Link>
+              </>
+            ) : (
+              `@${shown.username} todavía no tiene piezas en su colección.`
+            )}
+          </EmptyState>
+        ) : (
           <div className="grid grid-4">
-            {MY_COLLECTION.map((item) => (
+            {collection.map((item) => (
               <CollectionItem key={item.id} item={item} />
             ))}
           </div>
-        ) : (
-          <EmptyState icon="folder">
-            La colección de @{shown.username} todavía no es pública.
-          </EmptyState>
         ))}
 
       {activeTab === "Grupos que sigo" && (

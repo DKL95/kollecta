@@ -64,8 +64,12 @@ describe("Usuarios (/api/usuarios)", () => {
             const porUsuario = await api("GET", "/api/usuarios?q=MINA", { token: derek.token });
             assert.deepEqual(porUsuario.body.usuarios.map((u) => u.username), ["mina.cards"]);
 
-            const porNombre = await api("GET", "/api/usuarios?q=luna", { token: derek.token });
+            // La búsqueda no incluye a quien busca, así que Mina busca a Derek.
+            const porNombre = await api("GET", "/api/usuarios?q=luna", { token: mina.token });
             assert.deepEqual(porNombre.body.usuarios.map((u) => u.username), ["derek.once"]);
+
+            const aSiMismo = await api("GET", "/api/usuarios?q=derek", { token: derek.token });
+            assert.deepEqual(aSiMismo.body.usuarios, [], "no se encuentra a sí mismo");
 
             assert.ok(porNombre.body.usuarios.every((u) => u.email === undefined), "no expone correos");
         });

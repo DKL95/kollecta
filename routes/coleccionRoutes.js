@@ -99,7 +99,8 @@ router.get("/usuario/:usuarioId", requiereAuth, async (req, res) => {
     }
 });
 
-// Obtener un artículo individual de la colección del usuario autenticado.
+// Obtener un artículo individual de cualquier colección (la propia o la de
+// otro usuario activo, que ya es visible desde su perfil).
 router.get("/articulos/:articuloId", requiereAuth, async (req, res) => {
     try {
         const { articuloId } = req.params;
@@ -111,24 +112,29 @@ router.get("/articulos/:articuloId", requiereAuth, async (req, res) => {
         }
 
         const coleccion = await Coleccion.findOne({
-            usuario: req.usuario.id
-        });
+            "articulos._id": articuloId
+        }).populate("usuario", "nombre username fotoPerfil activo");
 
-        if (!coleccion) {
-            return res.status(404).json({
-                mensaje: "No se encontró tu colección"
-            });
-        }
+        const articulo = coleccion?.articulos.id(articuloId);
 
-        const articulo = coleccion.articulos.id(articuloId);
-
-        if (!articulo) {
+        if (!articulo || !coleccion.usuario?.activo) {
             return res.status(404).json({
                 mensaje: "Artículo no encontrado"
             });
         }
 
-        res.json({ articulo });
+        const propietario = coleccion.usuario;
+
+        res.json({
+            articulo,
+            esMio: String(propietario._id) === String(req.usuario.id),
+            propietario: {
+                id: propietario._id,
+                nombre: propietario.nombre,
+                username: propietario.username,
+                fotoPerfil: propietario.fotoPerfil
+            }
+        });
     } catch (error) {
         console.error("Error al obtener el artículo:", error);
 

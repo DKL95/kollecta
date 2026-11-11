@@ -11,10 +11,20 @@ const {
     enviarMensaje,
     obtenerMensajesNoLeidos,
     alternarSilencioConversacion,
-    eliminarConversacion
+    eliminarConversacion,
+    crearGrupo,
+    actualizarGrupo,
+    agregarParticipantes,
+    quitarParticipante
 } = require("../controllers/mensajeController");
 
 router.use(requiereAuth);
+
+// Chats grupales (van antes de "/:conversacionId" para que no los capture).
+router.post("/grupos", crearGrupo);
+router.patch("/grupos/:conversacionId", actualizarGrupo);
+router.post("/grupos/:conversacionId/participantes", agregarParticipantes);
+router.delete("/grupos/:conversacionId/participantes/:usuarioId", quitarParticipante);
 
 // Obtener las conversaciones del usuario
 router.get("/conversaciones", obtenerConversaciones);

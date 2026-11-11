@@ -784,7 +784,7 @@ async function alternarLike(req, res) {
         await publicacion.populate("autor", CAMPOS_AUTOR);
 
         return res.json({
-            publicacion: formatearPublicacion(
+            publicacion: await formatearPublicacion(
                 publicacion,
                 req.usuario.id
             )

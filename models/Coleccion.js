@@ -97,4 +97,7 @@ coleccionSchema.index(
     { unique: true }
 );
 
+// Para abrir un artículo por su id sin saber de quién es.
+coleccionSchema.index({ "articulos._id": 1 });
+
 module.exports = mongoose.model("Coleccion", coleccionSchema);

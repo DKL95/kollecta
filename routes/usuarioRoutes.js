@@ -16,7 +16,7 @@ const {
 } = require("../controllers/usuarioController");
 
 const { requiereAuth } = require("../middleware/auth");
-const { upload } = require("../middleware/upload");
+const { upload, validarFotoPerfil } = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -58,7 +58,7 @@ router.get("/:username/amistad", obtenerEstadoAmistad);
 router.delete("/:id/amigo", eliminarAmigo);
 
 router.get("/", buscarUsuarios);
-router.put("/me",upload.single("fotoPerfil"), actualizarPerfil);
+router.put("/me", upload.single("fotoPerfil"), validarFotoPerfil, actualizarPerfil);
 router.get("/:username", obtenerPerfil);
 router.get("/:username/publicaciones", obtenerPublicacionesDeUsuario);
 

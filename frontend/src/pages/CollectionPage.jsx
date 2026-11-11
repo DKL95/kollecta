@@ -5,17 +5,7 @@ import FilterChips from "../components/FilterChips";
 import Icon from "../components/Icon";
 import { apiRequest } from "../api/client";
 import { formatMoney } from "../utils/format";
-
-function adaptarArticulo(articulo) {
-  return {
-    id: articulo._id,
-    title: articulo.titulo,
-    group: articulo.grupo,
-    type: articulo.categoria,
-    img: articulo.imagenes?.[0] || "",
-    value: Number(articulo.valorEstimado) || 0,
-  };
-}
+import { adaptarArticulo } from "../utils/coleccion";
 
 export default function CollectionPage() {
   const [articulos, setArticulos] = useState([]);
