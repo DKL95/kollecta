@@ -783,7 +783,49 @@ async function eliminarAmigo(req, res) {
 
 // Exportar todas las funciones del controlador.
 
+// GET /api/usuarios/me/amigos
+// Amigos reales del usuario, con amigos en común y si están conectados ahora
+// (tienen al menos un socket abierto en su sala "usuario:<id>").
+async function listarMisAmigos(req, res) {
+    try {
+        const yo = await Usuario.findById(req.usuario.id).select("amigos");
+
+        if (!yo) {
+            return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
+        }
+
+        const misAmigos = new Set((yo.amigos || []).map(String));
+        const amigos = await Usuario.find({ _id: { $in: yo.amigos || [] }, activo: true })
+            .select("nombre username fotoPerfil amigos");
+
+        const io = req.app.get("io");
+        const salas = io?.sockets?.adapter?.rooms;
+
+        const lista = amigos
+            .map((amigo) => ({
+                id: amigo._id,
+                nombre: amigo.nombre,
+                username: amigo.username,
+                fotoPerfil: amigo.fotoPerfil,
+                amigosEnComun: (amigo.amigos || []).filter(
+                    (id) => misAmigos.has(String(id)) && String(id) !== String(yo._id)
+                ).length,
+                enLinea: Boolean(salas?.get(`usuario:${amigo._id}`)?.size)
+            }))
+            .sort((a, b) =>
+                Number(b.enLinea) - Number(a.enLinea) ||
+                (a.nombre || a.username).localeCompare(b.nombre || b.username, "es")
+            );
+
+        res.json({ amigos: lista });
+    } catch (error) {
+        console.error("Error al listar amigos:", error);
+        res.status(500).json({ mensaje: "No se pudieron cargar tus amigos" });
+    }
+}
+
 module.exports = {
+    listarMisAmigos,
     buscarUsuarios,
     obtenerPerfil,
     obtenerPublicacionesDeUsuario,

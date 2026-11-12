@@ -156,6 +156,7 @@ export default function MessagesPage() {
   // /mensajes?c=<id> abre directamente esa conversación (p. ej. desde una orden).
   const [searchParams] = useSearchParams();
   const conversacionPedida = useRef(searchParams.get("c"));
+  const usuarioPedido = useRef(searchParams.get("u"));
 
   const cargarConversaciones = useCallback(async () => {
     setLoading(true);
@@ -270,6 +271,16 @@ export default function MessagesPage() {
   }
 
   // Abrir una conversación existente o crear una nueva.
+  // /mensajes?u=<usuarioId> abre (o crea) el chat con esa persona, p. ej. desde "Amigos activos".
+  useEffect(() => {
+    const usuarioId = usuarioPedido.current;
+    if (!usuarioId) return;
+    usuarioPedido.current = null;
+    abrirConversacion({ id: usuarioId });
+    // Solo al abrir la pantalla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function abrirConversacion(usuario) {
     const usuarioId = usuario?._id || usuario?.id;
 

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Datos de ejemplo para las secciones que todavía no tienen backend
-   (catálogo de grupos, amigos sugeridos). El marketplace y la colección ya
+   (catálogo de grupos). El marketplace y la colección ya
    vienen de la base de datos.
    Usuarios y publicaciones ya vienen de la base de datos.
    ========================================================================== */
@@ -26,14 +26,6 @@ export const GROUP_NAMES = GROUPS.map((group) => group.name);
 
 // Deben coincidir con el enum "categoria" de models/Coleccion.js.
 export const CATEGORIES = ["Photocard", "Álbum", "Lightstick", "Merch", "Poster", "Otro"];
-
-export const FRIENDS = [
-  { name: "Mina Cardona", handle: "@mina.cards", initials: "MC", mutual: 12, online: true },
-  { name: "Sofía Nena", handle: "@blinknena", initials: "BN", mutual: 8, online: false },
-  { name: "Diego Norte", handle: "@stay_norte", initials: "SN", mutual: 21, online: true },
-  { name: "Caro Ximénez", handle: "@caratmx", initials: "CX", mutual: 5, online: false },
-  { name: "Ale Bunny", handle: "@bunny.dept", initials: "AB", mutual: 3, online: true },
-];
 
 export const THREADS = [
   {

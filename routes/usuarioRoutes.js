@@ -1,6 +1,7 @@
 const express = require("express");
 
 const {
+    listarMisAmigos,
     buscarUsuarios,
     obtenerPerfil,
     obtenerPublicacionesDeUsuario,
@@ -52,6 +53,9 @@ router.post(
     "/:username/solicitud",
     enviarSolicitud
 );
+
+// Va antes de "/:username" para que "me" no se tome como nombre de usuario.
+router.get("/me/amigos", listarMisAmigos);
 
 router.get("/:username/amistad", obtenerEstadoAmistad);
 
