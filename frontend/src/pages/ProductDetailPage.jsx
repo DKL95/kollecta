@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { UserAvatar } from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
@@ -10,170 +10,151 @@ import { categoryClass, categoryIcon } from "../utils/categories";
 import { modalidad } from "../utils/coleccion";
 import { formatMoney } from "../utils/format";
 
-// Detalle de un artículo real de una colección. Se llega desde el marketplace
-// (/marketplace/:id) o desde una colección (/articulo/:id); cambia solo el "volver".
+// Galería de fotos reutilizada por el detalle de producto y el de pieza de colección.
+export function Galeria({ imagenes, titulo, categoria }) {
+  const [seleccionada, setSeleccionada] = useState(0);
+  const fotos = (imagenes || []).filter(Boolean);
+  const principal = fotos[seleccionada] || fotos[0] || "";
+
+  return (
+    <>
+      <div className={`gallery-main detail-gallery-main ${categoryClass(categoria)}`}>
+        {principal ? (
+          <Photo key={principal} src={principal} alt={titulo} />
+        ) : (
+          <div className="detail-image-placeholder">
+            <Icon name={categoryIcon(categoria)} size={58} />
+            <span>Sin fotografía</span>
+          </div>
+        )}
+        <span className="gallery-counter">{principal ? `${seleccionada + 1} / ${fotos.length}` : "Sin fotos"}</span>
+      </div>
+
+      {fotos.length > 1 && (
+        <div className="gallery-thumbs detail-gallery-thumbs" aria-label="Seleccionar fotografía">
+          {fotos.map((foto, index) => (
+            <button
+              key={`${foto}-${index}`}
+              type="button"
+              className={`thumb-sm detail-thumb ${seleccionada === index ? "active" : ""}`}
+              onClick={() => setSeleccionada(index)}
+              aria-label={`Ver fotografía ${index + 1}`}
+              aria-pressed={seleccionada === index}
+            >
+              <Photo src={foto} alt={`${titulo}, foto ${index + 1}`} />
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+const ETIQUETA_ESTADO = { reservado: "Apartado", vendido: "Vendido", retirado: "Retirado" };
+
+// Detalle de un producto del marketplace (/marketplace/:id).
 export default function ProductDetailPage() {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const desdeMarketplace = location.pathname.startsWith("/marketplace/");
 
-  const [articulo, setArticulo] = useState(null);
-  const [propietario, setPropietario] = useState(null);
-  const [esMio, setEsMio] = useState(false);
+  const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [imagenSeleccionada, setImagenSeleccionada] = useState(0);
   const [dialogo, setDialogo] = useState(null); // "compra" | "intercambio" | null
   const [reputacion, setReputacion] = useState(null);
-  const [guardandoVenta, setGuardandoVenta] = useState(false);
-  const [errorVenta, setErrorVenta] = useState("");
-
-  async function quitarDeLaVenta() {
-    setGuardandoVenta(true);
-    setErrorVenta("");
-    try {
-      const data = await apiRequest(`/coleccion/articulos/${articulo._id}`, {
-        method: "PUT",
-        body: { disponibleCompra: false, disponibleIntercambio: false },
-      });
-      setArticulo((actual) => ({ ...actual, ...data.articulo, precioVenta: actual.precioVenta }));
-    } catch (err) {
-      setErrorVenta(err.message);
-    } finally {
-      setGuardandoVenta(false);
-    }
-  }
+  const [guardando, setGuardando] = useState(false);
+  const [errorAccion, setErrorAccion] = useState("");
 
   useEffect(() => {
     let cancelado = false;
-
-    async function cargarArticulo() {
-      try {
-        setCargando(true);
-        setError("");
-        const respuesta = await apiRequest(`/coleccion/articulos/${productId}`);
-        if (cancelado) return;
-        setArticulo(respuesta.articulo);
-        setPropietario(respuesta.propietario || null);
-        setEsMio(respuesta.esMio === true);
-        setImagenSeleccionada(0);
-      } catch (err) {
-        if (!cancelado) setError(err.message || "No se pudo cargar el artículo.");
-      } finally {
-        if (!cancelado) setCargando(false);
-      }
-    }
-
-    cargarArticulo();
+    setCargando(true);
+    setError("");
+    apiRequest(`/productos/${productId}`)
+      .then((data) => !cancelado && setProducto(data.producto))
+      .catch((err) => !cancelado && setError(err.message || "No se pudo cargar el producto."))
+      .finally(() => !cancelado && setCargando(false));
     return () => {
       cancelado = true;
     };
   }, [productId]);
 
-  // Reputación del vendedor (solo si el artículo está a la venta o para intercambio).
   useEffect(() => {
-    if (!propietario?.username || esMio) return;
-    apiRequest(`/ordenes/resumen/${encodeURIComponent(propietario.username)}`)
+    if (!producto?.vendedor?.username || producto.esMio) return;
+    apiRequest(`/ordenes/resumen/${encodeURIComponent(producto.vendedor.username)}`)
       .then(setReputacion)
       .catch(() => setReputacion(null));
-  }, [propietario, esMio]);
+  }, [producto]);
+
+  async function retirar() {
+    setGuardando(true);
+    setErrorAccion("");
+    try {
+      await apiRequest(`/productos/${producto._id}`, { method: "DELETE" });
+      setProducto((actual) => ({ ...actual, estado: "retirado" }));
+    } catch (err) {
+      setErrorAccion(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function reactivar() {
+    setGuardando(true);
+    setErrorAccion("");
+    try {
+      const data = await apiRequest(`/productos/${producto._id}`, { method: "PUT", body: { reactivar: true } });
+      setProducto(data.producto);
+    } catch (err) {
+      setErrorAccion(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   if (cargando) {
     return (
       <main className="page">
         <div className="detail-loading">
           <span className="detail-loading-dot" />
-          Cargando detalles del artículo...
+          Cargando producto...
         </div>
       </main>
     );
   }
 
-  if (error || !articulo) {
+  if (error || !producto) {
     return (
       <main className="page">
-        <EmptyState icon="search">{error || "Este artículo no existe o ya no está disponible."}</EmptyState>
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={() => navigate(desdeMarketplace ? "/marketplace" : "/coleccion")}
-          style={{ marginTop: 16 }}
-        >
-          Volver
+        <EmptyState icon="search">{error || "Este producto no existe o ya no está disponible."}</EmptyState>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate("/marketplace")} style={{ marginTop: 16 }}>
+          Volver al marketplace
         </button>
       </main>
     );
   }
 
-  const mode = modalidad(articulo);
-  const enMercado = articulo.disponibleCompra || articulo.disponibleIntercambio;
-  const precio = Number(articulo.precioVenta ?? articulo.valorEstimado) || 0;
-  const coleccionAjena = !esMio && propietario;
-
-  const volverA = desdeMarketplace
-    ? "/marketplace"
-    : coleccionAjena
-      ? `/perfil/${encodeURIComponent(propietario.username)}`
-      : "/coleccion";
-  const volverTexto = desdeMarketplace
-    ? "marketplace"
-    : coleccionAjena
-      ? `la colección de @${propietario.username}`
-      : "mi colección";
-
-  const imagenes = (articulo.imagenes || []).filter(Boolean);
-  const imagenPrincipal = imagenes[imagenSeleccionada] || imagenes[0] || "";
+  const mode = modalidad(producto);
+  const activo = producto.estado === "activo";
+  const vendedor = producto.vendedor;
 
   return (
     <main className="page product-detail-page">
-      <Link to={volverA} className="detail-back">
-        <span aria-hidden="true">←</span>
-        Volver a {volverTexto}
+      <Link to="/marketplace" className="detail-back">
+        <span aria-hidden="true">←</span> Volver al marketplace
       </Link>
 
       <div className="detail-grid">
-        {/* Galería */}
-        <section className="detail-gallery" aria-label="Fotos del artículo">
-          <div className={`gallery-main detail-gallery-main ${categoryClass(articulo.categoria)}`}>
-            {imagenPrincipal ? (
-              <Photo key={imagenPrincipal} src={imagenPrincipal} alt={articulo.titulo} />
-            ) : (
-              <div className="detail-image-placeholder">
-                <Icon name={categoryIcon(articulo.categoria)} size={58} />
-                <span>Sin fotografía</span>
-              </div>
-            )}
+        <section className="detail-gallery" aria-label="Fotos del producto">
+          <Galeria imagenes={producto.imagenes} titulo={producto.titulo} categoria={producto.categoria} />
 
-            <span className="gallery-counter">
-              {imagenPrincipal ? `${imagenSeleccionada + 1} / ${imagenes.length}` : "Sin fotos"}
-            </span>
-          </div>
-
-          {imagenes.length > 1 && (
-            <div className="gallery-thumbs detail-gallery-thumbs" aria-label="Seleccionar fotografía">
-              {imagenes.map((imagen, index) => (
-                <button
-                  key={`${imagen}-${index}`}
-                  type="button"
-                  className={`thumb-sm detail-thumb ${imagenSeleccionada === index ? "active" : ""}`}
-                  onClick={() => setImagenSeleccionada(index)}
-                  aria-label={`Ver fotografía ${index + 1}`}
-                  aria-pressed={imagenSeleccionada === index}
-                >
-                  <Photo src={imagen} alt={`${articulo.titulo}, foto ${index + 1}`} />
-                </button>
-              ))}
-            </div>
-          )}
-
-          {propietario && (
+          {vendedor && (
             <Link
-              to={esMio ? "/perfil" : `/perfil/${encodeURIComponent(propietario.username)}`}
+              to={producto.esMio ? "/perfil" : `/perfil/${encodeURIComponent(vendedor.username)}`}
               className="gallery-note detail-owner"
             >
-              <UserAvatar user={propietario} size={28} fontSize={11} />
+              <UserAvatar user={vendedor} size={28} fontSize={11} />
               <span>
-                {esMio ? "En tu colección" : `En la colección de @${propietario.username}`}
+                {producto.esMio ? "Publicado por ti" : `Lo vende @${vendedor.username}`}
                 {reputacion?.operaciones > 0 && (
                   <small className="detail-reputation">
                     {reputacion.promedio ? ` · ★ ${reputacion.promedio}` : ""} · {reputacion.operaciones} operación
@@ -185,16 +166,15 @@ export default function ProductDetailPage() {
           )}
         </section>
 
-        {/* Información */}
         <section className="detail-information">
           <div className="detail-heading">
-            <span className="detail-group">{articulo.grupo}</span>
-            <h1 className="detail-title">{articulo.titulo}</h1>
+            <span className="detail-group">{producto.grupo}</span>
+            <h1 className="detail-title">{producto.titulo}</h1>
             <div className="badges-row detail-badges">
-              <span className="pill pink">{articulo.estado || "Sin especificar"}</span>
-              <span className="pill purple">{articulo.categoria}</span>
-              {enMercado && <span className="pill cyan">{mode}</span>}
-              {articulo.reservado && <span className="pill">Apartado</span>}
+              <span className="pill pink">{producto.condicion}</span>
+              <span className="pill purple">{producto.categoria}</span>
+              <span className="pill cyan">{mode}</span>
+              {!activo && <span className="pill">{ETIQUETA_ESTADO[producto.estado]}</span>}
             </div>
           </div>
 
@@ -206,67 +186,53 @@ export default function ProductDetailPage() {
               </div>
             ) : (
               <>
-                <span className="detail-price-label">
-                  {articulo.disponibleCompra ? "Precio" : "Valor estimado"}
-                </span>
+                <span className="detail-price-label">Precio</span>
                 <div className="price-block detail-price-block">
-                  <span className="amount">{formatMoney(articulo.disponibleCompra ? precio : articulo.valorEstimado || 0)}</span>
+                  <span className="amount">{formatMoney(producto.precio)}</span>
                   <span className="detail-currency">MXN</span>
                 </div>
               </>
             )}
-
-            {mode === "Ambos" && <p className="detail-availability">Disponible para compra e intercambio.</p>}
+            {mode === "Ambos" && <p className="detail-availability">También acepta intercambio.</p>}
+            {producto.busca && <p className="detail-availability">Busca a cambio: {producto.busca}</p>}
           </div>
 
           <div className="detail-description">
             <h3>Descripción</h3>
-            <p>{articulo.descripcion || "No se agregó una descripción para este artículo."}</p>
+            <p>{producto.descripcion || "El vendedor no agregó una descripción."}</p>
           </div>
 
           <div className="detail-spec-card">
-            <h3>Detalles del artículo</h3>
+            <h3>Detalles</h3>
             <div className="spec-list detail-spec-list">
               <div className="spec-row">
                 <span>Categoría</span>
-                <strong>{articulo.categoria}</strong>
+                <strong>{producto.categoria}</strong>
               </div>
               <div className="spec-row">
-                <span>Estado</span>
-                <strong>{articulo.estado}</strong>
+                <span>Condición</span>
+                <strong>{producto.condicion}</strong>
               </div>
               <div className="spec-row">
-                <span>Disponible para compra</span>
-                <strong className={articulo.disponibleCompra ? "detail-status-yes" : "detail-status-no"}>
-                  {articulo.disponibleCompra ? "Sí" : "No"}
-                </strong>
-              </div>
-              <div className="spec-row">
-                <span>Disponible para intercambio</span>
-                <strong className={articulo.disponibleIntercambio ? "detail-status-yes" : "detail-status-no"}>
-                  {articulo.disponibleIntercambio ? "Sí" : "No"}
-                </strong>
+                <span>Publicado</span>
+                <strong>{new Date(producto.createdAt).toLocaleDateString("es-MX")}</strong>
               </div>
             </div>
           </div>
 
-          {!esMio && enMercado && (
+          {!producto.esMio && (
             <div className="detail-actions detail-market-actions">
-              {articulo.reservado ? (
-                <p className="detail-availability">
-                  Este artículo está apartado en otra operación. Vuelve más tarde por si se libera.
-                </p>
-              ) : (
+              {activo ? (
                 <>
-                  {articulo.disponibleCompra && (
+                  {producto.disponibleCompra && (
                     <button className="btn btn-primary" onClick={() => setDialogo("compra")}>
                       <Icon name="bag" size={16} />
-                      Comprar por {formatMoney(precio)}
+                      Comprar por {formatMoney(producto.precio)}
                     </button>
                   )}
-                  {articulo.disponibleIntercambio && (
+                  {producto.disponibleIntercambio && (
                     <button
-                      className={`btn ${articulo.disponibleCompra ? "btn-secondary" : "btn-primary"}`}
+                      className={`btn ${producto.disponibleCompra ? "btn-secondary" : "btn-primary"}`}
                       onClick={() => setDialogo("intercambio")}
                     >
                       <Icon name="repeat" size={16} />
@@ -274,45 +240,53 @@ export default function ProductDetailPage() {
                     </button>
                   )}
                 </>
+              ) : (
+                <p className="detail-availability">
+                  {producto.estado === "reservado"
+                    ? "Está apartado en otra operación. Vuelve más tarde por si se libera."
+                    : "Este producto ya no está disponible."}
+                </p>
               )}
             </div>
           )}
 
-          {esMio && enMercado && (
+          {producto.esMio && (
             <div className="detail-owner-actions">
-              <p className="detail-availability">
-                {articulo.reservado
-                  ? "Está apartado en una operación. Síguela en "
-                  : "Este artículo aparece en el marketplace. Las solicitudes llegan a "}
-                <Link to="/ordenes?vista=ventas">Mis órdenes</Link>.
-              </p>
-              {!articulo.reservado && (
-                <button type="button" className="btn btn-secondary btn-sm" onClick={quitarDeLaVenta} disabled={guardandoVenta}>
-                  {guardandoVenta ? "Guardando..." : "Quitar de la venta"}
-                </button>
+              {producto.estado === "activo" && (
+                <>
+                  <p className="detail-availability">
+                    Está publicado. Las solicitudes llegan a <Link to="/ordenes?vista=ventas">Mis órdenes</Link>.
+                  </p>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={retirar} disabled={guardando}>
+                    {guardando ? "Guardando..." : "Retirar del marketplace"}
+                  </button>
+                </>
               )}
+              {producto.estado === "reservado" && (
+                <p className="detail-availability">
+                  Está apartado en una operación. Síguela en <Link to="/ordenes?vista=ventas">Mis órdenes</Link>.
+                </p>
+              )}
+              {producto.estado === "retirado" && (
+                <>
+                  <p className="detail-availability">Lo retiraste; nadie más lo ve.</p>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={reactivar} disabled={guardando}>
+                    {guardando ? "Guardando..." : "Volver a publicar"}
+                  </button>
+                </>
+              )}
+              {producto.estado === "vendido" && <p className="detail-availability">Vendido. ¡Felicidades!</p>}
             </div>
           )}
 
-          {esMio && !enMercado && (
-            <div className="detail-owner-actions">
-              <p className="detail-availability">Esta pieza está solo en tu colección; nadie puede comprarla.</p>
-              <Link to={`/vender?articulo=${articulo._id}`} className="btn btn-primary btn-sm">
-                <Icon name="tag" size={14} /> Poner a la venta
-              </Link>
-            </div>
-          )}
-
-          {errorVenta && <p className="form-error">{errorVenta}</p>}
+          {errorAccion && <p className="form-error">{errorAccion}</p>}
         </section>
       </div>
 
       {dialogo && (
         <OrderDialog
           tipo={dialogo}
-          articulo={articulo}
-          precio={precio}
-          vendedor={propietario}
+          producto={producto}
           onClose={() => setDialogo(null)}
           onCreated={(orden) => navigate(`/ordenes/${orden._id}`)}
         />

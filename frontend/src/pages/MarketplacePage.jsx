@@ -5,12 +5,13 @@ import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
 import ProductCard from "../components/ProductCard";
 import { GROUP_NAMES } from "../data/mockData";
-import { adaptarArticuloMarketplace } from "../utils/coleccion";
+import { adaptarProducto } from "../utils/coleccion";
 
 const MODE_TABS = [
   { value: "todos", label: "Todo" },
   { value: "venta", label: "En venta" },
   { value: "intercambio", label: "Para intercambio" },
+  { value: "mios", label: "Mis anuncios" },
 ];
 
 export default function MarketplacePage() {
@@ -22,14 +23,16 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     let cancelado = false;
-    const params = new URLSearchParams({ tipo: activeMode });
+    const params = new URLSearchParams();
+    if (activeMode === "mios") params.set("vendedor", "yo");
+    else params.set("tipo", activeMode);
     if (activeGroup !== "Todos") params.set("grupo", activeGroup);
 
     setCargando(true);
     setError("");
-    apiRequest(`/coleccion/marketplace?${params}`)
+    apiRequest(`/productos?${params}`)
       .then((data) => {
-        if (!cancelado) setItems(data.articulos.map(adaptarArticuloMarketplace));
+        if (!cancelado) setItems(data.productos.map(adaptarProducto));
       })
       .catch((err) => {
         if (!cancelado) {
@@ -62,7 +65,7 @@ export default function MarketplacePage() {
 
       <div className="page-header" style={{ marginBottom: 16 }}>
         <div className="sub">
-          {cargando ? "Cargando artículos..." : `${items.length} artículo${plural} encontrado${plural}`}
+          {cargando ? "Cargando productos..." : `${items.length} producto${plural} encontrado${plural}`}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Link to="/ordenes" className="btn btn-secondary btn-sm">
@@ -80,7 +83,10 @@ export default function MarketplacePage() {
         ))}
         {!cargando && items.length === 0 && (
           <EmptyState icon="search">
-            {error || "Todavía no hay artículos con estos filtros. ¡Publica uno desde tu colección!"}
+            {error ||
+              (activeMode === "mios"
+                ? "Todavía no publicas nada. Usa \"Publicar merch\"."
+                : "Todavía no hay productos con estos filtros. ¡Publica el primero!")}
           </EmptyState>
         )}
       </div>

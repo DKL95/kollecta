@@ -40,7 +40,7 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Seguir grupos | Conectado (se guarda en `gruposFavoritos` del usuario) |
 | Búsqueda de personas | Conectado a la base de datos |
 | Colección, mensajes (directos y grupales), notificaciones | Conectado a la base de datos |
-| Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colección `ordenes`) |
+| Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colecciones `productos` y `ordenes`, aparte de la colección personal) |
 | Roles usuario / moderador / administrador | Base hecha (`middleware/roles.js`, `/api/admin`); plan en `docs/PLAN-roles.md` |
 | Catálogo de grupos K-pop y amigos sugeridos | Datos de ejemplo (`frontend/src/data/mockData.js`) |
 
@@ -103,10 +103,11 @@ WEB2/
 | Notificaciones | `/notificaciones` | Likes, intercambios, seguidores |
 | Mensajes | `/mensajes` | Conversaciones directas entre usuarios |
 | Marketplace | `/marketplace` | Artículos en venta / intercambio con filtros por grupo |
-| Detalle de artículo | `/marketplace/:productId` | Información de un artículo; comprar o proponer intercambio |
+| Detalle de producto | `/marketplace/:productId` | Producto del marketplace; comprar o proponer intercambio; el dueño lo retira o lo vuelve a publicar |
+| Pieza de colección | `/articulo/:id` | Pieza de la vitrina personal (no se vende); el dueño puede publicar un anuncio con sus datos |
 | Mis órdenes | `/ordenes` | Mis compras y mis ventas, filtradas por estado |
 | Detalle de orden | `/ordenes/:id` | Línea de tiempo, acciones según el rol (aceptar, enviar, recibir, completar), chat y calificación |
-| Vender / Intercambiar | `/vender` | Publicar en el marketplace: una pieza nueva o una de tu colección ("Añadir artículo de la colección", sin duplicarla) |
+| Vender / Intercambiar | `/vender` | Publicar un producto en el marketplace; "Añadir artículo de la colección" copia los datos y fotos de una pieza (la colección no cambia) |
 | Agregar a mi colección | `/coleccion/agregar` | Guardar una pieza en la colección; queda fuera de la venta |
 | Mi colección | `/coleccion` | Vitrina personal de merch coleccionado |
 | Mi perfil | `/perfil` | Perfil propio: datos, editar perfil, publicaciones, grupos que sigue |
@@ -136,10 +137,13 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 | DELETE 🔒 | `/publicaciones/:id` | Eliminar publicación (solo el autor) |
 | POST 🔒 | `/publicaciones/:id/like` | Dar o quitar like |
 | GET | `/imagenes/:id` | Devuelve una imagen subida (pública, para usarla en `<img src>`) |
-| GET 🔒 | `/coleccion/marketplace?tipo=venta\|intercambio&grupo=&categoria=&q=` | Artículos de todas las colecciones disponibles y sin apartar |
-| POST 🔒 | `/coleccion/articulos/:id/imagenes` | Agregar fotos a una pieza propia (máximo 10 en total) |
-| PUT 🔒 | `/coleccion/articulos/:id` | Editar una pieza propia; con `disponibleCompra`/`disponibleIntercambio`/`precio` se pone o quita de la venta (al quitarla se cierran sus solicitudes pendientes) |
-| POST 🔒 | `/ordenes` | Crear orden `{ articuloId, tipo: compra\|intercambio, entrega: envio\|en_persona, nota, ofrecidos[] }` |
+| POST 🔒 | `/coleccion/articulos/:id/imagenes` | Agregar fotos a una pieza propia de la colección (máximo 10) |
+| GET 🔒 | `/productos?tipo=venta\|intercambio&grupo=&categoria=&q=&vendedor=yo` | Productos activos del marketplace (`vendedor=yo`: mis anuncios) |
+| POST 🔒 | `/productos` | Publicar producto (`multipart`: `titulo`, `grupo`, `categoria`, `condicion`, `precio`, `disponibleCompra`, `disponibleIntercambio`, `busca`, `imagenes[]`; opcional `desdeColeccion` + `fotosCopiadas` para copiar una pieza) |
+| GET 🔒 | `/productos/:id` | Detalle de un producto |
+| PUT 🔒 | `/productos/:id` | Editar mi producto (`reactivar: true` vuelve a publicar uno retirado) |
+| DELETE 🔒 | `/productos/:id` | Retirar mi producto del marketplace (cierra sus solicitudes pendientes) |
+| POST 🔒 | `/ordenes` | Crear orden `{ productoId, tipo: compra\|intercambio, entrega: envio\|en_persona, nota, ofrecidos[] }` (ofrecidos = piezas de mi colección) |
 | GET 🔒 | `/ordenes?rol=comprador\|vendedor&estado=activas` | Mis compras o mis ventas |
 | GET 🔒 | `/ordenes/:id` | Detalle (participantes, o moderador/admin) |
 | PATCH 🔒 | `/ordenes/:id/estado` | `{ estado }`: aceptada, rechazada, enviada, recibida, completada o cancelada (según quién la pide) |

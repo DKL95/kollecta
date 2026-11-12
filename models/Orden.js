@@ -16,12 +16,13 @@ const ESTADOS_ORDEN = [
 
 const ESTADOS_ACTIVOS = ["pendiente", "aceptada", "enviada", "recibida"];
 
-// Copia del artículo al momento de crear la orden, por si después lo editan o lo borran.
+// Copia de los datos al momento de crear la orden, por si después los editan o los borran.
+// En "articulo" (el producto) articuloId va vacío; en "ofrecidos" es la pieza de la colección.
 const articuloOrdenSchema = new mongoose.Schema(
     {
         articuloId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: true
+            default: null
         },
         titulo: { type: String, required: true },
         grupo: { type: String, default: "" },
@@ -59,6 +60,13 @@ const ordenSchema = new mongoose.Schema(
             required: true
         },
 
+        // Producto del marketplace que se compra o se pide en intercambio.
+        producto: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Producto",
+            required: true
+        },
+
         articulo: {
             type: articuloOrdenSchema,
             required: true
@@ -77,7 +85,7 @@ const ordenSchema = new mongoose.Schema(
             default: 0
         },
 
-        // Solo en intercambios: artículos de la colección del comprador que ofrece a cambio.
+        // Solo en intercambios: piezas de la colección del comprador que ofrece a cambio.
         ofrecidos: {
             type: [articuloOrdenSchema],
             default: []
@@ -127,7 +135,7 @@ const ordenSchema = new mongoose.Schema(
 
 ordenSchema.index({ comprador: 1, createdAt: -1 });
 ordenSchema.index({ vendedor: 1, createdAt: -1 });
-ordenSchema.index({ "articulo.articuloId": 1, estado: 1 });
+ordenSchema.index({ producto: 1, estado: 1 });
 
 module.exports = mongoose.model("Orden", ordenSchema);
 module.exports.ESTADOS_ORDEN = ESTADOS_ORDEN;

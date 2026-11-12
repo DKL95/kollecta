@@ -17,20 +17,20 @@ export function modalidad(articulo) {
   return "Venta";
 }
 
-// Convierte un artículo de /api/coleccion/marketplace al formato de ProductCard.
-export function adaptarArticuloMarketplace(articulo) {
-  const vendedor = articulo.vendedor || {};
+// Convierte un producto de /api/productos al formato de ProductCard.
+export function adaptarProducto(producto) {
+  const vendedor = producto.vendedor || {};
   return {
-    id: articulo._id,
-    title: articulo.titulo,
-    group: articulo.grupo,
-    type: articulo.categoria,
-    img: articulo.imagenes?.[0] || "",
-    price: Number(articulo.precioVenta) || 0,
-    mode: modalidad(articulo),
-    tag: articulo.estado || "",
+    id: producto._id,
+    title: producto.titulo,
+    group: producto.grupo,
+    type: producto.categoria,
+    img: producto.imagenes?.[0] || "",
+    price: Number(producto.precio) || 0,
+    mode: modalidad(producto),
+    tag: producto.estado === "reservado" ? "Apartado" : producto.condicion || "",
     seller: vendedor.username || "",
     sellerUser: vendedor,
-    esMio: Boolean(articulo.esMio),
+    esMio: Boolean(producto.esMio),
   };
 }

@@ -3,6 +3,7 @@ import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import CollectionItemPage from "./pages/CollectionItemPage";
 import CollectionPage from "./pages/CollectionPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
 import GroupsPage from "./pages/GroupsPage";
@@ -33,11 +34,11 @@ const router = createBrowserRouter([
       { path: "/notificaciones", element: <NotificationsPage />, handle: { title: "Notificaciones" } },
       { path: "/mensajes", element: <MessagesPage />, handle: { title: "Mensajes" } },
       { path: "/marketplace", element: <MarketplacePage />, handle: { title: "Marketplace", subtitle: "Compra, vende e intercambia merch oficial" } },
-      { path: "/marketplace/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Marketplace" } },
-      { path: "/articulo/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de artículo", subtitle: "Mi colección" } },
+      { path: "/marketplace/:productId", element: <ProductDetailPage />, handle: { title: "Detalle de producto", subtitle: "Marketplace" } },
+      { path: "/articulo/:productId", element: <CollectionItemPage />, handle: { title: "Pieza de colección", subtitle: "Colección" } },
       { path: "/ordenes", element: <OrdersPage />, handle: { title: "Mis órdenes", subtitle: "Compras, ventas e intercambios" } },
       { path: "/ordenes/:id", element: <OrderDetailPage />, handle: { title: "Detalle de orden", subtitle: "Mis órdenes" } },
-      { path: "/vender", element: <SellPage />, handle: { title: "Vender / Intercambiar", subtitle: "Publica una pieza de tu colección" } },
+      { path: "/vender", element: <SellPage />, handle: { title: "Vender / Intercambiar", subtitle: "Publica merch en el marketplace" } },
       { path: "/coleccion/agregar", element: <SellPage soloColeccion />, handle: { title: "Agregar a mi colección", subtitle: "Guarda una pieza sin ponerla a la venta" } },
       { path: "/coleccion", element: <CollectionPage />, handle: { title: "Mi colección", subtitle: "Tu vitrina personal de merch" } },
       { path: "/perfil", element: <ProfilePage />, handle: { title: "Mi perfil" } },

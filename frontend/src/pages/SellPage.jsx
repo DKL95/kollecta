@@ -38,9 +38,9 @@ const ESTADO_A_FORM = {
 
 // Dos usos del mismo formulario:
 // - /coleccion/agregar (soloColeccion): guarda la pieza en la colección, sin venderla.
-// - /vender: publica en el marketplace. Puede partir de una pieza que ya está en la
-//   colección ("Añadir artículo de la colección"); en ese caso se actualiza esa misma
-//   pieza en lugar de crear otra.
+// - /vender: publica un producto en el marketplace (modelo Producto, aparte de la
+//   colección). "Añadir artículo de la colección" solo copia los datos y las fotos de
+//   una pieza al formulario; la pieza de la colección no cambia.
 export default function SellPage({ soloColeccion = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -89,20 +89,24 @@ export default function SellPage({ soloColeccion = false }) {
     setSelectorAbierto(false);
   }
 
+  function quitarFotoCopiada(url) {
+    setFotosExistentes((actuales) => actuales.filter((foto) => foto !== url));
+  }
+
   function quitarOrigen() {
     setOrigen(null);
     setFotosExistentes([]);
     setForm((actual) => ({ ...actual, title: "", description: "", price: "" }));
   }
 
-  // /vender?articulo=<id> llega desde "Poner a la venta" en el detalle de una pieza.
+  // /vender?desde=<id> llega desde "Publicar en el marketplace" en el detalle de una pieza.
   useEffect(() => {
-    const articuloId = searchParams.get("articulo");
+    const articuloId = searchParams.get("desde") || searchParams.get("articulo");
     if (soloColeccion || !articuloId) return;
 
     apiRequest(`/coleccion/articulos/${articuloId}`)
       .then((data) => {
-        if (data.esMio && !data.articulo.reservado) aplicarOrigen(data.articulo);
+        if (data.esMio) aplicarOrigen(data.articulo);
       })
       .catch(() => {});
     // Solo al abrir la pantalla.
@@ -238,63 +242,44 @@ export default function SellPage({ soloColeccion = false }) {
         return;
       }
 
-      // Lo que se busca a cambio va al final de la descripción.
-      const descripcion =
-        seIntercambia && form.wants.trim() && !form.description.includes("Busco a cambio:")
-          ? `${form.description.trim()}\n\nBusco a cambio: ${form.wants.trim()}`.trim()
-          : form.description;
+      // "Agregar a mi colección": solo la vitrina, sin nada de venta.
+      if (soloColeccion) {
+        const datos = new FormData();
+        datos.append("titulo", form.title.trim());
+        datos.append("grupo", form.group);
+        datos.append("categoria", form.type);
+        datos.append("descripcion", form.description);
+        datos.append("valorEstimado", form.price !== "" ? form.price : "0");
+        datos.append("estado", ESTADO_A_MODELO[form.condition]);
+        fotos.forEach((foto) => datos.append("imagenes", foto.archivo));
 
-      if (origen) {
-        // Pieza que ya estaba en la colección: se suben las fotos nuevas y se pone a la venta.
-        if (fotos.length > 0) {
-          const datosFotos = new FormData();
-          fotos.forEach((foto) => datosFotos.append("imagenes", foto.archivo));
-          await apiRequest(`/coleccion/articulos/${origen._id}/imagenes`, { method: "POST", body: datosFotos });
-        }
-
-        await apiRequest(`/coleccion/articulos/${origen._id}`, {
-          method: "PUT",
-          body: {
-            titulo: form.title.trim(),
-            grupo: form.group,
-            categoria: form.type,
-            estado: ESTADO_A_MODELO[form.condition],
-            descripcion,
-            disponibleCompra: seVende,
-            disponibleIntercambio: seIntercambia,
-            precio: seVende ? Number(form.price) : null,
-          },
-        });
-
-        navigate(`/marketplace/${origen._id}`);
+        await apiRequest("/coleccion/articulos", { method: "POST", body: datos });
+        navigate("/coleccion");
         return;
       }
 
+      // Vender: se crea un producto nuevo en el marketplace.
       const datos = new FormData();
-
-      // Datos principales del artículo
       datos.append("titulo", form.title.trim());
       datos.append("grupo", form.group);
       datos.append("categoria", form.type);
-      datos.append("descripcion", descripcion);
-      datos.append("valorEstimado", form.price !== "" ? form.price : "0");
-      datos.append("estado", ESTADO_A_MODELO[form.condition]);
-
-      // Modalidad: en "Agregar a mi colección" la pieza nunca queda a la venta.
+      datos.append("condicion", ESTADO_A_MODELO[form.condition]);
+      datos.append("descripcion", form.description);
       datos.append("disponibleCompra", String(seVende));
       datos.append("disponibleIntercambio", String(seIntercambia));
       if (seVende) datos.append("precio", form.price);
+      if (seIntercambia && form.wants.trim()) datos.append("busca", form.wants.trim());
 
-      fotos.forEach((foto) => {
-        datos.append("imagenes", foto.archivo);
-      });
+      if (origen) {
+        datos.append("desdeColeccion", origen._id);
+        // Solo las fotos de la colección que la persona dejó en el formulario.
+        datos.append("fotosCopiadas", JSON.stringify(fotosExistentes));
+      }
 
-      const respuesta = await apiRequest("/coleccion/articulos", {
-        method: "POST",
-        body: datos,
-      });
+      fotos.forEach((foto) => datos.append("imagenes", foto.archivo));
 
-      navigate(soloColeccion ? "/coleccion" : `/marketplace/${respuesta.articulo._id}`);
+      const respuesta = await apiRequest("/productos", { method: "POST", body: datos });
+      navigate(`/marketplace/${respuesta.producto._id}`);
     } catch (error) {
       console.error("Error al publicar el artículo:", error);
 
@@ -324,12 +309,12 @@ export default function SellPage({ soloColeccion = false }) {
                     <Icon name="folder" size={16} /> Desde tu colección: <b>{origen.titulo}</b>
                   </span>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={quitarOrigen}>
-                    Mejor publicar una pieza nueva
+                    Empezar en blanco
                   </button>
                 </>
               ) : (
                 <>
-                  <span>¿Ya la tienes en tu colección? Pasa sus datos y fotos sin volver a capturarlos.</span>
+                  <span>¿Está en tu colección? Copia sus datos y fotos al anuncio sin volver a capturarlos.</span>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectorAbierto(true)}>
                     <Icon name="folder" size={14} /> Añadir artículo de la colección
                   </button>
@@ -473,8 +458,16 @@ export default function SellPage({ soloColeccion = false }) {
             {fotosExistentes.length > 0 && (
               <div className="sell-existing-photos">
                 {fotosExistentes.map((url, indice) => (
-                  <span key={url} className="sell-existing-photo" title="Foto de tu colección">
+                  <span key={url} className="sell-existing-photo" title="Foto copiada de tu colección">
                     <Photo src={url} alt={`Foto ${indice + 1} de tu colección`} cover />
+                    <button
+                      type="button"
+                      className="sell-existing-remove"
+                      aria-label={`Quitar la foto ${indice + 1} del anuncio`}
+                      onClick={() => quitarFotoCopiada(url)}
+                    >
+                      ×
+                    </button>
                   </span>
                 ))}
               </div>
@@ -672,9 +665,7 @@ export default function SellPage({ soloColeccion = false }) {
                 ? "Guardando..."
                 : soloColeccion
                   ? "Guardar en mi colección"
-                  : origen
-                    ? "Poner a la venta"
-                    : "Publicar artículo"}
+                  : "Publicar en el marketplace"}
             </button>
 
             <button

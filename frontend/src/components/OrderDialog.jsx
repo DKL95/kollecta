@@ -6,7 +6,9 @@ import { formatMoney } from "../utils/format";
 const MAX_OFRECIDOS = 5;
 
 // Ventana para pedir una compra o proponer un intercambio de un artículo del marketplace.
-export default function OrderDialog({ tipo, articulo, precio, vendedor, onClose, onCreated }) {
+export default function OrderDialog({ tipo, producto, onClose, onCreated }) {
+  const vendedor = producto.vendedor;
+  const precio = producto.precio;
   const esIntercambio = tipo === "intercambio";
   const [entrega, setEntrega] = useState("en_persona");
   const [nota, setNota] = useState("");
@@ -55,7 +57,7 @@ export default function OrderDialog({ tipo, articulo, precio, vendedor, onClose,
       const respuesta = await apiRequest("/ordenes", {
         method: "POST",
         body: {
-          articuloId: articulo._id,
+          productoId: producto._id,
           tipo,
           entrega,
           nota: nota.trim(),
@@ -82,12 +84,12 @@ export default function OrderDialog({ tipo, articulo, precio, vendedor, onClose,
         <form className="group-dialog-body" onSubmit={enviar}>
           <div className="order-summary">
             <span className="order-summary-thumb">
-              <Photo src={articulo.imagenes?.[0]} alt={articulo.titulo} cover />
+              <Photo src={producto.imagenes?.[0]} alt={producto.titulo} cover />
             </span>
             <span>
-              <strong>{articulo.titulo}</strong>
+              <strong>{producto.titulo}</strong>
               <small>
-                {articulo.grupo} · de @{vendedor?.username}
+                {producto.grupo} · de @{vendedor?.username}
               </small>
             </span>
             {!esIntercambio && <b className="order-summary-price">{formatMoney(precio)} MXN</b>}

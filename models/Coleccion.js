@@ -57,6 +57,9 @@ const articuloColeccionSchema = new mongoose.Schema(
             default: "Buen estado"
         },
 
+        // OBSOLETOS: disponibleIntercambio, disponibleCompra y precio quedaron de cuando
+        // el marketplace leía la colección. Ahora la venta vive en el modelo Producto;
+        // se conservan para no romper documentos viejos, pero ya no se leen ni se escriben.
         disponibleIntercambio: {
             type: Boolean,
             default: false
@@ -75,8 +78,8 @@ const articuloColeccionSchema = new mongoose.Schema(
             default: null
         },
 
-        // Orden aceptada que tiene apartado el artículo. Mientras exista,
-        // nadie más lo puede comprar ni intercambiar.
+        // Orden aceptada en la que esta pieza se ofreció a cambio (intercambio).
+        // Mientras exista, no se puede ofrecer en otro intercambio ni borrar.
         reservadoPor: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Orden",

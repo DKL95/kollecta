@@ -6,7 +6,7 @@ import EmptyState from "../components/EmptyState";
 import GroupCard from "../components/GroupCard";
 import ProductCard from "../components/ProductCard";
 import { GROUPS } from "../data/mockData";
-import { adaptarArticuloMarketplace } from "../utils/coleccion";
+import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 const TABS = ["Todo", "Merch", "Grupos", "Personas"];
@@ -30,8 +30,8 @@ export default function SearchPage() {
   }, [query]);
 
   useEffect(() => {
-    apiRequest(`/coleccion/marketplace?q=${encodeURIComponent(query)}`)
-      .then((data) => setProducts(data.articulos.map(adaptarArticuloMarketplace)))
+    apiRequest(`/productos?q=${encodeURIComponent(query)}`)
+      .then((data) => setProducts(data.productos.map(adaptarProducto)))
       .catch(() => setProducts([]));
   }, [query]);
 

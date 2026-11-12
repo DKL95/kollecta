@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import Photo from "./Photo";
 
-// Elegir una pieza de mi colección que todavía no esté a la venta ni apartada.
+// Elegir una pieza de mi colección para copiar sus datos a un anuncio del marketplace.
 export default function CollectionPickerDialog({ onClose, onPick }) {
   const [articulos, setArticulos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -13,11 +13,7 @@ export default function CollectionPickerDialog({ onClose, onPick }) {
   useEffect(() => {
     apiRequest("/coleccion")
       .then((data) =>
-        setArticulos(
-          (data.articulos || []).filter(
-            (a) => !a.reservadoPor && !a.disponibleCompra && !a.disponibleIntercambio
-          )
-        )
+        setArticulos(data.articulos || [])
       )
       .catch((err) => setError(err.message))
       .finally(() => setCargando(false));
@@ -48,8 +44,8 @@ export default function CollectionPickerDialog({ onClose, onPick }) {
 
         <div className="group-dialog-body">
           <p className="order-disclaimer">
-            Elige una pieza: sus datos y fotos se pasan al formulario y, al publicar, esa misma pieza se pone a la venta
-            (no se crea una copia).
+            Elige una pieza: se copian su título, grupo, categoría, condición, descripción y fotos al anuncio. Tu colección
+            no cambia; puedes editar todo antes de publicar.
           </p>
 
           {articulos.length > 6 && (
@@ -70,7 +66,7 @@ export default function CollectionPickerDialog({ onClose, onPick }) {
             <p className="form-error">{error}</p>
           ) : articulos.length === 0 ? (
             <p className="messages-search-status">
-              No tienes piezas disponibles: todas ya están a la venta o tu colección está vacía.{" "}
+              Tu colección está vacía.{" "}
               <Link to="/coleccion/agregar" onClick={onClose}>
                 Agregar una pieza
               </Link>

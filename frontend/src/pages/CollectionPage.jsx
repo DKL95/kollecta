@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CollectionItem from "../components/CollectionItem";
+import { useSonidoActivo } from "../utils/sonido";
 import FilterChips from "../components/FilterChips";
 import Icon from "../components/Icon";
 import { apiRequest } from "../api/client";
@@ -8,6 +9,7 @@ import { formatMoney } from "../utils/format";
 import { adaptarArticulo } from "../utils/coleccion";
 
 export default function CollectionPage() {
+  const [sonidoActivo, alternarSonido] = useSonidoActivo();
   const [articulos, setArticulos] = useState([]);
   const [filter, setFilter] = useState("Todos");
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,16 @@ export default function CollectionPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={alternarSonido}
+            aria-pressed={sonidoActivo}
+            title={sonidoActivo ? "Silenciar el sonido al pasar el cursor" : "Activar el sonido al pasar el cursor"}
+          >
+            {sonidoActivo ? "🔊 Sonido" : "🔇 Sin sonido"}
+          </button>
+
           <button className="btn btn-secondary btn-sm">
             <Icon name="package" size={14} /> Ver estadísticas
           </button>

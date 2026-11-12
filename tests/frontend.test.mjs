@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { formatMoney, getInitials, timeAgo } from "../frontend/src/utils/format.js";
 import { categoryClass, categoryIcon, CATEGORY_ICON } from "../frontend/src/utils/categories.js";
 import { CATEGORIES, GROUPS, THREADS } from "../frontend/src/data/mockData.js";
-import { adaptarArticuloMarketplace, modalidad } from "../frontend/src/utils/coleccion.js";
+import { adaptarProducto, modalidad } from "../frontend/src/utils/coleccion.js";
 import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 
 describe("Frontend: utilidades de formato", () => {
@@ -67,17 +67,18 @@ describe("Frontend: datos de ejemplo consistentes", () => {
 });
 
 describe("Frontend: compra-venta", () => {
-    it("adapta un artículo del marketplace al formato de la tarjeta", () => {
-        const tarjeta = adaptarArticuloMarketplace({
-            _id: "a1", titulo: "PC Nayeon", grupo: "TWICE", categoria: "Photocard", imagenes: ["/api/imagenes/x"],
-            precioVenta: 250, estado: "Como nuevo", disponibleCompra: true, disponibleIntercambio: true,
+    it("adapta un producto del marketplace al formato de la tarjeta", () => {
+        const tarjeta = adaptarProducto({
+            _id: "p1", titulo: "PC Nayeon", grupo: "TWICE", categoria: "Photocard", imagenes: ["/api/imagenes/x"],
+            precio: 250, condicion: "Como nuevo", estado: "activo", disponibleCompra: true, disponibleIntercambio: true,
             vendedor: { username: "mina" }, esMio: false
         });
-        assert.equal(tarjeta.id, "a1");
+        assert.equal(tarjeta.id, "p1");
         assert.equal(tarjeta.price, 250);
         assert.equal(tarjeta.mode, "Ambos");
+        assert.equal(tarjeta.tag, "Como nuevo");
         assert.equal(tarjeta.seller, "mina");
-        assert.equal(tarjeta.img, "/api/imagenes/x");
+        assert.equal(adaptarProducto({ estado: "reservado", condicion: "Como nuevo" }).tag, "Apartado");
     });
 
     it("la modalidad sale de la disponibilidad", () => {

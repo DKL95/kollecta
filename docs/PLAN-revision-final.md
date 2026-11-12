@@ -280,11 +280,16 @@ canceladas, conversión gratis → Plus, y retención a 30 días.
   cambio, traspaso de artículos al completar, calificación y reputación del vendedor.
   Marketplace, Buscar y Detalle de grupo ya leen datos reales; nuevas pantallas
   "Mis órdenes" y "Detalle de orden". Falta: mostrar la reputación en el perfil.
-- **Colección primero, venta después**: "Agregar pieza" (`/coleccion/agregar`) guarda la pieza
-  sin ponerla a la venta. En "Vender", el botón "Añadir artículo de la colección" pasa los
-  datos y fotos de una pieza al formulario y, al publicar, pone **esa misma pieza** a la venta
-  (no se duplica). En el detalle, el dueño tiene "Poner a la venta" / "Quitar de la venta";
-  quitarla cierra las solicitudes pendientes y avisa a los compradores. Vender exige precio > 0.
+- **Venta y colección separadas** (decisión del equipo): nueva colección `productos` (anuncios
+  del marketplace, ya van 12 colecciones). La colección personal es solo la vitrina y no se
+  vende. "Añadir artículo de la colección" en Vender copia título, grupo, categoría, condición,
+  descripción y fotos (se pueden quitar fotos) a un producto nuevo; la pieza no cambia. Al
+  completarse una venta, el producto queda "vendido", llega a la colección del comprador y, si se
+  había copiado de una pieza del vendedor, esa pieza sale de su colección. En intercambios se
+  ofrecen piezas de la colección. Los campos `disponibleCompra`/`precio` de la colección quedan
+  obsoletos (no se leen).
+- **Sonido** corto al pasar el cursor por las piezas de la colección (Web Audio, sin archivo),
+  con botón para silenciarlo en "Mi colección".
 - **Roles**: base en `middleware/roles.js` y `/api/admin`; plan completo en `docs/PLAN-roles.md`.
 - **Arreglos**: botón "+ Grupo" visible en escritorio, menú ⋮ del chat se cierra solo y
   tiene íconos, una sola petición de notificaciones por página, categorías de "Vender"

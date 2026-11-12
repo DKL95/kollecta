@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const Orden = require("../models/Orden");
 const { ESTADOS_ACTIVOS } = require("../models/Orden");
 const Coleccion = require("../models/Coleccion");
+const Producto = require("../models/Producto");
 const Conversacion = require("../models/Conversacion");
 const Mensaje = require("../models/Mensaje");
 const Usuario = require("../models/Usuario");
@@ -27,12 +28,14 @@ const ETIQUETAS_ESTADO = {
     cancelada: "cancelada"
 };
 
-// Precio de venta de un artículo: el precio publicado o, si no tiene, su valor estimado.
-function precioDe(articulo) {
-    if (articulo.precio !== null && articulo.precio !== undefined) {
-        return Number(articulo.precio) || 0;
-    }
-    return Number(articulo.valorEstimado) || 0;
+function copiarProducto(producto) {
+    return {
+        articuloId: null,
+        titulo: producto.titulo,
+        grupo: producto.grupo,
+        categoria: producto.categoria,
+        imagen: producto.imagenes?.[0] || ""
+    };
 }
 
 function copiarArticulo(articulo) {
@@ -150,11 +153,11 @@ function respuestaOrden(orden, usuarioId) {
 async function crearOrden(req, res) {
     try {
         const compradorId = req.usuario.id;
-        const { articuloId, tipo, entrega = "en_persona", nota = "" } = req.body || {};
+        const { productoId, tipo, entrega = "en_persona", nota = "" } = req.body || {};
         const ofrecidosIds = Array.isArray(req.body?.ofrecidos) ? req.body.ofrecidos : [];
 
-        if (!mongoose.isValidObjectId(articuloId)) {
-            return res.status(400).json({ mensaje: "El artículo no es válido" });
+        if (!mongoose.isValidObjectId(productoId)) {
+            return res.status(400).json({ mensaje: "El producto no es válido" });
         }
 
         if (!["compra", "intercambio"].includes(tipo)) {
@@ -169,40 +172,38 @@ async function crearOrden(req, res) {
             return res.status(400).json({ mensaje: "La nota no puede pasar de 500 caracteres" });
         }
 
-        const coleccion = await Coleccion.findOne({ "articulos._id": articuloId })
-            .populate("usuario", "activo username");
-        const articulo = coleccion?.articulos.id(articuloId);
+        const producto = await Producto.findById(productoId).populate("vendedor", "activo username");
 
-        if (!articulo || !coleccion.usuario?.activo) {
-            return res.status(404).json({ mensaje: "Artículo no encontrado" });
+        if (!producto || !producto.vendedor?.activo || ["retirado", "vendido"].includes(producto.estado)) {
+            return res.status(404).json({ mensaje: "Producto no encontrado" });
         }
 
-        const vendedorId = coleccion.usuario._id;
+        const vendedorId = producto.vendedor._id;
 
         if (String(vendedorId) === String(compradorId)) {
-            return res.status(400).json({ mensaje: "No puedes comprar ni intercambiar tu propio artículo" });
+            return res.status(400).json({ mensaje: "No puedes comprar ni intercambiar tu propio producto" });
         }
 
-        if (tipo === "compra" && !articulo.disponibleCompra) {
-            return res.status(400).json({ mensaje: "Este artículo no está a la venta" });
+        if (tipo === "compra" && !producto.disponibleCompra) {
+            return res.status(400).json({ mensaje: "Este producto no está a la venta" });
         }
 
-        if (tipo === "intercambio" && !articulo.disponibleIntercambio) {
-            return res.status(400).json({ mensaje: "Este artículo no está disponible para intercambio" });
+        if (tipo === "intercambio" && !producto.disponibleIntercambio) {
+            return res.status(400).json({ mensaje: "Este producto no está disponible para intercambio" });
         }
 
-        if (articulo.reservadoPor) {
-            return res.status(409).json({ mensaje: "Este artículo ya está apartado en otra operación" });
+        if (producto.estado === "reservado") {
+            return res.status(409).json({ mensaje: "Este producto ya está apartado en otra operación" });
         }
 
         const repetida = await Orden.exists({
             comprador: compradorId,
-            "articulo.articuloId": articulo._id,
+            producto: producto._id,
             estado: { $in: ESTADOS_ACTIVOS }
         });
 
         if (repetida) {
-            return res.status(409).json({ mensaje: "Ya tienes una orden activa para este artículo" });
+            return res.status(409).json({ mensaje: "Ya tienes una orden activa para este producto" });
         }
 
         // En intercambios, lo que ofrece el comprador debe ser de su colección y no estar apartado.
@@ -244,9 +245,10 @@ async function crearOrden(req, res) {
         const orden = await Orden.create({
             comprador: compradorId,
             vendedor: vendedorId,
-            articulo: copiarArticulo(articulo),
+            producto: producto._id,
+            articulo: copiarProducto(producto),
             tipo,
-            precio: tipo === "compra" ? precioDe(articulo) : 0,
+            precio: tipo === "compra" ? producto.precio : 0,
             ofrecidos,
             entrega,
             nota: nota.trim(),
@@ -256,8 +258,8 @@ async function crearOrden(req, res) {
         });
 
         const textoChat = tipo === "compra"
-            ? `🛒 Quiero comprar "${articulo.titulo}" por $${orden.precio} MXN.`
-            : `🔁 Te propongo un intercambio por "${articulo.titulo}". Ofrezco: ${ofrecidos.map((o) => o.titulo).join(", ")}.`;
+            ? `🛒 Quiero comprar "${producto.titulo}" por $${orden.precio} MXN.`
+            : `🔁 Te propongo un intercambio por "${producto.titulo}". Ofrezco: ${ofrecidos.map((o) => o.titulo).join(", ")}.`;
 
         await mensajeAutomatico(
             req,
@@ -270,8 +272,8 @@ async function crearOrden(req, res) {
             vendedorId,
             compradorId,
             tipo === "compra"
-                ? `quiere comprar "${articulo.titulo}"`
-                : `te propuso un intercambio por "${articulo.titulo}"`,
+                ? `quiere comprar "${producto.titulo}"`
+                : `te propuso un intercambio por "${producto.titulo}"`,
             orden._id
         );
 
@@ -354,35 +356,49 @@ async function obtenerOrden(req, res) {
    Reservas y traspaso de artículos
    -------------------------------------------------------------------------- */
 
-// Aparta el artículo vendido (y en intercambios, los ofrecidos). Regresa un mensaje
-// de error si alguno ya no existe o ya lo apartó otra orden.
+// Aparta el producto y, en intercambios, las piezas ofrecidas de la colección del
+// comprador. Regresa un mensaje de error si algo ya no existe o lo apartó otra orden.
 async function reservarArticulos(orden) {
-    const pendientes = [
-        { usuario: orden.vendedor._id || orden.vendedor, articulo: orden.articulo },
-        ...orden.ofrecidos.map((o) => ({ usuario: orden.comprador._id || orden.comprador, articulo: o }))
-    ];
+    const producto = await Producto.findById(orden.producto);
+    if (!producto || ["retirado", "vendido"].includes(producto.estado)) {
+        return `"${orden.articulo.titulo}" ya no está disponible`;
+    }
+    if (producto.estado === "reservado" && String(producto.reservadoPor) !== String(orden._id)) {
+        return `"${orden.articulo.titulo}" ya está apartado en otra operación`;
+    }
 
     // Primero se valida todo, luego se aparta, para no dejar reservas a medias.
-    const colecciones = new Map();
-    for (const { usuario, articulo } of pendientes) {
-        const clave = String(usuario);
-        if (!colecciones.has(clave)) colecciones.set(clave, await Coleccion.findOne({ usuario }));
-        const subdoc = colecciones.get(clave)?.articulos.id(articulo.articuloId);
-        if (!subdoc) return `"${articulo.titulo}" ya no está en la colección`;
-        if (subdoc.reservadoPor && String(subdoc.reservadoPor) !== String(orden._id)) {
-            return `"${articulo.titulo}" ya está apartado en otra operación`;
+    let coleccionComprador = null;
+    if (orden.ofrecidos.length) {
+        coleccionComprador = await Coleccion.findOne({ usuario: orden.comprador });
+        for (const ofrecido of orden.ofrecidos) {
+            const pieza = coleccionComprador?.articulos.id(ofrecido.articuloId);
+            if (!pieza) return `"${ofrecido.titulo}" ya no está en la colección`;
+            if (pieza.reservadoPor && String(pieza.reservadoPor) !== String(orden._id)) {
+                return `"${ofrecido.titulo}" ya está apartado en otra operación`;
+            }
         }
     }
 
-    for (const { usuario, articulo } of pendientes) {
-        colecciones.get(String(usuario)).articulos.id(articulo.articuloId).reservadoPor = orden._id;
+    producto.estado = "reservado";
+    producto.reservadoPor = orden._id;
+    await producto.save();
+
+    if (coleccionComprador) {
+        for (const ofrecido of orden.ofrecidos) {
+            coleccionComprador.articulos.id(ofrecido.articuloId).reservadoPor = orden._id;
+        }
+        await coleccionComprador.save();
     }
-    for (const coleccion of colecciones.values()) await coleccion.save();
 
     return null;
 }
 
 async function liberarArticulos(orden) {
+    await Producto.updateOne(
+        { _id: orden.producto, reservadoPor: orden._id },
+        { $set: { estado: "activo", reservadoPor: null } }
+    );
     await Coleccion.updateMany(
         { "articulos.reservadoPor": orden._id },
         { $set: { "articulos.$[a].reservadoPor": null } },
@@ -390,7 +406,7 @@ async function liberarArticulos(orden) {
     );
 }
 
-// Pasa un artículo de una colección a otra. Llega a la nueva colección sin estar a la venta.
+// Pasa una pieza de una colección a otra. Llega sin estar apartada.
 async function moverArticulo(deUsuario, aUsuario, articuloId) {
     const origen = await Coleccion.findOne({ usuario: deUsuario });
     const subdoc = origen?.articulos.id(articuloId);
@@ -400,24 +416,50 @@ async function moverArticulo(deUsuario, aUsuario, articuloId) {
     subdoc.deleteOne();
     await origen.save();
 
-    let destino = await Coleccion.findOne({ usuario: aUsuario });
-    if (!destino) destino = new Coleccion({ usuario: aUsuario, articulos: [] });
-
-    destino.articulos.push({
-        ...copia,
-        disponibleCompra: false,
-        disponibleIntercambio: false,
-        precio: null,
-        reservadoPor: null
-    });
-    await destino.save();
+    await agregarAColeccion(aUsuario, { ...copia, reservadoPor: null });
 }
 
+async function agregarAColeccion(usuarioId, datos) {
+    let coleccion = await Coleccion.findOne({ usuario: usuarioId });
+    if (!coleccion) coleccion = new Coleccion({ usuario: usuarioId, articulos: [] });
+    coleccion.articulos.push({ ...datos, disponibleCompra: false, disponibleIntercambio: false, precio: null });
+    await coleccion.save();
+}
+
+// Al completar: el producto queda vendido y llega a la colección de quien lo compró.
+// Si se había publicado copiando una pieza de la colección del vendedor, esa pieza
+// sale de su colección (físicamente ya no la tiene). En intercambios, las piezas
+// ofrecidas pasan de la colección del comprador a la del vendedor.
 async function traspasarArticulos(orden) {
     const comprador = orden.comprador._id || orden.comprador;
     const vendedor = orden.vendedor._id || orden.vendedor;
 
-    await moverArticulo(vendedor, comprador, orden.articulo.articuloId);
+    const producto = await Producto.findById(orden.producto);
+    if (producto) {
+        producto.estado = "vendido";
+        producto.reservadoPor = null;
+        await producto.save();
+
+        await agregarAColeccion(comprador, {
+            titulo: producto.titulo,
+            grupo: producto.grupo,
+            categoria: producto.categoria,
+            imagenes: producto.imagenes,
+            descripcion: producto.descripcion,
+            estado: producto.condicion,
+            valorEstimado: producto.precio || 0
+        });
+
+        if (producto.articuloOrigen) {
+            const coleccionVendedor = await Coleccion.findOne({ usuario: vendedor });
+            const pieza = coleccionVendedor?.articulos.id(producto.articuloOrigen);
+            if (pieza) {
+                pieza.deleteOne();
+                await coleccionVendedor.save();
+            }
+        }
+    }
+
     for (const ofrecido of orden.ofrecidos) {
         await moverArticulo(comprador, vendedor, ofrecido.articuloId);
     }
@@ -510,7 +552,7 @@ async function cambiarEstado(req, res) {
         if (estado === "aceptada") {
             const otras = await Orden.find({
                 _id: { $ne: orden._id },
-                "articulo.articuloId": orden.articulo.articuloId,
+                producto: orden.producto,
                 estado: "pendiente"
             });
             for (const otra of otras) {
@@ -518,6 +560,7 @@ async function cambiarEstado(req, res) {
                 otra.historial.push({ estado: "rechazada", por: usuarioId, nota: "El artículo se apartó para otra persona" });
                 await otra.save();
                 await notificar(otra.comprador, usuarioId, `apartó "${otra.articulo.titulo}" para otra persona`, otra._id);
+                await mensajeAutomatico(req, otra.conversacion, usuarioId, `❌ "${otra.articulo.titulo}" se apartó para otra persona.`);
             }
         }
 
@@ -654,12 +697,12 @@ async function resumenVendedor(req, res) {
 }
 
 /* --------------------------------------------------------------------------
-   Cuando el dueño quita un artículo de la venta (o lo borra), las solicitudes
+   Cuando el vendedor retira un producto del marketplace, las solicitudes
    pendientes ya no se pueden cumplir: se rechazan y se avisa a cada comprador.
    -------------------------------------------------------------------------- */
-async function rechazarPendientesDe(req, articuloId, vendedorId, motivo) {
+async function rechazarPendientesDe(req, productoId, vendedorId, motivo) {
     const pendientes = await Orden.find({
-        "articulo.articuloId": articuloId,
+        producto: productoId,
         vendedor: vendedorId,
         estado: "pendiente"
     });
@@ -683,6 +726,5 @@ module.exports = {
     cambiarEstado,
     cancelarOrden,
     calificarOrden,
-    resumenVendedor,
-    precioDe
+    resumenVendedor
 };

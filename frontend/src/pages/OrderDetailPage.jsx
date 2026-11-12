@@ -142,7 +142,7 @@ export default function OrderDetailPage() {
         <div className="order-head-main">
           <span className="detail-group">{orden.articulo.grupo}</span>
           <h2>
-            <Link to={`/marketplace/${orden.articulo.articuloId}`}>{orden.articulo.titulo}</Link>
+            <Link to={`/marketplace/${orden.producto}`}>{orden.articulo.titulo}</Link>
           </h2>
           <div className="badges-row">
             <span className={`pill ${ESTADOS[orden.estado]?.pill || ""}`}>{etiquetaEstado(orden.estado)}</span>

@@ -4453,3 +4453,17 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
 /* Detalle de artículo: acciones del dueño */
 .detail-owner-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 4px; }
 .detail-owner-actions .detail-availability { margin: 0; }
+.sell-existing-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 10, 28, 0.9);
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}

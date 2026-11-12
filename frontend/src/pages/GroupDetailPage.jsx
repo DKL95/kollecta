@@ -8,7 +8,7 @@ import Photo from "../components/Photo";
 import PostCard from "../components/PostCard";
 import ProductCard from "../components/ProductCard";
 import { GROUPS } from "../data/mockData";
-import { adaptarArticuloMarketplace } from "../utils/coleccion";
+import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 const TABS = ["Merch disponible", "Publicaciones de la comunidad"];
@@ -26,8 +26,8 @@ export default function GroupDetailPage() {
     apiRequest(`/publicaciones?grupo=${encodeURIComponent(group.name)}`)
       .then((data) => setPosts(data.publicaciones))
       .catch(() => setPosts([]));
-    apiRequest(`/coleccion/marketplace?grupo=${encodeURIComponent(group.name)}`)
-      .then((data) => setProducts(data.articulos.map(adaptarArticuloMarketplace)))
+    apiRequest(`/productos?grupo=${encodeURIComponent(group.name)}`)
+      .then((data) => setProducts(data.productos.map(adaptarProducto)))
       .catch(() => setProducts([]));
   }, [group]);
 

@@ -12,6 +12,7 @@ const videoRoutes = require("./routes/videoRoutes");
 const mensajeRoutes = require("./routes/mensajeRoutes");
 const coleccionRoutes = require("./routes/coleccionRoutes");
 const ordenRoutes = require("./routes/ordenRoutes");
+const productoRoutes = require("./routes/productoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
@@ -35,6 +36,7 @@ app.use("/api/imagenes", imagenRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/mensajes", mensajeRoutes);
 app.use("/api/notificaciones", notificacionRoutes);
+app.use("/api/productos", productoRoutes);
 app.use("/api/ordenes", ordenRoutes);
 app.use("/api/admin", adminRoutes);
 

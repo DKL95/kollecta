@@ -3,6 +3,7 @@ import Icon from "./Icon";
 import Photo from "./Photo";
 import { categoryClass, categoryIcon } from "../utils/categories";
 import { formatMoney } from "../utils/format";
+import { reproducirHover } from "../utils/sonido";
 
 export default function CollectionItem({ item }) {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function CollectionItem({ item }) {
     <div
       className="card collection-item product-card"
       onClick={abrirDetalles}
+      onMouseEnter={reproducirHover}
+      onFocus={reproducirHover}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

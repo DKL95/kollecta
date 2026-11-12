@@ -17,6 +17,9 @@ export const GROUPS = [
   { name: "ITZY", fandom: "MIDZY", agency: "JYP Entertainment", members: 5, debut: 2019, color: "linear-gradient(135deg,#facc15,#ef4444)", initials: "ITZY", img: "/assets/img/groups/itzy.jpg" },
   { name: "TXT", fandom: "MOA", agency: "HYBE / BIGHIT MUSIC", members: 5, debut: 2019, color: "linear-gradient(135deg,#34d399,#0ea5e9)", initials: "TXT", img: "/assets/img/groups/txt.jpg" },
   { name: "ILLIT", fandom: "GLLIT", agency: "BELIFT LAB", members: 5, debut: 2024, color: "linear-gradient(135deg, #f472b6, #a78bfa)", initials: "ILLIT", img: "/assets/img/groups/illit.jpg"},
+  // Sin foto todavía: se ven con sus iniciales sobre el degradado (Photo oculta la imagen que no existe).
+  { name: "LE SSERAFIM", fandom: "FEARNOT", agency: "SOURCE MUSIC / HYBE", members: 5, debut: 2022, color: "linear-gradient(135deg, #1e293b, #e2e8f0)", initials: "LSF", img: "/assets/img/groups/le-sserafim.jpg" },
+  { name: "BABYMONSTER", fandom: "MONSTIEZ", agency: "YG Entertainment", members: 7, debut: 2024, color: "linear-gradient(135deg, #111827, #ef4444)", initials: "BM", img: "/assets/img/groups/babymonster.jpg" },
 ];
 
 export const GROUP_NAMES = GROUPS.map((group) => group.name);
