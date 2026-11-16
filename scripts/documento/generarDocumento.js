@@ -91,7 +91,8 @@ function describirColecciones() {
     const { DESCRIPCIONES } = require("../generarCrearBase");
     const modelos = cargarModelos();
     const porNombreModelo = {};
-    const colecciones = Object.values(modelos).map((modelo) => {
+    // Solo las 14 colecciones de models/ (ArchivoVideo describe videos.files de GridFS, que crea el driver).
+    const colecciones = Object.values(modelos).filter((modelo) => DESCRIPCIONES[modelo.collection.collectionName]).map((modelo) => {
         const nombre = modelo.collection.collectionName;
         porNombreModelo[modelo.modelName] = nombre;
         return {
@@ -418,8 +419,8 @@ const MATRIZ_CRUD = [
     ["respuestas", "POST …/respuestas", "GET …/comentarios (anidadas)", "PUT …/respuestas/:id", "DELETE …/respuestas/:id"],
     ["solicitudes_amistad", "POST /usuarios/:username/solicitud", "GET /usuarios/solicitudes/*", "POST …/aceptar | …/rechazar", "DELETE /usuarios/solicitudes/:id"],
     ["conversaciones", "POST /mensajes/conversaciones/:id, /grupos", "GET /mensajes/conversaciones", "PATCH /mensajes/grupos/:id, …/silenciar", "DELETE /mensajes/:id (de mi lista)"],
-    ["mensajes", "POST /mensajes/:conversacionId", "GET /mensajes/:conversacionId", "Se marcan como leídos al leerlos", "Se borran con su conversación"],
-    ["notificaciones", "Las crea el sistema", "GET /notificaciones", "PATCH /notificaciones/:id/leida", "—"],
+    ["mensajes", "POST /mensajes/:conversacionId", "GET /mensajes/:conversacionId", "PATCH /mensajes/:conversacionId/mensajes/:id", "DELETE /mensajes/:conversacionId/mensajes/:id"],
+    ["notificaciones", "Las crea el sistema", "GET /notificaciones", "PATCH /notificaciones/:id/leida", "DELETE /notificaciones/:id"],
     ["imagenes", "Al subir fotos (publicación, perfil, producto, colección)", "GET /imagenes/:id", "—", "Se borran con su publicación o pieza"],
     ["colecciones", "POST /coleccion/articulos", "GET /coleccion, …/articulos/:id", "PUT /coleccion/articulos/:id", "DELETE /coleccion/articulos/:id"],
     ["productos", "POST /productos", "GET /productos, /:id", "PUT /productos/:id", "DELETE /productos/:id (retirar)"],
@@ -662,7 +663,7 @@ td.ruta { overflow-wrap: normal; }
     <tr><td><strong>Acceso</strong></td><td><span class="acceso a-publico">Público</span> sin token · <span class="acceso a-token">Token</span> cualquier sesión · <span class="acceso a-mod">Moderador+</span> moderador o administrador · <span class="acceso a-admin">Admin</span> solo administrador.</td></tr>
   </tbody></table>
   ${tablaEndpoints(catalogo)}
-  <p class="nota"><strong>${code("GET /api/imagenes/:id")} es público</strong> porque el navegador pide las imágenes desde etiquetas ${code("<img>")}, que no pueden mandar el header ${code("Authorization")}. Los ids son ${code("ObjectId")} no adivinables y solo se conocen desde respuestas que sí exigen token. Los videos, más pesados, usan una URL firmada con un token temporal ligado a ese video.</p>
+  <p class="nota"><strong>Solo el registro y el login funcionan sin token.</strong> Las etiquetas ${code("<img>")} no pueden mandar el header ${code("Authorization")}, así que al iniciar sesión el back end deja una cookie ${code("httpOnly")} (${code("kollecta_medios")}) con un token de solo lectura que únicamente abre ${code("GET /api/imagenes/:id")}; no sirve como sesión para el resto de la API y se borra con ${code("POST /api/auth/logout")}. Los videos usan una URL firmada con un token temporal (3 min) ligado a ese video.</p>
   <p><strong>Tiempo real.</strong> Socket.IO autentica con el mismo JWT y emite ${code("mensaje:nuevo")}, ${code("mensaje:estado")}, ${code("conversaciones:actualizar")} y ${code("mensajes:contador-actualizar")} a las salas de cada conversación y de cada usuario.</p>
 </section>
 

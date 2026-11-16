@@ -4,6 +4,25 @@ const fs = require("fs");
 
 const NOMBRE_BUCKET = "videos";
 
+// Mongoose no sabe guardar archivos en GridFS, así que subir, transmitir y borrar
+// el contenido usa GridFSBucket (driver oficial que ya viene con Mongoose).
+// Los datos del archivo (nombre, tamaño, tipo) sí se consultan con este modelo.
+const ArchivoVideo = mongoose.model(
+    "ArchivoVideo",
+    new mongoose.Schema(
+        {
+            filename: String,
+            contentType: String,
+            length: Number,
+            chunkSize: Number,
+            uploadDate: Date,
+            metadata: { subidaPor: mongoose.Schema.Types.ObjectId, tamano: Number, contentType: String }
+        },
+        // GridFS crea la colección y sus índices; Mongoose solo la lee.
+        { collection: `${NOMBRE_BUCKET}.files`, versionKey: false, autoCreate: false, autoIndex: false }
+    )
+);
+
 function obtenerBucket() {
     const db = mongoose.connection.db;
 
@@ -73,6 +92,7 @@ async function eliminarVideo(id) {
 }
 
 module.exports = {
+    ArchivoVideo,
     guardarVideo,
     obtenerVideo,
     eliminarVideo

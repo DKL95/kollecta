@@ -38,10 +38,10 @@ describe("Autenticación (/api/auth)", () => {
         });
 
         it("guarda la foto de perfil en MongoDB", async () => {
-            const { usuario } = await registrarUsuario(api, { fotoPerfil: imagenPng() });
+            const { usuario, token } = await registrarUsuario(api, { fotoPerfil: imagenPng() });
             assert.match(usuario.fotoPerfil, /^\/api\/imagenes\/[a-f0-9]{24}$/);
 
-            const imagen = await api("GET", usuario.fotoPerfil);
+            const imagen = await api("GET", usuario.fotoPerfil, { token });
             assert.equal(imagen.status, 200);
             assert.equal(imagen.headers.get("content-type"), "image/png");
         });

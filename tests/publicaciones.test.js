@@ -53,7 +53,7 @@ describe("Publicaciones (/api/publicaciones)", () => {
         assert.equal(publicacion.meGusta, false);
         assert.equal(publicacion.esMia, true);
 
-        const imagen = await api("GET", publicacion.imagen);
+        const imagen = await api("GET", publicacion.imagen, { token: autor.token });
         assert.equal(imagen.status, 200);
     });
 
@@ -158,7 +158,7 @@ describe("Publicaciones (/api/publicaciones)", () => {
             const despues = await api("GET", `/api/publicaciones/${id}`, { token: autor.token });
             assert.equal(despues.status, 404);
 
-            const imagenBorrada = await api("GET", imagen);
+            const imagenBorrada = await api("GET", imagen, { token: autor.token });
             assert.equal(imagenBorrada.status, 404);
         });
     });

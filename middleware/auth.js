@@ -64,6 +64,11 @@ async function requiereAuth(req, res, next) {
         });
     }
 
+    // Los permisos de un solo uso (video, imágenes) no sirven como sesión.
+    if (datos.tipo) {
+        return res.status(401).json({ mensaje: "Sesión inválida o expirada" });
+    }
+
     try {
         const usuario = await Usuario.findById(datos.id)
             .select("rol activo motivoBaneo suspendidoHasta motivoSuspension")
@@ -102,7 +107,9 @@ function requiereAuthVideo(req, res, next) {
 
     if (tokenHeader) {
         try {
-            req.usuario = jwt.verify(tokenHeader, JWT_SECRET);
+            const datos = jwt.verify(tokenHeader, JWT_SECRET);
+            if (datos.tipo) throw new Error("No es un token de sesión");
+            req.usuario = datos;
             return next();
         } catch (error) {
             return res.status(401).json({
@@ -140,7 +147,62 @@ function requiereAuthVideo(req, res, next) {
     }
 }
 
+/* --------------------------------------------------------------------------
+   Imágenes: <img src="/api/imagenes/..."> no puede mandar el header
+   Authorization, así que al iniciar sesión se guarda un token de solo lectura
+   en una cookie httpOnly. Ese token solo abre imágenes: no sirve para la API.
+   -------------------------------------------------------------------------- */
+const COOKIE_MEDIOS = "kollecta_medios";
+const DURACION_MEDIOS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function opcionesCookieMedios(req) {
+    const https = req.secure || req.headers["x-forwarded-proto"] === "https";
+    return { httpOnly: true, sameSite: "lax", secure: https, path: "/" };
+}
+
+function ponerCookieMedios(req, res, idUsuario) {
+    const token = jwt.sign({ id: String(idUsuario), tipo: "medios" }, JWT_SECRET, { expiresIn: "7d" });
+    res.cookie(COOKIE_MEDIOS, token, { ...opcionesCookieMedios(req), maxAge: DURACION_MEDIOS_MS });
+}
+
+function quitarCookieMedios(req, res) {
+    res.clearCookie(COOKIE_MEDIOS, opcionesCookieMedios(req));
+}
+
+function leerCookie(req, nombre) {
+    for (const parte of (req.headers.cookie || "").split(";")) {
+        const [clave, ...valor] = parte.trim().split("=");
+        if (clave === nombre) return decodeURIComponent(valor.join("="));
+    }
+    return null;
+}
+
+// Acepta el JWT de sesión (header) o el token de imágenes (cookie).
+function requiereAuthMedios(req, res, next) {
+    const header = req.headers.authorization || "";
+    const tokenHeader = header.startsWith("Bearer ") ? header.slice(7) : null;
+    const token = tokenHeader || leerCookie(req, COOKIE_MEDIOS);
+
+    if (!token) {
+        return res.status(401).json({ mensaje: "Debes iniciar sesión para ver esta imagen" });
+    }
+
+    try {
+        const datos = jwt.verify(token, JWT_SECRET);
+        const valido = tokenHeader ? !datos.tipo : datos.tipo === "medios";
+        if (!valido) return res.status(401).json({ mensaje: "Sesión inválida o expirada" });
+
+        req.usuario = { id: datos.id };
+        next();
+    } catch (error) {
+        return res.status(401).json({ mensaje: "Sesión inválida o expirada" });
+    }
+}
+
 module.exports = {
+    ponerCookieMedios,
+    quitarCookieMedios,
+    requiereAuthMedios,
     generarToken,
     bloqueoDeCuenta,
     requiereAuth,

@@ -1,0 +1,17 @@
+KollectA - Proyecto integrador de Programación Web II
+Facultad de Ciencias Físico Matemáticas, UANL
+
+Integrantes
+-----------
+Derek Alejandro Luna Hernandez    1969757
+Jesús Antonio González Leal       2072116
+Javier Peña Reyes                 2109195
+Tania Jazmín Herrera Cavazos      1938779
+
+Repositorio en GitHub
+---------------------
+https://github.com/DKL95/kollecta
+
+Aplicación en línea
+-------------------
+https://kollecta.onrender.com

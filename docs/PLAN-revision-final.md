@@ -23,7 +23,7 @@ La entrega final vale **50 % de la calificación práctica**. Los puntos marcado
 | Pantallas por acción HTTP por colección | ⚠️ Parcial | Justificar las que no aplican (§2.3) |
 | Comunicación por JSON | ✅ | — |
 | Login obligatorio; solo registro fuera | ✅ | — |
-| Token en todos los endpoints salvo login/registro | ⚠️ | `GET /api/imagenes/:id` es público (las `<img>` no mandan token). Justificarlo o usar URL firmada como ya hacen los videos |
+| Token en todos los endpoints salvo login/registro | ✅ | Imágenes con cookie httpOnly de solo lectura; videos con URL firmada |
 | Diseño con patrones MaterialUI "o equivalentes" | ⚠️ | Tenemos design system propio: documentarlo en el PDF como el equivalente (tokens, componentes) |
 | **Script de SQL de creación de tablas** | ✅ `scripts/crear-base.mongodb.js` (15-nov) — confirmar con el profesor | Usamos MongoDB: acordar con el profesor un **script de mongosh** con `createCollection` + `$jsonSchema` + índices (§2.4) |
 | PDF: BD + endpoints + **manual de usuario con capturas** | ✅ `docs/KollectA-documento-tecnico.pdf` (16-nov), se regenera con `npm run documento` | Completar al 4.º integrante en el README y regenerar |

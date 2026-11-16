@@ -103,11 +103,11 @@ describe("Usuarios (/api/usuarios)", () => {
             const fotoNueva = segunda.body.usuario.fotoPerfil;
             assert.notEqual(fotoNueva, fotoAnterior);
 
-            const nueva = await api("GET", fotoNueva);
+            const nueva = await api("GET", fotoNueva, { token: derek.token });
             assert.equal(nueva.status, 200);
             assert.deepEqual(nueva.body, PNG_1X1, "la imagen se guarda sin cambios");
 
-            const anterior = await api("GET", fotoAnterior);
+            const anterior = await api("GET", fotoAnterior, { token: derek.token });
             assert.equal(anterior.status, 404);
         });
 
@@ -139,7 +139,51 @@ describe("Usuarios (/api/usuarios)", () => {
     });
 
     it("una imagen con id inválido responde 404", async () => {
-        const res = await api("GET", "/api/imagenes/abc");
+        const res = await api("GET", "/api/imagenes/abc", { token: derek.token });
         assert.equal(res.status, 404);
+    });
+
+    describe("imágenes protegidas", () => {
+        let rutaFoto;
+        let cookie;
+
+        before(async () => {
+            const sufijo = Math.random().toString(36).slice(2, 8);
+            const form = new FormData();
+            for (const [k, v] of Object.entries({ name: "Con Foto", username: `foto_${sufijo}`, email: `foto_${sufijo}@test.com`, password: "contrasena123" })) form.append(k, v);
+            form.append("fotoPerfil", imagenPng(), "foto.png");
+            const respuesta = await fetch(`${entorno.url}/api/auth/register`, { method: "POST", body: form });
+            rutaFoto = (await respuesta.json()).usuario.fotoPerfil;
+            cookie = respuesta.headers.get("set-cookie").split(";")[0];
+        });
+
+        it("sin token ni cookie responde 401", async () => {
+            assert.match(rutaFoto, /^\/api\/imagenes\//);
+            const res = await api("GET", rutaFoto);
+            assert.equal(res.status, 401);
+        });
+
+        it("abre con el token de sesión o con la cookie que deja el registro/login", async () => {
+            const conToken = await api("GET", rutaFoto, { token: mina.token });
+            assert.equal(conToken.status, 200);
+            assert.deepEqual(conToken.body, PNG_1X1);
+
+            assert.match(cookie, /^kollecta_medios=/);
+            const conCookie = await fetch(entorno.url + rutaFoto, { headers: { cookie } });
+            assert.equal(conCookie.status, 200);
+            assert.match(conCookie.headers.get("cache-control"), /private/);
+        });
+
+        it("la cookie de imágenes no sirve como sesión para la API", async () => {
+            const token = decodeURIComponent(cookie.split("=")[1]);
+            const res = await api("GET", "/api/auth/me", { token });
+            assert.equal(res.status, 401);
+        });
+
+        it("logout borra la cookie", async () => {
+            const res = await fetch(`${entorno.url}/api/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${mina.token}` } });
+            assert.equal(res.status, 200);
+            assert.match(res.headers.get("set-cookie"), /kollecta_medios=;.*Expires=Thu, 01 Jan 1970/);
+        });
     });
 });

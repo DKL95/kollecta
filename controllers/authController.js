@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 
 const Usuario = require("../models/Usuario");
-const { generarToken, bloqueoDeCuenta } = require("../middleware/auth");
+const { generarToken, bloqueoDeCuenta, ponerCookieMedios, quitarCookieMedios } = require("../middleware/auth");
 const { guardarImagen } = require("../middleware/upload");
 const logger = require("../config/logger");
 
@@ -56,6 +56,7 @@ async function registrar(req, res) {
 
         await nuevoUsuario.save();
         res.locals.usuarioId = String(nuevoUsuario._id); // para la bitácora
+        ponerCookieMedios(req, res, nuevoUsuario._id);
 
         res.status(201).json({
             mensaje: "Usuario registrado correctamente",
@@ -90,6 +91,7 @@ async function iniciarSesion(req, res) {
         }
 
         res.locals.usuarioId = String(usuario._id); // para la bitácora
+        ponerCookieMedios(req, res, usuario._id);
 
         res.json({
             mensaje: "Inicio de sesión correcto",
@@ -113,6 +115,8 @@ async function usuarioActual(req, res) {
             return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
         }
 
+        // Renueva la cookie de imágenes (también para sesiones abiertas antes de que existiera)
+        ponerCookieMedios(req, res, usuario._id);
         res.json({ usuario: usuario.aPublico() });
     } catch (error) {
         logger.error("Error al obtener usuario actual:", error);
@@ -136,4 +140,10 @@ async function passwordCorrecta(usuario, password) {
     return true;
 }
 
-module.exports = { registrar, iniciarSesion, usuarioActual };
+// POST /api/auth/logout: borra la cookie de imágenes (el JWT lo olvida el frontend)
+function cerrarSesion(req, res) {
+    quitarCookieMedios(req, res);
+    res.json({ mensaje: "Sesión cerrada" });
+}
+
+module.exports = { registrar, iniciarSesion, usuarioActual, cerrarSesion };
