@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import BottomNav from "./BottomNav";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import { InstallBanner } from "../InstallApp";
 
 // Estructura de las pantallas internas. Si no hay sesión, manda al login.
 export default function AppLayout() {
@@ -28,6 +29,7 @@ export default function AppLayout() {
       <div className="main-col">
         <Topbar title={handle.title} subtitle={handle.subtitle} />
         <Outlet />
+        <InstallBanner />
         <BottomNav />
       </div>
     </div>

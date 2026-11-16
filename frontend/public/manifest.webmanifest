@@ -1,0 +1,23 @@
+{
+  "name": "KollectA — K-pop merch y comunidad",
+  "short_name": "KollectA",
+  "description": "Red social y marketplace para fans del K-pop: publica, chatea, arma tu colección y compra, vende o intercambia merch.",
+  "lang": "es-MX",
+  "start_url": "/inicio",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0b1e",
+  "theme_color": "#0f0b1e",
+  "categories": ["social", "shopping", "entertainment"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Marketplace", "url": "/marketplace", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mensajes", "url": "/mensajes", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mis órdenes", "url": "/ordenes", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

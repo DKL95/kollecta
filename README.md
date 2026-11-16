@@ -157,6 +157,10 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 
 [`docs/manual/MANUAL-usuario.md`](docs/manual/MANUAL-usuario.md): una sección por pantalla, con capturas numeradas, roles, flujo de órdenes y disputas, reportes y moderación.
 
+## Instalar como app (PWA)
+
+KollectA se puede instalar en el celular o la computadora desde el navegador: `frontend/public/manifest.webmanifest` (nombre, colores e íconos en `frontend/public/icons/`) y un service worker (`frontend/public/sw.js`) que guarda la app para abrirla rápido. El service worker **nunca** guarda respuestas de `/api`, así que los datos siempre vienen del servidor. Solo se registra en la versión compilada (`npm run build`), no con `npm run dev`. El botón **Instalar app** aparece cuando el navegador lo permite (Chrome, Edge, Android); en iPhone se indica cómo hacerlo desde Safari.
+
 ## Datos de demostración
 
 Para enseñar la app con movimiento real (publicaciones, compras, ventas, reseñas, una disputa y una denuncia) hay un script que lo crea **a través de la API**, como lo haría una persona. Todo queda marcado como demo: el nombre dice "· Demo" y el correo es `@demo.kollecta`. Las imágenes son dibujos originales que genera `scripts/demo/dibujos.js` (no usa fotos de terceros).

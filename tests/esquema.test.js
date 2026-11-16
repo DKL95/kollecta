@@ -24,9 +24,11 @@ describe("Script de creación de la base (mongosh)", () => {
 
     it("está al día con los modelos (volver a generarlo no cambia nada)", () => {
         const ruta = path.join(__dirname, "..", "scripts", "crear-base.mongodb.js");
-        const antes = fs.readFileSync(ruta, "utf8");
+        // Git en Windows puede cambiar los saltos de línea: se comparan sin ellos.
+        const leer = () => fs.readFileSync(ruta, "utf8").replace(/\r\n/g, "\n");
+        const antes = leer();
         generar();
-        assert.equal(fs.readFileSync(ruta, "utf8"), antes, "Corre: node scripts/generarCrearBase.js");
+        assert.equal(leer(), antes, "Corre: npm run generar-base");
     });
 
     it("crea las 14 colecciones con validador e índices únicos, y se puede correr dos veces", async () => {

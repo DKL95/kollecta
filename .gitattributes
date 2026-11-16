@@ -1,0 +1,2 @@
+# Archivos generados: siempre con saltos de línea Unix (las pruebas los comparan)
+scripts/crear-base.mongodb.js text eol=lf

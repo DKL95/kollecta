@@ -369,3 +369,5 @@ Nadie más sabe quién denunció. Recibirás una notificación cuando moderació
 **¿Quién ve mi colección?** Cualquier persona con cuenta que entre a tu perfil.
 
 **¿Moderación lee mis mensajes privados?** No. La moderación no tiene acceso a los chats.
+
+**¿Puedo instalar KollectA como app?** Sí. En Chrome o Edge (computadora o Android) aparece **📲 Instalar app** en el menú lateral, o un aviso abajo de la pantalla en el celular; también puedes usar el ícono de instalar de la barra de direcciones. En iPhone abre la página en Safari, toca **Compartir** y luego **Agregar a inicio**. La app se abre en su propia ventana, con el ícono de KollectA.

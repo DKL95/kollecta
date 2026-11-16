@@ -10,6 +10,7 @@ import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 import useDenunciasPendientes from "../../hooks/useDenunciasPendientes";
 import RoleBadge from "../RoleBadge";
 import { alcanza } from "../../utils/roles";
+import { InstallButton } from "../InstallApp";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -141,6 +142,8 @@ export default function Sidebar() {
           Publicar merch
         </Link>
       </div>
+
+      <InstallButton />
 
       <div className="sidebar-user">
         <UserAvatar user={user} size={38} fontSize={13} />

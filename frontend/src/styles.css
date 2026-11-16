@@ -329,7 +329,7 @@ p { margin: 0; }
 /* ---------- App shell (post-login) ---------- */
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   min-height: 100vh;
   position: relative;
   z-index: 1;
@@ -4835,3 +4835,79 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
 .post-reply-form > div:first-child { flex: 1 1 220px; width: auto !important; min-width: 0; }
 .post-comment-form .picker-toggle,
 .post-reply-form .picker-toggle { background: var(--card); color: var(--text); border: 1px solid var(--border-strong); box-shadow: none; }
+
+/* ===== Ajustes de diseño adaptable (reportes y tablas) ===== */
+.main-col { min-width: 0; }
+.report-card { grid-template-columns: minmax(0, 1fr); }
+.report-card > * { min-width: 0; }
+.report-bar-row { grid-template-columns: minmax(90px, 160px) minmax(0, 1fr); }
+.report-bar-track { min-width: 0; }
+.report-bar { min-width: 2px; }
+.mod-table-wrap { max-width: 100%; -webkit-overflow-scrolling: touch; }
+.report-table th, .report-table td { white-space: nowrap; }
+@media (max-width: 560px) {
+  .report-bar-row { grid-template-columns: minmax(0, 1fr); }
+  .report-card { padding: 14px; }
+}
+/* Dos columnas (Inicio, Vender): la principal puede encogerse y, con el menú
+   lateral visible, se apilan antes de quedarse sin espacio. */
+.layout-2col { grid-template-columns: minmax(0, 1fr) 320px; }
+.layout-2col > * { min-width: 0; }
+@media (max-width: 1180px) {
+  .layout-2col { grid-template-columns: minmax(0, 1fr); }
+}
+.detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.detail-grid > * { min-width: 0; }
+@media (max-width: 1100px) { .detail-grid { grid-template-columns: minmax(0, 1fr); } }
+.composer-body { min-width: 0; }
+.composer-actions { flex-wrap: wrap; align-items: center; }
+/* Contador en los botones redondos (notificaciones, moderación) */
+.icon-btn .badge-dot {
+  top: -4px; right: -4px; width: auto; height: auto;
+  min-width: 18px; padding: 1px 5px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; line-height: 14px; color: #fff;
+}
+.icon-btn .badge-dot:empty { min-width: 10px; height: 10px; padding: 0; }
+/* Filas de filtros y de reportes: en celular se deslizan de lado en vez de apilarse */
+@media (max-width: 560px) {
+  .report-picker { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .report-picker::-webkit-scrollbar { display: none; }
+  .report-pick { flex-shrink: 0; white-space: nowrap; }
+}
+/* Indica que una tabla se puede deslizar de lado (sombra en el borde con más contenido) */
+.mod-table-wrap {
+  background:
+    linear-gradient(to right, var(--card) 30%, transparent) left / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--card) 30%, transparent) right / 24px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.45), transparent) left / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.45), transparent) right / 12px 100% no-repeat scroll;
+}
+@media (max-width: 640px) {
+  /* Título de la barra superior: se recorta con … para no empujar los íconos */
+  .topbar > div:first-child { flex: 1 1 0; min-width: 0; }
+  .topbar h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Compositor: fotos | videos / 😊 GIF | grupo / Publicar a todo lo ancho */
+  .composer-actions { grid-template-columns: auto auto minmax(0, 1fr) minmax(0, 1fr); }
+  .composer-actions > .btn:first-child,
+  .composer-actions > input + .btn,
+  .composer-actions > label { grid-column: span 2; }
+  .composer-actions > .btn-primary { grid-column: 1 / -1; }
+}
+
+/* ===== Instalar como app (PWA) ===== */
+.install-btn { margin: 0 16px 12px; width: calc(100% - 32px); }
+.install-banner { display: none; }
+@media (max-width: 900px) {
+  .install-banner {
+    position: fixed; left: 10px; right: 10px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 70;
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-2);
+  }
+  .install-banner img { border-radius: 10px; flex-shrink: 0; }
+  .install-banner-text { flex: 1; min-width: 0; display: grid; font-size: 12px; color: var(--text-dim); line-height: 1.35; }
+  .install-banner-text strong { color: var(--text); font-size: 13.5px; }
+  .install-banner-close { background: none; border: 0; color: var(--text-faint); font-size: 22px; line-height: 1; padding: 0 4px; }
+}
