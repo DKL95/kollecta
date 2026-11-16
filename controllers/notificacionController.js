@@ -112,7 +112,8 @@ async function crearNotificacion({
         "sistema",
         "solicitud_amistad",
         "mencion",
-        "orden"
+        "orden",
+        "moderacion"
     ];
 
     if (!tiposPermitidos.includes(tipo)) {

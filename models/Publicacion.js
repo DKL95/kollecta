@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { campoOculto } = require("./oculto");
 
 // Esquema principal de publicaciones.
 const publicacionSchema = new mongoose.Schema(
@@ -35,7 +36,10 @@ const publicacionSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.ObjectId],
       ref: "Usuario",
       default: []
-    }
+    },
+
+    // Ocultada por moderación (null = visible). Ver docs/PLAN-roles.md
+    oculto: campoOculto
   },
   {
     collection: "publicaciones",

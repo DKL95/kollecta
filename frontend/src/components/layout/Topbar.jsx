@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 import { useAuth } from "../../context/AuthContext";
+import useDenunciasPendientes from "../../hooks/useDenunciasPendientes";
+import { esModerador } from "../../utils/roles";
 import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
 
@@ -11,6 +13,7 @@ export default function Topbar({ title, subtitle }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const noLeidas = useNotificacionesNoLeidas();
+  const pendientes = useDenunciasPendientes();
 
   function handleSearch(event) {
     event.preventDefault();
@@ -37,6 +40,21 @@ export default function Topbar({ title, subtitle }) {
       </form>
 
       <div className="topbar-actions">
+        <Link className="icon-btn topbar-mobile-only" to="/reportes" title="Reportes">
+          <Icon name="chart" size={18} />
+        </Link>
+
+        {esModerador(user) && (
+          <Link
+            className="icon-btn topbar-mobile-only"
+            to="/moderacion"
+            title={pendientes > 0 ? `${pendientes} denuncias pendientes` : "Moderación"}
+            style={{ position: "relative" }}
+          >
+            <Icon name="shield" size={18} />
+            {pendientes > 0 && <span className="badge-dot">{pendientes > 9 ? "9+" : pendientes}</span>}
+          </Link>
+        )}
         <Link
           className="icon-btn"
           to="/notificaciones"

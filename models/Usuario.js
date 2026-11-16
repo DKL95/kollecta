@@ -51,9 +51,26 @@ const usuarioSchema = new mongoose.Schema(
             default: () => new Date().toISOString()
         },
 
+        // false = baneado para siempre (solo un administrador). Ver middleware/auth.js
         activo: {
             type: Boolean,
             default: true
+        },
+
+        motivoBaneo: {
+            type: String,
+            default: ""
+        },
+
+        // Suspensión temporal puesta por moderación (1 a 30 días)
+        suspendidoHasta: {
+            type: Date,
+            default: null
+        },
+
+        motivoSuspension: {
+            type: String,
+            default: ""
         },
 
         amigos: {

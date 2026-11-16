@@ -29,6 +29,14 @@ async function tieneRol(usuarioId, minimo) {
 function requiereRol(minimo) {
     return async (req, res, next) => {
         try {
+            // requiereAuth ya revisó la cuenta en la base de datos y dejó el rol.
+            if (req.usuario?.rol) {
+                if (!alcanza(req.usuario.rol, minimo)) {
+                    return res.status(403).json({ mensaje: "No tienes permiso para hacer esto" });
+                }
+                return next();
+            }
+
             const usuario = await Usuario.findById(req.usuario?.id).select("rol activo");
 
             if (!usuario || !usuario.activo) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { apiRequest } from "../../api/client";
+import { apiRequest, BLOQUEO_KEY } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AuthVisual from "./AuthVisual";
 
@@ -8,7 +8,16 @@ export default function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  // Si la sesión se cerró por una suspensión o baneo, se explica aquí.
+  const [error, setError] = useState(() => {
+    try {
+      const mensaje = sessionStorage.getItem(BLOQUEO_KEY) || "";
+      sessionStorage.removeItem(BLOQUEO_KEY);
+      return mensaje;
+    } catch {
+      return "";
+    }
+  });
   const [sending, setSending] = useState(false);
 
   useEffect(() => {

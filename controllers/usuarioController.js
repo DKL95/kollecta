@@ -4,7 +4,9 @@ const Usuario = require("../models/Usuario");
 const Publicacion = require("../models/Publicacion");
 const {
     formatearPublicacion,
-    CAMPOS_AUTOR
+    CAMPOS_AUTOR,
+    esModeracion,
+    filtroVisible
 } = require("./publicacionController");
 const {
     guardarImagen,
@@ -90,22 +92,40 @@ async function obtenerPerfil(req, res) {
             username: req.params.username
         });
 
-        if (!usuario) {
+        const verModeracion = esModeracion(req);
+
+        // Una cuenta baneada solo la ve la moderación.
+        if (!usuario || (!usuario.activo && !verModeracion)) {
             return res.status(404).json({
                 mensaje: "Usuario no encontrado"
             });
         }
 
         const totalPublicaciones = await Publicacion.countDocuments({
-            autor: usuario._id
+            autor: usuario._id,
+            ...filtroVisible(req.usuario.id)
         });
+
+        const suspendido = Boolean(usuario.suspendidoHasta && usuario.suspendidoHasta > new Date());
 
         return res.json({
             usuario: {
                 ...usuario.aPublico(),
                 email: undefined,
                 totalPublicaciones,
-                totalAmigos: usuario.amigos.length
+                totalAmigos: usuario.amigos.length,
+                // Estado de sanciones: solo para la moderación
+                ...(verModeracion
+                    ? {
+                        moderacion: {
+                            activo: usuario.activo,
+                            motivoBaneo: usuario.motivoBaneo,
+                            suspendido,
+                            suspendidoHasta: suspendido ? usuario.suspendidoHasta : null,
+                            motivoSuspension: suspendido ? usuario.motivoSuspension : ""
+                        }
+                    }
+                    : {})
             }
         });
     } catch (error) {
@@ -131,7 +151,8 @@ async function obtenerPublicacionesDeUsuario(req, res) {
         }
 
         const publicaciones = await Publicacion.find({
-            autor: usuario._id
+            autor: usuario._id,
+            ...(esModeracion(req) ? {} : filtroVisible(req.usuario.id))
         })
             .sort({ fechaCreacion: -1 })
             .populate("autor", CAMPOS_AUTOR);

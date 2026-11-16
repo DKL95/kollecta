@@ -9,6 +9,10 @@ import Photo from "../components/Photo";
 import { categoryClass, categoryIcon } from "../utils/categories";
 import { modalidad } from "../utils/coleccion";
 import { formatMoney } from "../utils/format";
+import ReportDialog from "../components/ReportDialog";
+import ModActionDialog from "../components/ModActionDialog";
+import { useAuth } from "../context/AuthContext";
+import { esModerador } from "../utils/roles";
 
 // Galería de fotos reutilizada por el detalle de producto y el de pieza de colección.
 export function Galeria({ imagenes, titulo, categoria }) {
@@ -64,6 +68,17 @@ export default function ProductDetailPage() {
   const [reputacion, setReputacion] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [errorAccion, setErrorAccion] = useState("");
+  const { user } = useAuth();
+  const [denunciando, setDenunciando] = useState(false);
+  const [ocultando, setOcultando] = useState(false);
+
+  async function cambiarVisibilidad(ocultar, motivo = "") {
+    await apiRequest(`/moderacion/contenido/producto/${producto._id}`, {
+      method: "PATCH",
+      body: { oculto: ocultar, motivo },
+    });
+    setProducto((actual) => ({ ...actual, oculto: ocultar ? { motivo } : null }));
+  }
 
   useEffect(() => {
     let cancelado = false;
@@ -279,9 +294,55 @@ export default function ProductDetailPage() {
             </div>
           )}
 
+          {producto.oculto && (
+            <div className="mod-notice" role="status">
+              <Icon name="eyeOff" size={15} />
+              <span>
+                Oculto por moderación{producto.oculto.motivo ? `: ${producto.oculto.motivo}` : ""}. No aparece en el marketplace.
+              </span>
+            </div>
+          )}
+
+          {!producto.esMio && (
+            <div className="detail-report-row">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDenunciando(true)}>
+                <Icon name="flag" size={13} /> Denunciar artículo
+              </button>
+              {esModerador(user) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() =>
+                    producto.oculto
+                      ? cambiarVisibilidad(false).catch((e) => setErrorAccion(e.message))
+                      : setOcultando(true)
+                  }
+                >
+                  <Icon name={producto.oculto ? "eye" : "eyeOff"} size={13} />
+                  {producto.oculto ? " Volver a mostrar" : " Ocultar (moderación)"}
+                </button>
+              )}
+            </div>
+          )}
+
           {errorAccion && <p className="form-error">{errorAccion}</p>}
         </section>
       </div>
+
+      {denunciando && (
+        <ReportDialog tipo="producto" objetivo={producto._id} resumen={producto.titulo} onClose={() => setDenunciando(false)} />
+      )}
+
+      {ocultando && (
+        <ModActionDialog
+          titulo="Ocultar artículo"
+          descripcion="Deja de aparecer en el marketplace y nadie puede comprarlo. El vendedor recibe un aviso con el motivo."
+          confirmar="Ocultar"
+          peligro
+          onConfirm={({ motivo }) => cambiarVisibilidad(true, motivo)}
+          onClose={() => setOcultando(false)}
+        />
+      )}
 
       {dialogo && (
         <OrderDialog

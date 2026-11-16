@@ -8,6 +8,10 @@ import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
 import { adaptarArticulo } from "../utils/coleccion";
+import RoleBadge from "../components/RoleBadge";
+import ReportDialog from "../components/ReportDialog";
+import ModActionDialog from "../components/ModActionDialog";
+import { esAdmin, esModerador } from "../utils/roles";
 
 const TABS = ["Publicaciones", "Colección", "Grupos que sigo"];
 
@@ -31,6 +35,8 @@ export default function ProfilePage() {
   const [friendRequestId, setFriendRequestId] = useState(null);
   const [friendLoading, setFriendLoading] = useState(false);
   const [friendError, setFriendError] = useState("");
+  const [denunciando, setDenunciando] = useState(false);
+  const [sancion, setSancion] = useState(null); // "suspender" | "banear"
 
   useEffect(() => {
     setProfile(null);
@@ -227,6 +233,36 @@ export default function ProfilePage() {
     setEditing(false);
   }
 
+  const moderacion = profile.moderacion;
+  const puedoModerar = !isOwnProfile && esModerador(user) && (profile.rol === "usuario" || esAdmin(user));
+
+  async function recargarPerfil() {
+    const data = await apiRequest(`/usuarios/${encodeURIComponent(username)}`);
+    setProfile(data.usuario);
+  }
+
+  async function aplicarSancion({ motivo, dias }) {
+    if (sancion === "suspender") {
+      await apiRequest(`/moderacion/usuarios/${profile.id}/suspension`, { method: "POST", body: { dias, motivo } });
+    } else {
+      await apiRequest(`/admin/usuarios/${profile.id}/estado`, { method: "PATCH", body: { activo: false, motivo } });
+    }
+    await recargarPerfil();
+  }
+
+  async function quitarSancion() {
+    try {
+      if (moderacion && !moderacion.activo) {
+        await apiRequest(`/admin/usuarios/${profile.id}/estado`, { method: "PATCH", body: { activo: true } });
+      } else {
+        await apiRequest(`/moderacion/usuarios/${profile.id}/suspension`, { method: "DELETE" });
+      }
+      await recargarPerfil();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   function handlePostChange(updatedPost) {
     setPosts((current) =>
       current.map((post) =>
@@ -252,8 +288,21 @@ export default function ProfilePage() {
 
       <div className="profile-head">
         <div>
-          <h2>{shown.nombre || shown.username}</h2>
+          <h2>
+            {shown.nombre || shown.username} <RoleBadge rol={shown.rol} />
+          </h2>
           <div className="handle">@{shown.username}</div>
+
+          {moderacion && (!moderacion.activo || moderacion.suspendido) && (
+            <div className="mod-notice" role="status" style={{ marginTop: 10 }}>
+              <Icon name="shield" size={15} />
+              <span>
+                {!moderacion.activo
+                  ? `Cuenta baneada: ${moderacion.motivoBaneo || "sin motivo"}`
+                  : `Suspendida hasta el ${new Date(moderacion.suspendidoHasta).toLocaleDateString("es-MX")}: ${moderacion.motivoSuspension}`}
+              </span>
+            </div>
+          )}
 
           <div className="badges-row">
             {favoriteGroups[0] && (
@@ -399,9 +448,55 @@ export default function ProfilePage() {
                 {friendError}
               </p>
             )}
+
+            <div className="profile-mod-actions">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDenunciando(true)}>
+                <Icon name="flag" size={13} /> Denunciar cuenta
+              </button>
+
+              {puedoModerar && moderacion && (moderacion.suspendido || !moderacion.activo) && (
+                (moderacion.activo || esAdmin(user)) && (
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={quitarSancion}>
+                    <Icon name="shield" size={13} /> {moderacion.activo ? "Levantar suspensión" : "Reactivar cuenta"}
+                  </button>
+                )
+              )}
+
+              {puedoModerar && moderacion?.activo && !moderacion.suspendido && (
+                <button type="button" className="btn btn-danger btn-sm" onClick={() => setSancion("suspender")}>
+                  <Icon name="shield" size={13} /> Suspender
+                </button>
+              )}
+
+              {puedoModerar && esAdmin(user) && moderacion?.activo && (
+                <button type="button" className="btn btn-danger btn-sm" onClick={() => setSancion("banear")}>
+                  <Icon name="shield" size={13} /> Banear
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      {denunciando && (
+        <ReportDialog tipo="usuario" objetivo={profile.id} resumen={`@${profile.username}`} onClose={() => setDenunciando(false)} />
+      )}
+
+      {sancion && (
+        <ModActionDialog
+          titulo={sancion === "suspender" ? `Suspender a @${profile.username}` : `Banear a @${profile.username}`}
+          descripcion={
+            sancion === "suspender"
+              ? "No podrá entrar a KollectA durante ese tiempo. Queda registrado en la bitácora."
+              : "La cuenta queda dada de baja para siempre (un administrador puede reactivarla). Sus publicaciones y anuncios dejan de verse."
+          }
+          confirmar={sancion === "suspender" ? "Suspender" : "Banear"}
+          peligro
+          pedirDias={sancion === "suspender"}
+          onConfirm={aplicarSancion}
+          onClose={() => setSancion(null)}
+        />
+      )}
 
       {editing ? (
         <EditProfileForm user={user} onSaved={handleSaved} />

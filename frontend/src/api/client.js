@@ -6,6 +6,8 @@
 export const TOKEN_KEY = "kollecta_token";
 export const USER_KEY = "kollecta_usuario";
 export const SESSION_EXPIRED_EVENT = "kollecta:sesion-expirada";
+// Mensaje para la pantalla de login cuando la cuenta fue suspendida o baneada.
+export const BLOQUEO_KEY = "kollecta_bloqueo";
 
 export async function apiRequest(path, { method = "GET", body } = {}) {
   const headers = {};
@@ -31,6 +33,15 @@ export async function apiRequest(path, { method = "GET", body } = {}) {
 
   if (!response.ok) {
     if (response.status === 401 && token) {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+    // Cuenta suspendida o baneada mientras estaba usando la app: se cierra la sesión.
+    if (response.status === 403 && data.bloqueo && token) {
+      try {
+        sessionStorage.setItem(BLOQUEO_KEY, [data.mensaje, data.motivo && `Motivo: ${data.motivo}`].filter(Boolean).join(". "));
+      } catch {
+        // sin almacenamiento: solo se cierra la sesión
+      }
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
     }
     throw new Error(data.mensaje || "Ocurrió un error en el servidor");

@@ -333,4 +333,28 @@ describe("Marketplace (/api/productos) y compra-venta (/api/ordenes)", () => {
             assert.equal((await api("PATCH", `/api/admin/usuarios/${vendedora.usuario.id}/rol`, { token: vendedora.token, json: { rol: "usuario" } })).status, 400);
         });
     });
+
+    describe("reportes con órdenes reales", () => {
+        it("ventas por grupo, top vendedores y embudo cuentan las órdenes completadas", async () => {
+            // vendedora es administradora desde el bloque anterior
+            const ventas = await api("GET", "/api/reportes/ventas-por-grupo", { token: vendedora.token });
+            const twice = ventas.body.filas.find((f) => f.grupo === "TWICE");
+            assert.ok(twice && twice.ventas + twice.intercambios > 0, JSON.stringify(ventas.body.filas));
+
+            const top = await api("GET", "/api/reportes/top-vendedores", { token: vendedora.token });
+            assert.ok(top.body.filas.some((f) => f.username === vendedora.usuario.username));
+
+            const embudo = await api("GET", "/api/reportes/embudo-ordenes", { token: vendedora.token });
+            const completadas = embudo.body.filas.find((f) => f.estado === "Completada");
+            assert.ok(completadas.total > 0);
+        });
+
+        it("cada quien ve sus propias compras y ventas", async () => {
+            const mias = await api("GET", "/api/reportes/mis-operaciones", { token: compradora.token });
+            assert.equal(mias.status, 200);
+            const compras = mias.body.filas.reduce((s, f) => s + f.compras, 0);
+            assert.ok(compras > 0, JSON.stringify(mias.body.filas));
+            assert.ok(mias.body.filas.every((f) => f.ventas === 0));
+        });
+    });
 });

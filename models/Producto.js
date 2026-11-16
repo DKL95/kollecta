@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { campoOculto } = require("./oculto");
 
 // Anuncio del marketplace. Es independiente de la colección: la colección es la
 // vitrina personal y los productos son lo que alguien pone a la venta o para
@@ -40,7 +41,10 @@ const productoSchema = new mongoose.Schema(
         estado: { type: String, enum: ESTADOS_PRODUCTO, default: "activo" },
 
         // Orden aceptada que tiene apartado el producto.
-        reservadoPor: { type: mongoose.Schema.Types.ObjectId, ref: "Orden", default: null }
+        reservadoPor: { type: mongoose.Schema.Types.ObjectId, ref: "Orden", default: null },
+
+        // Ocultado por moderación (null = visible), p. ej. merch falsa
+        oculto: campoOculto
     },
     {
         collection: "productos",

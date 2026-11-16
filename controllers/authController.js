@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 
 const Usuario = require("../models/Usuario");
-const { generarToken } = require("../middleware/auth");
+const { generarToken, bloqueoDeCuenta } = require("../middleware/auth");
 const { guardarImagen } = require("../middleware/upload");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,6 +79,12 @@ async function iniciarSesion(req, res) {
 
         if (!usuario || !(await passwordCorrecta(usuario, password))) {
             return res.status(401).json({ mensaje: "Correo o contraseña incorrectos" });
+        }
+
+        // Cuenta baneada o suspendida: no se entrega token
+        const bloqueo = bloqueoDeCuenta(usuario);
+        if (bloqueo) {
+            return res.status(bloqueo.status).json(bloqueo.cuerpo);
         }
 
         res.json({

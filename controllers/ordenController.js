@@ -174,7 +174,7 @@ async function crearOrden(req, res) {
 
         const producto = await Producto.findById(productoId).populate("vendedor", "activo username");
 
-        if (!producto || !producto.vendedor?.activo || ["retirado", "vendido"].includes(producto.estado)) {
+        if (!producto || !producto.vendedor?.activo || producto.oculto || ["retirado", "vendido"].includes(producto.estado)) {
             return res.status(404).json({ mensaje: "Producto no encontrado" });
         }
 

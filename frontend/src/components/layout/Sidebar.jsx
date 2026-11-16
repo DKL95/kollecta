@@ -7,12 +7,16 @@ import Icon from "../Icon";
 import { NAV_SECTIONS } from "./navItems";
 import { socket } from "../../api/socket";
 import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
+import useDenunciasPendientes from "../../hooks/useDenunciasPendientes";
+import RoleBadge from "../RoleBadge";
+import { alcanza } from "../../utils/roles";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const notificacionesNoLeidas = useNotificacionesNoLeidas();
+  const denunciasPendientes = useDenunciasPendientes();
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
 
   // Cargar el contador real de mensajes sin leer.
@@ -77,7 +81,7 @@ export default function Sidebar() {
         <div className="nav-group" key={section.label}>
           <div className="nav-label">{section.label}</div>
 
-          {section.items.map((item) => (
+          {section.items.filter((item) => !item.minRol || alcanza(user?.rol, item.minRol)).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -98,6 +102,12 @@ export default function Sidebar() {
                     {notificacionesNoLeidas > 9
                       ? "9+"
                       : notificacionesNoLeidas}
+                  </span>
+                )
+              ) : item.to === "/moderacion" ? (
+                denunciasPendientes > 0 && (
+                  <span className="count" title={`${denunciasPendientes} denuncias pendientes`}>
+                    {denunciasPendientes > 9 ? "9+" : denunciasPendientes}
                   </span>
                 )
               ) : item.to === "/mensajes" ? (
@@ -137,7 +147,7 @@ export default function Sidebar() {
 
         <div className="info">
           <div className="name">
-            {user?.nombre || user?.username}
+            {user?.nombre || user?.username} <RoleBadge rol={user?.rol} />
           </div>
 
           <div className="handle">

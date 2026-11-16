@@ -5,6 +5,10 @@ import Icon from "./Icon";
 import Photo from "./Photo";
 import { timeAgo } from "../utils/format";
 import UserHoverCard from "./UserHoverCard";
+import RoleBadge from "./RoleBadge";
+import ReportDialog from "./ReportDialog";
+import ModActionDialog from "./ModActionDialog";
+import { esModerador } from "../utils/roles";
 
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 5;
@@ -323,6 +327,27 @@ export default function PostCard({ post, onChange, onDelete }) {
   const usuarioActualId = String(
     usuarioGuardado?.id || usuarioGuardado?._id || ""
   );
+
+  // Denuncias y moderación
+  const soyModerador = esModerador(usuarioGuardado);
+  const [denunciando, setDenunciando] = useState(null); // { tipo, objetivo, resumen }
+  const [moderando, setModerando] = useState(null); // { tipo, id, ocultar }
+
+  async function cambiarVisibilidad({ tipo, id, ocultar }, motivo) {
+    await apiRequest(`/moderacion/contenido/${tipo}/${id}`, {
+      method: "PATCH",
+      body: { oculto: ocultar, motivo },
+    });
+    if (tipo === "publicacion") {
+      if (ocultar) onDelete?.(post.id);
+      else onChange?.({ ...post, oculta: false, motivoOculto: "" });
+    } else {
+      setComments((actuales) =>
+        // La moderación sigue viendo el comentario, marcado como oculto.
+        actuales.map((c) => (c.id === id ? { ...c, oculto: ocultar, motivoOculto: ocultar ? motivo : "" } : c))
+      );
+    }
+  }
 
   const puedeEliminarComentario = (comment) =>
     post.esMia ||
@@ -1123,7 +1148,13 @@ async function handleDeleteReply(comment, reply) {
                               {comment.autor.nombre || comment.autor.username || "Usuario"}
                             </UserHoverCard>
                           ) : "Usuario"}
+                          <RoleBadge rol={comment.autor?.rol} />
                         </strong>
+                        {comment.oculto && (
+                          <span className="mod-notice-inline">
+                            <Icon name="eyeOff" size={12} /> Oculto por moderación{comment.motivoOculto ? `: ${comment.motivoOculto}` : ""}
+                          </span>
+                        )}
 
                         {editingCommentId === comment.id ? (
                           <div className="comment-edit-form">
@@ -1207,6 +1238,32 @@ async function handleDeleteReply(comment, reply) {
                             aria-label="Eliminar comentario"
                           >
                             <Icon name="trash" size={13} /> Eliminar
+                          </button>
+                        )}
+
+                        {String(comment.autor?.id || "") !== usuarioActualId && (
+                          <button
+                            type="button"
+                            className="comment-interaction-btn"
+                            onClick={() => setDenunciando({ tipo: "comentario", objetivo: comment.id, resumen: comment.texto })}
+                            aria-label="Denunciar comentario"
+                          >
+                            <Icon name="flag" size={13} /> Denunciar
+                          </button>
+                        )}
+
+                        {soyModerador && String(comment.autor?.id || "") !== usuarioActualId && (
+                          <button
+                            type="button"
+                            className="comment-interaction-btn"
+                            onClick={() =>
+                              comment.oculto
+                                ? cambiarVisibilidad({ tipo: "comentario", id: comment.id, ocultar: false }, "").catch((e) => alert(e.message))
+                                : setModerando({ tipo: "comentario", id: comment.id, ocultar: true })
+                            }
+                            aria-label={comment.oculto ? "Volver a mostrar comentario" : "Ocultar comentario"}
+                          >
+                            <Icon name={comment.oculto ? "eye" : "eyeOff"} size={13} /> {comment.oculto ? "Mostrar" : "Ocultar"}
                           </button>
                         )}
                       </div>
@@ -1423,6 +1480,7 @@ async function handleDeleteReply(comment, reply) {
             <UserHoverCard user={author}>
               <span className="handle">@{author.username}</span>
             </UserHoverCard>
+            <RoleBadge rol={author.rol} />
           </div>
 
           <div className="time">
@@ -1477,7 +1535,61 @@ async function handleDeleteReply(comment, reply) {
             </button>
           </div>
         )}
+
+        {!post.esMia && (
+          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+            {soyModerador && (
+              <button
+                type="button"
+                className="icon-btn"
+                title={post.oculta ? "Volver a mostrar (moderación)" : "Ocultar (moderación)"}
+                aria-label={post.oculta ? "Volver a mostrar publicación" : "Ocultar publicación"}
+                onClick={() =>
+                  post.oculta
+                    ? cambiarVisibilidad({ tipo: "publicacion", id: post.id, ocultar: false }, "").catch((e) => alert(e.message))
+                    : setModerando({ tipo: "publicacion", id: post.id, ocultar: true })
+                }
+                style={{ width: 32, height: 32 }}
+              >
+                <Icon name={post.oculta ? "eye" : "eyeOff"} size={15} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="icon-btn"
+              title="Denunciar publicación"
+              aria-label="Denunciar publicación"
+              onClick={() => setDenunciando({ tipo: "publicacion", objetivo: post.id, resumen: post.texto })}
+              style={{ width: 32, height: 32 }}
+            >
+              <Icon name="flag" size={15} />
+            </button>
+          </div>
+        )}
       </div>
+
+      {post.oculta && (
+        <div className="mod-notice" role="status">
+          <Icon name="eyeOff" size={15} />
+          <span>
+            {post.esMia ? "Tu publicación fue ocultada por moderación" : "Publicación oculta por moderación"}
+            {post.motivoOculto ? `: ${post.motivoOculto}` : "."} Solo {post.esMia ? "tú y la moderación la ven" : "la moderación y su autor la ven"}.
+          </span>
+        </div>
+      )}
+
+      {denunciando && <ReportDialog {...denunciando} onClose={() => setDenunciando(null)} />}
+
+      {moderando && (
+        <ModActionDialog
+          titulo={moderando.tipo === "publicacion" ? "Ocultar publicación" : "Ocultar comentario"}
+          descripcion="Dejará de verse para todos menos su autor y la moderación. Su autor recibirá un aviso con el motivo."
+          confirmar="Ocultar"
+          peligro
+          onConfirm={({ motivo }) => cambiarVisibilidad(moderando, motivo)}
+          onClose={() => setModerando(null)}
+        />
+      )}
 
       {editing ? (
         <form onSubmit={handleSaveEdit} className="post-edit-form">

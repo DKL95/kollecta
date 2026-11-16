@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { campoOculto } = require("./oculto");
 
 const comentarioSchema = new mongoose.Schema(
   {
@@ -27,7 +28,10 @@ const comentarioSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario"
       }
-    ]
+    ],
+
+    // Ocultado por moderación (null = visible)
+    oculto: campoOculto
   },
   {
     collection: "comentarios",

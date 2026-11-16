@@ -12,6 +12,7 @@ const { CATEGORIAS, CONDICIONES } = require("../models/Producto");
 const Coleccion = require("../models/Coleccion");
 const { guardarImagen } = require("../middleware/upload");
 const { rechazarPendientesDe } = require("./ordenController");
+const { alcanza } = require("../middleware/roles");
 
 const MAX_FOTOS = 10;
 const CAMPOS_VENDEDOR = "nombre username fotoPerfil activo";
@@ -66,7 +67,8 @@ function validarVenta({ disponibleCompra, disponibleIntercambio, precio }) {
 async function listarProductos(req, res) {
     try {
         const { tipo, grupo, categoria, q, vendedor } = req.query;
-        const filtro = { estado: "activo" };
+        // Lo ocultado por moderación solo lo ve su vendedor (en "mis anuncios").
+        const filtro = { estado: "activo", oculto: null };
 
         if (tipo === "venta") filtro.disponibleCompra = true;
         else if (tipo === "intercambio") filtro.disponibleIntercambio = true;
@@ -90,7 +92,10 @@ async function listarProductos(req, res) {
             }
             filtro.vendedor = id;
             // En "mis anuncios" también se ven los apartados.
-            if (vendedor === "yo") filtro.estado = { $in: ["activo", "reservado"] };
+            if (vendedor === "yo") {
+                filtro.estado = { $in: ["activo", "reservado"] };
+                delete filtro.oculto;
+            }
         }
 
         const texto = String(q || "").trim();
@@ -129,7 +134,14 @@ async function obtenerProducto(req, res) {
         const esMio = producto && String(producto.vendedor?._id) === String(req.usuario.id);
 
         // Los retirados solo los ve su dueño; los vendidos se siguen viendo (historial de órdenes).
-        if (!producto || !producto.vendedor?.activo || (producto.estado === "retirado" && !esMio)) {
+        const esModeracion = alcanza(req.usuario.rol, "moderador");
+
+        if (
+            !producto ||
+            (!producto.vendedor?.activo && !esModeracion) ||
+            (producto.estado === "retirado" && !esMio) ||
+            (producto.oculto && !esMio && !esModeracion)
+        ) {
             return res.status(404).json({ mensaje: "Producto no encontrado" });
         }
 

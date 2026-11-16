@@ -14,6 +14,9 @@ const coleccionRoutes = require("./routes/coleccionRoutes");
 const ordenRoutes = require("./routes/ordenRoutes");
 const productoRoutes = require("./routes/productoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const denunciaRoutes = require("./routes/denunciaRoutes");
+const moderacionRoutes = require("./routes/moderacionRoutes");
+const reporteRoutes = require("./routes/reporteRoutes");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
 // sin abrir el puerto real ni conectarse a la base de datos de Atlas.
@@ -39,6 +42,9 @@ app.use("/api/notificaciones", notificacionRoutes);
 app.use("/api/productos", productoRoutes);
 app.use("/api/ordenes", ordenRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/denuncias", denunciaRoutes);
+app.use("/api/moderacion", moderacionRoutes);
+app.use("/api/reportes", reporteRoutes);
 
 
 app.use("/api", (req, res) => {

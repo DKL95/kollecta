@@ -24,6 +24,14 @@ export const NAV_SECTIONS = [
       { label: "Mi perfil", icon: "user", to: "/perfil", end: true },
     ],
   },
+  {
+    // minRol: solo se muestra a ese rol o superior (el backend valida igual)
+    label: "Gestión",
+    items: [
+      { label: "Reportes", icon: "chart", to: "/reportes" },
+      { label: "Moderación", icon: "shield", to: "/moderacion", minRol: "moderador" },
+    ],
+  },
 ];
 
 export const BOTTOM_NAV_ITEMS = [

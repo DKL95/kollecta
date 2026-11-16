@@ -11,6 +11,8 @@ import PostDetailPage from "./pages/PostDetailPage";
 import HomePage from "./pages/HomePage";
 import MarketplacePage from "./pages/MarketplacePage";
 import MessagesPage from "./pages/MessagesPage";
+import ModerationPage from "./pages/ModerationPage";
+import ReportsPage from "./pages/ReportsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
@@ -45,6 +47,8 @@ const router = createBrowserRouter([
       { path: "/perfil/:username", element: <ProfilePage />, handle: { title: "Perfil" } },
       { path: "/grupos", element: <GroupsPage />, handle: { title: "Grupos", subtitle: "Sigue a tus grupos favoritos y no te pierdas su merch" } },
       { path: "/grupos/:groupName", element: <GroupDetailPage />, handle: { title: "Detalle de grupo" } },
+      { path: "/reportes", element: <ReportsPage />, handle: { title: "Reportes", subtitle: "Estadísticas según tu rol" } },
+      { path: "/moderacion", element: <ModerationPage />, handle: { title: "Moderación", subtitle: "Denuncias, sanciones y bitácora" } },
       { path: "*", element: <NotFoundPage />, handle: { title: "Página no encontrada" } },
     ],
   },

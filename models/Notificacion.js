@@ -22,7 +22,8 @@ const notificacionSchema = new mongoose.Schema(
                 "sistema",
                 "solicitud_amistad",
                 "mencion",
-                "orden"
+                "orden",
+                "moderacion"
             ],
             required: true
         },

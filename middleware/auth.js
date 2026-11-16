@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const Usuario = require("../models/Usuario");
 
 const JWT_SECRET = process.env.JWT_SECRET || "kollecta-dev-secret";
 
@@ -10,8 +11,43 @@ function generarToken(usuario) {
     );
 }
 
-// Exige un token válido en el header Authorization: Bearer <token>
-function requiereAuth(req, res, next) {
+// ¿La cuenta puede usar la app? Devuelve null si sí, o { status, cuerpo } con la
+// respuesta que hay que mandar (baneo permanente o suspensión vigente).
+function bloqueoDeCuenta(usuario) {
+    if (!usuario) {
+        return { status: 401, cuerpo: { mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" } };
+    }
+
+    if (!usuario.activo) {
+        return {
+            status: 403,
+            cuerpo: {
+                mensaje: "Tu cuenta fue dada de baja por incumplir las normas de la comunidad",
+                bloqueo: "baneo",
+                motivo: usuario.motivoBaneo || ""
+            }
+        };
+    }
+
+    if (usuario.suspendidoHasta && new Date(usuario.suspendidoHasta) > new Date()) {
+        return {
+            status: 403,
+            cuerpo: {
+                mensaje: `Tu cuenta está suspendida hasta el ${new Date(usuario.suspendidoHasta).toLocaleDateString("es-MX")}`,
+                bloqueo: "suspension",
+                hasta: usuario.suspendidoHasta,
+                motivo: usuario.motivoSuspension || ""
+            }
+        };
+    }
+
+    return null;
+}
+
+// Exige un token válido en el header Authorization: Bearer <token>.
+// Además revisa en la base de datos que la cuenta exista y no esté baneada ni
+// suspendida, así una sanción surte efecto de inmediato. Deja el rol en req.usuario.rol.
+async function requiereAuth(req, res, next) {
     const header = req.headers.authorization || "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : null;
 
@@ -19,13 +55,27 @@ function requiereAuth(req, res, next) {
         return res.status(401).json({ mensaje: "Debes iniciar sesión" });
     }
 
+    let datos;
     try {
-        req.usuario = jwt.verify(token, JWT_SECRET);
-        next();
+        datos = jwt.verify(token, JWT_SECRET);
     } catch (error) {
         return res.status(401).json({
             mensaje: "Sesión inválida o expirada"
         });
+    }
+
+    try {
+        const usuario = await Usuario.findById(datos.id)
+            .select("rol activo motivoBaneo suspendidoHasta motivoSuspension")
+            .lean();
+
+        const bloqueo = bloqueoDeCuenta(usuario);
+        if (bloqueo) return res.status(bloqueo.status).json(bloqueo.cuerpo);
+
+        req.usuario = { ...datos, rol: usuario.rol };
+        next();
+    } catch (error) {
+        next(error);
     }
 }
 
@@ -92,6 +142,7 @@ function requiereAuthVideo(req, res, next) {
 
 module.exports = {
     generarToken,
+    bloqueoDeCuenta,
     requiereAuth,
     generarTokenReproduccion,
     requiereAuthVideo

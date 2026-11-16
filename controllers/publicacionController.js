@@ -20,7 +20,18 @@ const Respuesta = require("../models/Respuesta");
 const Notificacion = require("../models/Notificacion");
 const Usuario = require("../models/Usuario");
 
-const CAMPOS_AUTOR = "nombre username fotoPerfil";
+const CAMPOS_AUTOR = "nombre username fotoPerfil rol activo";
+const { alcanza } = require("../middleware/roles");
+
+// La moderación (moderador+) puede ver contenido oculto; el resto solo el suyo.
+function esModeracion(req) {
+    return alcanza(req.usuario?.rol, "moderador");
+}
+
+// Filtro de Mongo: lo visible para todos más lo propio (aunque esté oculto).
+function filtroVisible(idUsuarioActual, campoAutor = "autor") {
+    return { $or: [{ oculto: null }, { [campoAutor]: idUsuarioActual }] };
+}
 
 // Detectar menciones y crear sus notificaciones.
 async function notificarMenciones(texto, emisorId, enlace, contexto) {
@@ -141,11 +152,16 @@ async function formatearPublicacion(publicacion, idUsuarioActual) {
             id: autor._id,
             nombre: autor.nombre,
             username: autor.username,
-            fotoPerfil: autor.fotoPerfil
+            fotoPerfil: autor.fotoPerfil,
+            rol: autor.rol || "usuario"
         },
 
         totalLikes: likes.length,
         totalComentarios,
+
+        // Ocultada por moderación: solo llega a su autor o a la moderación.
+        oculta: Boolean(publicacion.oculto),
+        motivoOculto: publicacion.oculto?.motivo || "",
 
         meGusta: idUsuarioActual
             ? likes.some(
@@ -168,17 +184,19 @@ async function buscarPorId(id) {
 // GET /api/publicaciones
 async function listarPublicaciones(req, res) {
     try {
-        const filtro = req.query.grupo
-            ? { grupo: req.query.grupo }
-            : {};
+        const filtro = {
+            ...(req.query.grupo ? { grupo: req.query.grupo } : {}),
+            ...filtroVisible(req.usuario.id)
+        };
 
         const publicaciones = await Publicacion.find(filtro)
             .sort({ fechaCreacion: -1 })
             .limit(50)
             .populate("autor", CAMPOS_AUTOR);
 
+        // Las cuentas baneadas desaparecen del feed.
         const publicacionesFormateadas = await Promise.all(
-            publicaciones.map((publicacion) =>
+            publicaciones.filter((p) => p.autor?.activo !== false).map((publicacion) =>
                 formatearPublicacion(publicacion, req.usuario.id)
             )
         );
@@ -201,7 +219,11 @@ async function obtenerPublicacion(req, res) {
         
         const publicacion = await buscarPorId(req.params.id);
 
-        if (!publicacion) {
+        const esAutor = publicacion && String(publicacion.autor?._id) === String(req.usuario.id);
+        const ocultaParaMi = publicacion && !esAutor && !esModeracion(req) &&
+            (publicacion.oculto || publicacion.autor?.activo === false);
+
+        if (!publicacion || ocultaParaMi) {
             console.log("No se encontró la publicación.");
 
             return res.status(404).json({
@@ -916,8 +938,10 @@ async function listarComentarios(req, res) {
 
         const idUsuarioActual = String(req.usuario.id);
 
+        const verOcultos = esModeracion(req);
         const comentariosDB = await Comentario.find({
-            publicacion: publicacion._id
+            publicacion: publicacion._id,
+            ...(verOcultos ? {} : filtroVisible(req.usuario.id))
         })
             .sort({ fecha: 1 })
             .populate("autor", CAMPOS_AUTOR);
@@ -940,7 +964,8 @@ async function listarComentarios(req, res) {
                 id: String(autor._id),
                 nombre: autor.nombre,
                 username: autor.username,
-                fotoPerfil: autor.fotoPerfil
+                fotoPerfil: autor.fotoPerfil,
+                rol: autor.rol || "usuario"
             };
         };
 
@@ -984,6 +1009,8 @@ async function listarComentarios(req, res) {
                 texto: comentario.texto,
                 fecha: comentario.fecha,
                 autor: formatearAutor(comentario.autor),
+                oculto: Boolean(comentario.oculto),
+                motivoOculto: comentario.oculto?.motivo || "",
 
                 likes: likes.map((id) => String(id)),
                 totalLikes: likes.length,
@@ -1796,6 +1823,8 @@ async function actualizarRespuesta(req, res) {
 
 module.exports = {
     CAMPOS_AUTOR,
+    esModeracion,
+    filtroVisible,
     formatearPublicacion,
     listarPublicaciones,
     obtenerPublicacion,

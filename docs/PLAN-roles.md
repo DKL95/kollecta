@@ -129,3 +129,40 @@ if (String(publicacion.autor) !== req.usuario.id && !(await tieneRol(req.usuario
 - **Back**: colección `reportes` + endpoints, campo `oculto`, suspensiones, bitácora.
 - **Front**: botón Reportar, `/moderacion`, insignias, `/admin`.
 - Pruebas: una por regla de la matriz del §2 (sobre todo las de "no puede").
+
+## 7. Ronda del 12 de noviembre: fase A completa + Reportes por rol (local, sin subir)
+
+**Moderación (fase A y parte de la B)**
+
+- Colecciones nuevas: `denuncias` (se llaman así para no confundirlas con la sección
+  "Reportes" de la rúbrica) y `moderaciones` (bitácora). Ya van 14 colecciones.
+- `oculto: { por, motivo, fecha }` en publicaciones, comentarios y productos. Los listados
+  lo filtran; el autor lo sigue viendo con aviso y la moderación también.
+- `suspendidoHasta` / `motivoSuspension` / `motivoBaneo` en `Usuario`. `requiereAuth` ahora
+  revisa la cuenta en la BD en cada petición y responde `403 { bloqueo, motivo, hasta }`;
+  el login también. El front cierra la sesión y muestra el motivo en el login.
+- Reglas: nadie se modera a sí mismo; un moderador no actúa sobre moderadores ni admins;
+  siempre queda al menos un admin activo; **conflicto de interés**: nadie atiende una
+  denuncia sobre sí mismo y las denuncias contra moderadores/admins solo las atiende un admin.
+- Endpoints: `POST /api/denuncias`, `GET /api/denuncias/mias`, `GET /api/denuncias` y
+  `PATCH /api/denuncias/:id` (mod+), `/api/moderacion/{resumen,usuarios,usuarios/:id/suspension,
+  contenido/:tipo/:id,bitacora}` (mod+), `PATCH /api/admin/usuarios/:id/estado` (banear/reactivar).
+- Front: botón "Denunciar" (publicaciones, comentarios, perfiles, productos), ocultar
+  rápido para moderación, insignias Mod/Admin, pantalla `/moderacion` (Denuncias, Usuarios,
+  Bitácora) con contador de pendientes en el menú.
+
+**Reportes según el rol** (`GET /api/reportes`, `GET /api/reportes/:id?desde=&hasta=&meses=`)
+
+| Rol | Reportes | Colecciones que cruza |
+|---|---|---|
+| Usuario | Mis compras y ventas por grupo · Mi actividad por mes · Mi colección contra el marketplace | ordenes⨝productos · publicaciones⨝comentarios⨝respuestas · colecciones⨝productos |
+| Moderador | Denuncias por motivo · Cuentas más denunciadas · Vendedores con cancelaciones | denuncias⨝usuarios · denuncias⨝usuarios⨝moderaciones · ordenes⨝usuarios |
+| Administrador | Ventas por grupo · Top 10 vendedores · Actividad mensual · Interés contra oferta · Embudo de órdenes · Trabajo del equipo de moderación | ordenes⨝productos · ordenes⨝usuarios⨝productos · usuarios∪publicaciones∪comentarios∪mensajes∪ordenes · usuarios∪publicaciones∪colecciones∪productos · ordenes · moderaciones⨝usuarios |
+
+Los roles son acumulativos: el admin ve los 12. Pantalla `/reportes` con gráfica, tabla,
+filtro de fechas o meses y descarga CSV. **11 de los 12 cruzan colecciones** (la rúbrica pide ≥ 4).
+
+Pruebas: `tests/moderacion.test.js` (24) y 2 más en `tests/ordenes.test.js`; total 104/104.
+
+**Pendiente**: nombrar administradores en producción (Alejandro Luna y Jesus Gonzalez) con
+`node scripts/asignarRol.js <username> administrador`; disputas de órdenes (fase B).
