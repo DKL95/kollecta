@@ -84,6 +84,17 @@ export default function NotificationsPage() {
     }
   }
 
+  async function borrarNotificacion(event, id) {
+    event.stopPropagation();
+    try {
+      await apiRequest(`/notificaciones/${id}`, { method: "DELETE" });
+      setNotifications((actuales) => actuales.filter((n) => n._id !== id));
+      window.dispatchEvent(new Event("notificaciones-actualizadas"));
+    } catch (err) {
+      setError(err.message || "No se pudo borrar la notificación");
+    }
+  }
+
   async function marcarTodasComoLeidas() {
     try {
       setSaving(true);
@@ -123,7 +134,7 @@ export default function NotificationsPage() {
       </div>
 
       {error && (
-        <div role="alert" className="sub" style={{ marginBottom: 16 }}>
+        <div role="alert" className="sub notif-error">
           {error}
           <button
             className="btn btn-ghost btn-sm"
@@ -134,7 +145,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      <div className="card" style={{ overflow: "hidden" }}>
+      <div className="card notif-list">
         {loading ? (
           <div className="notif-row">Cargando notificaciones...</div>
         ) : notifications.length === 0 ? (
@@ -150,11 +161,8 @@ export default function NotificationsPage() {
             return (
               <div
                 key={notification._id}
-                className={`notif-row ${!notification.leida ? "unread" : ""}`}
+                className={`notif-row ${!notification.leida ? "unread" : ""} ${notification.enlace ? "con-enlace" : ""}`}
                 onClick={() => abrirNotificacion(notification)}
-                style={{
-                  cursor: notification.enlace ? "pointer" : "default",
-                }}
                 role={notification.enlace ? "link" : undefined}
                 tabIndex={notification.enlace ? 0 : undefined}
                 onKeyDown={(event) => {
@@ -171,7 +179,7 @@ export default function NotificationsPage() {
                   <Icon name={iconoPorTipo(notification.tipo)} size={18} />
                 </div>
 
-                <div>
+                <div className="notif-body">
                   <div className="txt">
                     <b>{nombre}</b>{" "}
                     {notification.mensaje}
@@ -182,6 +190,17 @@ export default function NotificationsPage() {
                     {!notification.leida && " · Sin leer"}
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="icon-btn notif-delete"
+                  title="Borrar notificación"
+                  aria-label="Borrar notificación"
+                  onClick={(event) => borrarNotificacion(event, notification._id)}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <Icon name="trash" size={16} />
+                </button>
               </div>
             );
           })

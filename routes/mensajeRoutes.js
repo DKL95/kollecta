@@ -9,6 +9,8 @@ const {
     obtenerOCrearConversacion,
     obtenerMensajes,
     enviarMensaje,
+    editarMensaje,
+    eliminarMensaje,
     obtenerMensajesNoLeidos,
     alternarSilencioConversacion,
     eliminarConversacion,
@@ -47,6 +49,10 @@ router.delete(
     "/:conversacionId",
     eliminarConversacion
 );
+
+// Editar o borrar un mensaje propio
+router.patch("/:conversacionId/mensajes/:mensajeId", registrarOperacion("editar mensaje"), editarMensaje);
+router.delete("/:conversacionId/mensajes/:mensajeId", registrarOperacion("borrar mensaje"), eliminarMensaje);
 
 // Obtener los mensajes de una conversación
 router.get("/:conversacionId", obtenerMensajes);

@@ -218,6 +218,7 @@ crear("mensajes", {
       },
       "required": ["url"]
     },
+    "editadoEn": {"bsonType":["date","null"]},
     "imagenes": {"bsonType":"array"},
     "entregado": {"bsonType":["bool","null"]},
     "entregadoEn": {"bsonType":["date","null"]},

@@ -436,6 +436,96 @@ async function enviarMensaje(req, res) {
     }
 }
 
+// Busca un mensaje propio dentro de una conversación de la que el usuario forma parte.
+async function buscarMensajePropio(req, res) {
+    const { conversacionId, mensajeId } = req.params;
+
+    if (!mongoose.isValidObjectId(conversacionId) || !mongoose.isValidObjectId(mensajeId)) {
+        res.status(400).json({ mensaje: "El identificador no es válido" });
+        return null;
+    }
+
+    const conversacion = await Conversacion.findOne({ _id: conversacionId, participantes: req.usuario.id });
+    const mensaje = conversacion && (await Mensaje.findOne({ _id: mensajeId, conversacion: conversacionId }));
+
+    if (!mensaje) {
+        res.status(404).json({ mensaje: "Mensaje no encontrado" });
+        return null;
+    }
+
+    if (String(mensaje.remitente) !== String(req.usuario.id)) {
+        res.status(403).json({ mensaje: "Solo puedes modificar tus propios mensajes" });
+        return null;
+    }
+
+    return { conversacion, mensaje };
+}
+
+// Editar el texto de un mensaje propio
+async function editarMensaje(req, res) {
+    try {
+        const texto = typeof req.body?.texto === "string" ? req.body.texto.trim() : "";
+
+        if (texto.length > 5000) {
+            return res.status(400).json({ mensaje: "El mensaje no puede superar los 5000 caracteres" });
+        }
+
+        const encontrado = await buscarMensajePropio(req, res);
+        if (!encontrado) return;
+        const { conversacion, mensaje } = encontrado;
+
+        if (!texto && !mensaje.gif) {
+            return res.status(400).json({ mensaje: "El mensaje no puede quedar vacío" });
+        }
+
+        mensaje.texto = texto;
+        mensaje.editadoEn = new Date();
+        await mensaje.save();
+        await mensaje.populate("remitente", CAMPOS_USUARIO);
+
+        const io = req.app.get("io");
+        if (io) io.to(`conversacion:${conversacion._id}`).emit("mensaje:editado", mensaje);
+        avisarCambioConversaciones(req, conversacion.participantes);
+
+        res.json(mensaje);
+    } catch (error) {
+        logger.error("Error al editar mensaje:", error);
+        res.status(500).json({ mensaje: "Error al editar el mensaje" });
+    }
+}
+
+// Borrar un mensaje propio (para todos los participantes)
+async function eliminarMensaje(req, res) {
+    try {
+        const encontrado = await buscarMensajePropio(req, res);
+        if (!encontrado) return;
+        const { conversacion, mensaje } = encontrado;
+
+        await mensaje.deleteOne();
+
+        // Si era el último mensaje, la vista previa pasa al anterior.
+        if (String(conversacion.ultimoMensaje) === String(mensaje._id)) {
+            const anterior = await Mensaje.findOne({ conversacion: conversacion._id }).sort({ createdAt: -1 }).select("_id");
+            conversacion.ultimoMensaje = anterior?._id || null;
+            await conversacion.save();
+        }
+
+        const io = req.app.get("io");
+        if (io) {
+            io.to(`conversacion:${conversacion._id}`).emit("mensaje:eliminado", {
+                _id: mensaje._id,
+                conversacion: conversacion._id
+            });
+        }
+        avisarCambioConversaciones(req, conversacion.participantes);
+
+        res.json({ mensaje: "Mensaje eliminado" });
+    } catch (error) {
+        logger.error("Error al borrar mensaje:", error);
+        res.status(500).json({ mensaje: "Error al borrar el mensaje" });
+    }
+}
+
 /* ==========================================================================
    Chats grupales
    ========================================================================== */
@@ -776,6 +866,8 @@ module.exports = {
     obtenerOCrearConversacion,
     obtenerMensajes,
     enviarMensaje,
+    editarMensaje,
+    eliminarMensaje,
     obtenerMensajesNoLeidos,
     alternarSilencioConversacion,
     eliminarConversacion,

@@ -24,6 +24,12 @@ const mensajeSchema = new mongoose.Schema(
 
         gif: campoGif,
 
+        // Fecha de la última edición del texto (null si nunca se editó)
+        editadoEn: {
+            type: Date,
+            default: null
+        },
+
         imagenes: {
             type: [String],
             default: []

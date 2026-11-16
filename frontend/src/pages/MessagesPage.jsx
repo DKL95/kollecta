@@ -81,6 +81,8 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [draftGif, setDraftGif] = useState(null);
+  // Mensaje propio que se está editando: { id, texto }
+  const [editando, setEditando] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -492,6 +494,52 @@ export default function MessagesPage() {
           socket.off("mensaje:estado", actualizarEstadoMensaje);
       };
   }, []);
+
+  // Mensajes editados o borrados por su remitente (en cualquier dispositivo).
+  useEffect(() => {
+    function alEditar(mensaje) {
+      setMessages((anteriores) => anteriores.map((m) => (String(m._id) === String(mensaje._id) ? mensaje : m)));
+    }
+    function alBorrar({ _id }) {
+      setMessages((anteriores) => anteriores.filter((m) => String(m._id) !== String(_id)));
+    }
+
+    socket.on("mensaje:editado", alEditar);
+    socket.on("mensaje:eliminado", alBorrar);
+    return () => {
+      socket.off("mensaje:editado", alEditar);
+      socket.off("mensaje:eliminado", alBorrar);
+    };
+  }, []);
+
+  async function guardarEdicion(event) {
+    event.preventDefault();
+    if (!editando) return;
+
+    try {
+      const actualizado = await apiRequest(`/mensajes/${activeId}/mensajes/${editando.id}`, {
+        method: "PATCH",
+        body: { texto: editando.texto },
+      });
+      setMessages((anteriores) => anteriores.map((m) => (m._id === actualizado._id ? actualizado : m)));
+      setEditando(null);
+      cargarConversaciones();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function borrarMensaje(message) {
+    if (!window.confirm("¿Borrar este mensaje para todos?")) return;
+
+    try {
+      await apiRequest(`/mensajes/${activeId}/mensajes/${message._id}`, { method: "DELETE" });
+      setMessages((anteriores) => anteriores.filter((m) => m._id !== message._id));
+      cargarConversaciones();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   // Bajar automáticamente al mensaje más reciente.
   useEffect(() => {
@@ -970,31 +1018,41 @@ export default function MessagesPage() {
                             {obtenerNombre(message.remitente)}
                           </span>
                         )}
-                        {message.texto}
+                        {editando?.id === message._id ? (
+                          <form className="msg-edit" onSubmit={guardarEdicion}>
+                            <input
+
+                              value={editando.texto}
+                              maxLength={5000}
+                              autoFocus
+                              aria-label="Editar mensaje"
+                              onChange={(event) => setEditando({ ...editando, texto: event.target.value })}
+                              onKeyDown={(event) => event.key === "Escape" && setEditando(null)}
+                            />
+                            <button className="btn btn-primary btn-sm" type="submit">Guardar</button>
+                            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setEditando(null)}>Cancelar</button>
+                          </form>
+                        ) : (
+                          message.texto
+                        )}
                         <GifView gif={message.gif} size="sm" />
+                        {message.editadoEn && <span className="msg-edited">(editado)</span>}
 
                         {esMio && (
-                            <span
-                                title={
-                                    message.leido
-                                        ? "Leído"
-                                        : message.entregado
-                                        ? "Entregado"
-                                        : "Enviado"
-                                }
-                                style={{
-                                    display: "inline-block",
-                                    marginLeft: "8px",
-                                    fontSize: "12px",
-                                    whiteSpace: "nowrap"
-                                }}
-                            >
-                                {message.leido
-                                    ? "✓✓"
-                                    : message.entregado
-                                    ? "✓✓"
-                                    : "✓"}
-                            </span>
+                          <span className="msg-status" title={message.leido ? "Leído" : message.entregado ? "Entregado" : "Enviado"}>
+                            {message.leido || message.entregado ? "✓✓" : "✓"}
+                          </span>
+                        )}
+
+                        {esMio && editando?.id !== message._id && (
+                          <span className="msg-actions">
+                            <button type="button" title="Editar" aria-label="Editar mensaje" onClick={() => setEditando({ id: message._id, texto: message.texto || "" })}>
+                              Editar
+                            </button>
+                            <button type="button" title="Borrar" aria-label="Borrar mensaje" onClick={() => borrarMensaje(message)}>
+                              Borrar
+                            </button>
+                          </span>
                         )}
                     </div>  
                     </div>

@@ -86,6 +86,29 @@ async function marcarTodasLeidas(req, res) {
     }
 }
 
+// Borrar una notificación propia.
+async function eliminarNotificacion(req, res) {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ mensaje: "El ID de la notificación no es válido" });
+        }
+
+        const notificacion = await Notificacion.findOneAndDelete({
+            _id: req.params.id,
+            destinatario: req.usuario.id
+        });
+
+        if (!notificacion) {
+            return res.status(404).json({ mensaje: "Notificación no encontrada" });
+        }
+
+        return res.json({ mensaje: "Notificación eliminada" });
+    } catch (error) {
+        logger.error("Error al borrar notificación:", error);
+        return res.status(500).json({ mensaje: "Error al borrar la notificación" });
+    }
+}
+
 // Crear una notificación desde otros controladores.
 async function crearNotificacion({
     destinatario,
@@ -134,5 +157,6 @@ module.exports = {
     listarNotificaciones,
     marcarNotificacionLeida,
     marcarTodasLeidas,
+    eliminarNotificacion,
     crearNotificacion
 };
