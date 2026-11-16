@@ -166,3 +166,21 @@ Pruebas: `tests/moderacion.test.js` (24) y 2 más en `tests/ordenes.test.js`; to
 
 **Pendiente**: nombrar administradores en producción (Alejandro Luna y Jesus Gonzalez) con
 `node scripts/asignarRol.js <username> administrador`; disputas de órdenes (fase B).
+
+## 8. Ronda del 15 de noviembre: disputas de órdenes (fase B)
+
+- `orden.disputa`: `{ estado: abierta|resuelta, abiertaPor, motivo, detalle, fecha, estadoPrevio, moderador, resolucion: { accion, nota, fecha } }`.
+  Motivos: `no_llego`, `no_corresponde`, `falsificacion`, `no_responde`, `otro`.
+- `POST /api/ordenes/:id/disputa` (comprador o vendedor): solo con la orden aceptada, enviada o recibida
+  y una disputa abierta a la vez. **La orden se congela**: nadie la mueve hasta que se resuelva. Mensaje
+  automático en el chat y notificación a la otra parte.
+- `GET /api/ordenes/disputas?estado=abiertas|resueltas|todas` (mod+).
+- `PATCH /api/ordenes/:id/disputa` `{ accion: cancelar|completar|continuar, nota }` (mod+), con nota obligatoria:
+  - `cancelar` libera los artículos y cancela; `completar` traspasa los artículos y completa;
+    `continuar` deja la orden en su estado y la descongela.
+  - Queda en el historial de la orden ("Moderación: …"), en la bitácora (`resolver_disputa`) y avisa a las dos partes.
+  - Conflicto de interés: nadie resuelve una disputa donde participa; si participa alguien del equipo, solo un admin.
+- `/api/moderacion/resumen` ahora regresa `{ pendientes, denuncias, disputas }`; el contador del menú suma ambas.
+- Front: enlace "Abrir una disputa" en la orden, panel de la disputa (y botones para moderación) y pestaña
+  **Disputas** en `/moderacion`.
+- Pruebas: `tests/disputas.test.js` (7); total 111/111.

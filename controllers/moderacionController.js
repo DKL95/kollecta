@@ -11,6 +11,7 @@ const Denuncia = require("../models/Denuncia");
 const Moderacion = require("../models/Moderacion");
 const Usuario = require("../models/Usuario");
 const Conversacion = require("../models/Conversacion");
+const Orden = require("../models/Orden");
 const { TIPOS_DENUNCIA, MOTIVOS_DENUNCIA, ESTADOS_DENUNCIA, ACCIONES_RESOLUCION } = Denuncia;
 const { ACCIONES_MODERACION } = Moderacion;
 const {
@@ -469,8 +470,11 @@ async function listarBitacora(req, res) {
 // GET /api/moderacion/resumen → contador para el menú
 async function resumenModeracion(req, res) {
     try {
-        const pendientes = await Denuncia.countDocuments({ estado: { $in: ["abierta", "en_revision"] } });
-        res.json({ pendientes });
+        const [denuncias, disputas] = await Promise.all([
+            Denuncia.countDocuments({ estado: { $in: ["abierta", "en_revision"] } }),
+            Orden.countDocuments({ "disputa.estado": "abierta" })
+        ]);
+        res.json({ pendientes: denuncias + disputas, denuncias, disputas });
     } catch (error) {
         responderError(res, error, "No se pudo cargar el resumen");
     }

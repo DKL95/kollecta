@@ -4743,3 +4743,12 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
   .report-columns { gap: 3px; }
   .report-column-label { font-size: 10px; }
 }
+
+/* Disputas de órdenes */
+.dispute-box { display: grid; gap: 8px; margin: 12px 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elevated); }
+.dispute-box.open { border-color: var(--pink); box-shadow: inset 3px 0 0 var(--pink); }
+.dispute-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dispute-time { margin-left: auto; color: var(--text-faint); font-size: 12px; }
+.dispute-text { margin: 0; color: var(--text-dim); font-size: 13.5px; }
+.dispute-link { margin: 14px 0 0; color: var(--text-dim); font-size: 13px; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--pink); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }

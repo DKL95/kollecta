@@ -46,6 +46,28 @@ const historialSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const MOTIVOS_DISPUTA = ["no_llego", "no_corresponde", "falsificacion", "no_responde", "otro"];
+const RESOLUCIONES_DISPUTA = ["cancelar", "completar", "continuar"];
+
+const disputaSchema = new mongoose.Schema(
+    {
+        estado: { type: String, enum: ["abierta", "resuelta"], default: "abierta" },
+        abiertaPor: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario", required: true },
+        motivo: { type: String, enum: MOTIVOS_DISPUTA, required: true },
+        detalle: { type: String, default: "", maxlength: 500, trim: true },
+        fecha: { type: Date, default: Date.now },
+        // Estado en que estaba la orden al abrir la disputa.
+        estadoPrevio: { type: String, enum: ESTADOS_ORDEN, required: true },
+        moderador: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario", default: null },
+        resolucion: {
+            accion: { type: String, enum: RESOLUCIONES_DISPUTA, default: null },
+            nota: { type: String, default: "", maxlength: 500 },
+            fecha: { type: Date, default: null }
+        }
+    },
+    { _id: false }
+);
+
 const ordenSchema = new mongoose.Schema(
     {
         comprador: {
@@ -121,6 +143,13 @@ const ordenSchema = new mongoose.Schema(
             default: null
         },
 
+        // Disputa: una de las partes pide que moderación intervenga. Mientras esté
+        // abierta, la orden queda congelada (nadie la mueve) hasta que se resuelva.
+        disputa: {
+            type: disputaSchema,
+            default: null
+        },
+
         calificacion: {
             estrellas: { type: Number, min: 1, max: 5, default: null },
             comentario: { type: String, default: "", maxlength: 500, trim: true },
@@ -136,7 +165,10 @@ const ordenSchema = new mongoose.Schema(
 ordenSchema.index({ comprador: 1, createdAt: -1 });
 ordenSchema.index({ vendedor: 1, createdAt: -1 });
 ordenSchema.index({ producto: 1, estado: 1 });
+ordenSchema.index({ "disputa.estado": 1, "disputa.fecha": -1 });
 
 module.exports = mongoose.model("Orden", ordenSchema);
 module.exports.ESTADOS_ORDEN = ESTADOS_ORDEN;
 module.exports.ESTADOS_ACTIVOS = ESTADOS_ACTIVOS;
+module.exports.MOTIVOS_DISPUTA = MOTIVOS_DISPUTA;
+module.exports.RESOLUCIONES_DISPUTA = RESOLUCIONES_DISPUTA;

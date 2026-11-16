@@ -6,7 +6,7 @@
 const mongoose = require("mongoose");
 
 const Orden = require("../models/Orden");
-const { ESTADOS_ACTIVOS } = require("../models/Orden");
+const { ESTADOS_ACTIVOS, MOTIVOS_DISPUTA, RESOLUCIONES_DISPUTA } = require("../models/Orden");
 const Coleccion = require("../models/Coleccion");
 const Producto = require("../models/Producto");
 const Conversacion = require("../models/Conversacion");
@@ -14,8 +14,15 @@ const Mensaje = require("../models/Mensaje");
 const Usuario = require("../models/Usuario");
 const { crearNotificacion } = require("./notificacionController");
 const { tieneRol } = require("../middleware/roles");
+const { registrar, avisar, recortar } = require("../services/moderacion");
 
 const CAMPOS_USUARIO = "nombre username fotoPerfil";
+const CAMPOS_USUARIO_MOD = "nombre username fotoPerfil rol";
+
+// Estados en que se puede abrir una disputa: ya hay un acuerdo y todavía no se completa.
+const ESTADOS_DISPUTABLES = ["aceptada", "enviada", "recibida"];
+
+const disputaAbierta = (orden) => orden.disputa?.estado === "abierta";
 const MAX_OFRECIDOS = 5;
 
 const ETIQUETAS_ESTADO = {
@@ -334,8 +341,10 @@ async function obtenerOrden(req, res) {
         }
 
         const orden = await Orden.findById(id)
-            .populate("comprador", CAMPOS_USUARIO)
-            .populate("vendedor", CAMPOS_USUARIO);
+            .populate("comprador", CAMPOS_USUARIO_MOD)
+            .populate("vendedor", CAMPOS_USUARIO_MOD)
+            .populate("disputa.abiertaPor", "username")
+            .populate("disputa.moderador", "username");
 
         if (!orden) {
             return res.status(404).json({ mensaje: "Orden no encontrada" });
@@ -519,6 +528,10 @@ async function cambiarEstado(req, res) {
         const orden = await Orden.findById(id);
         if (!orden || !esParticipante(orden, usuarioId)) {
             return res.status(404).json({ mensaje: "Orden no encontrada" });
+        }
+
+        if (disputaAbierta(orden)) {
+            return res.status(409).json({ mensaje: "La orden está en disputa: moderación la está revisando" });
         }
 
         const miRol = rolEnOrden(orden, usuarioId);
@@ -718,7 +731,220 @@ async function rechazarPendientesDe(req, productoId, vendedorId, motivo) {
     return pendientes.length;
 }
 
+/* --------------------------------------------------------------------------
+   Disputas
+   -------------------------------------------------------------------------- */
+
+const TEXTO_MOTIVO_DISPUTA = {
+    no_llego: "el artículo no llegó",
+    no_corresponde: "lo recibido no corresponde a lo acordado",
+    falsificacion: "el artículo parece falso",
+    no_responde: "la otra persona no responde",
+    otro: "otro motivo"
+};
+
+// POST /api/ordenes/:id/disputa   body: { motivo, detalle }   (comprador o vendedor)
+async function abrirDisputa(req, res) {
+    try {
+        const usuarioId = req.usuario.id;
+        const { id } = req.params;
+        const { motivo } = req.body || {};
+        const detalle = typeof req.body?.detalle === "string" ? req.body.detalle.trim() : "";
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ mensaje: "La orden no es válida" });
+        }
+
+        if (!MOTIVOS_DISPUTA.includes(motivo)) {
+            return res.status(400).json({ mensaje: "Elige el motivo de la disputa" });
+        }
+
+        if (detalle.length > 500) {
+            return res.status(400).json({ mensaje: "El detalle no puede pasar de 500 caracteres" });
+        }
+
+        const orden = await Orden.findById(id);
+        if (!orden || !esParticipante(orden, usuarioId)) {
+            return res.status(404).json({ mensaje: "Orden no encontrada" });
+        }
+
+        if (disputaAbierta(orden)) {
+            return res.status(409).json({ mensaje: "Esta orden ya tiene una disputa abierta" });
+        }
+
+        if (!ESTADOS_DISPUTABLES.includes(orden.estado)) {
+            return res.status(409).json({ mensaje: "Solo se abre una disputa cuando la orden ya fue aceptada y aún no se completa" });
+        }
+
+        orden.disputa = {
+            estado: "abierta",
+            abiertaPor: usuarioId,
+            motivo,
+            detalle,
+            fecha: new Date(),
+            estadoPrevio: orden.estado
+        };
+        await orden.save();
+
+        const otraPersona = rolEnOrden(orden, usuarioId) === "comprador" ? orden.vendedor : orden.comprador;
+        await mensajeAutomatico(
+            req,
+            orden.conversacion,
+            usuarioId,
+            `⚠️ Abrí una disputa por "${orden.articulo.titulo}": ${TEXTO_MOTIVO_DISPUTA[motivo]}. Moderación revisará la operación.`
+        );
+        await notificar(otraPersona, usuarioId, `abrió una disputa por "${orden.articulo.titulo}"`, orden._id);
+
+        await orden.populate([
+            { path: "comprador", select: CAMPOS_USUARIO_MOD },
+            { path: "vendedor", select: CAMPOS_USUARIO_MOD },
+            { path: "disputa.abiertaPor", select: "username" }
+        ]);
+
+        return res.status(201).json({
+            mensaje: "Disputa abierta. Moderación revisará la operación.",
+            orden: respuestaOrden(orden, usuarioId)
+        });
+    } catch (error) {
+        console.error("Error al abrir la disputa:", error);
+        return res.status(500).json({ mensaje: "No se pudo abrir la disputa" });
+    }
+}
+
+// GET /api/ordenes/disputas?estado=abiertas|resueltas|todas   (moderador+)
+async function listarDisputas(req, res) {
+    try {
+        const { estado = "abiertas" } = req.query;
+        const filtros = {
+            abiertas: { "disputa.estado": "abierta" },
+            resueltas: { "disputa.estado": "resuelta" },
+            todas: { disputa: { $ne: null } }
+        };
+
+        if (!filtros[estado]) {
+            return res.status(400).json({ mensaje: "Estado no válido" });
+        }
+
+        const ordenes = await Orden.find(filtros[estado])
+            .sort({ "disputa.fecha": estado === "abiertas" ? 1 : -1 })
+            .limit(100)
+            .populate("comprador", CAMPOS_USUARIO_MOD)
+            .populate("vendedor", CAMPOS_USUARIO_MOD)
+            .populate("disputa.abiertaPor", "username")
+            .populate("disputa.moderador", "username");
+
+        return res.json({ disputas: ordenes.map((orden) => respuestaOrden(orden, req.usuario.id)) });
+    } catch (error) {
+        console.error("Error al listar disputas:", error);
+        return res.status(500).json({ mensaje: "No se pudieron cargar las disputas" });
+    }
+}
+
+const TEXTO_RESOLUCION = {
+    cancelar: "se canceló la operación y los artículos se liberaron",
+    completar: "se dio por completada la operación",
+    continuar: "la operación sigue su curso normal"
+};
+
+// PATCH /api/ordenes/:id/disputa   body: { accion: cancelar|completar|continuar, nota }   (moderador+)
+async function resolverDisputa(req, res) {
+    try {
+        const actor = { id: req.usuario.id, rol: req.usuario.rol };
+        const { id } = req.params;
+        const { accion } = req.body || {};
+        const nota = typeof req.body?.nota === "string" ? req.body.nota.trim() : "";
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ mensaje: "La orden no es válida" });
+        }
+
+        if (!RESOLUCIONES_DISPUTA.includes(accion)) {
+            return res.status(400).json({ mensaje: "La resolución debe ser cancelar, completar o continuar" });
+        }
+
+        if (!nota) {
+            return res.status(400).json({ mensaje: "Escribe la nota de la resolución; la verán las dos partes" });
+        }
+
+        if (nota.length > 500) {
+            return res.status(400).json({ mensaje: "La nota no puede pasar de 500 caracteres" });
+        }
+
+        const orden = await Orden.findById(id).populate([
+            { path: "comprador", select: CAMPOS_USUARIO_MOD },
+            { path: "vendedor", select: CAMPOS_USUARIO_MOD }
+        ]);
+
+        if (!orden) {
+            return res.status(404).json({ mensaje: "Orden no encontrada" });
+        }
+
+        if (!disputaAbierta(orden)) {
+            return res.status(409).json({ mensaje: "Esta orden no tiene una disputa abierta" });
+        }
+
+        // Conflicto de interés, igual que en las denuncias.
+        if (esParticipante(orden, actor.id)) {
+            return res.status(403).json({ mensaje: "No puedes resolver una disputa en la que participas" });
+        }
+
+        const hayEquipo = [orden.comprador, orden.vendedor].some((p) => p?.rol && p.rol !== "usuario");
+        if (hayEquipo && actor.rol !== "administrador") {
+            return res.status(403).json({ mensaje: "Solo un administrador resuelve disputas donde participa un moderador o administrador" });
+        }
+
+        const estadoPrevio = orden.estado;
+
+        if (accion === "cancelar") {
+            await liberarArticulos(orden);
+            orden.estado = "cancelada";
+        } else if (accion === "completar") {
+            await traspasarArticulos(orden);
+            orden.estado = "completada";
+        }
+
+        if (orden.estado !== estadoPrevio) {
+            orden.historial.push({ estado: orden.estado, por: actor.id, nota: recortar(`Moderación: ${nota}`, 300) });
+        }
+
+        orden.disputa.estado = "resuelta";
+        orden.disputa.moderador = actor.id;
+        orden.disputa.resolucion = { accion, nota, fecha: new Date() };
+        await orden.save();
+
+        // La persona afectada es contra quien se abrió la disputa.
+        const contra = String(orden.disputa.abiertaPor) === String(orden.comprador._id) ? orden.vendedor : orden.comprador;
+
+        await registrar({
+            actor,
+            accion: "resolver_disputa",
+            tipoObjetivo: "orden",
+            objetivo: orden._id,
+            usuarioAfectado: contra._id,
+            motivo: nota,
+            detalle: { resolucion: accion, motivo: orden.disputa.motivo, estadoPrevio, estadoFinal: orden.estado }
+        });
+
+        const aviso = `Moderación resolvió la disputa de "${orden.articulo.titulo}": ${TEXTO_RESOLUCION[accion]}. ${recortar(nota, 120)}`;
+        await avisar(orden.comprador._id, aviso, `/ordenes/${orden._id}`);
+        await avisar(orden.vendedor._id, aviso, `/ordenes/${orden._id}`);
+
+        await orden.populate([
+            { path: "disputa.abiertaPor", select: "username" },
+            { path: "disputa.moderador", select: "username" }
+        ]);
+
+        return res.json({ mensaje: "Disputa resuelta", orden: respuestaOrden(orden, actor.id) });
+    } catch (error) {
+        console.error("Error al resolver la disputa:", error);
+        return res.status(500).json({ mensaje: "No se pudo resolver la disputa" });
+    }
+}
+
 module.exports = {
+    abrirDisputa,
+    listarDisputas,
+    resolverDisputa,
     rechazarPendientesDe,
     crearOrden,
     listarOrdenes,

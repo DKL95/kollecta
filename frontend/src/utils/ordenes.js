@@ -72,3 +72,35 @@ export function siguientePaso(orden) {
       return "";
   }
 }
+
+// Disputas (deben coincidir con MOTIVOS_DISPUTA y RESOLUCIONES_DISPUTA de models/Orden.js).
+export const MOTIVOS_DISPUTA = [
+  { valor: "no_llego", etiqueta: "El artículo no llegó" },
+  { valor: "no_corresponde", etiqueta: "Lo que llegó no es lo acordado" },
+  { valor: "falsificacion", etiqueta: "El artículo parece falso" },
+  { valor: "no_responde", etiqueta: "La otra persona no responde" },
+  { valor: "otro", etiqueta: "Otro" },
+];
+
+export const ETIQUETA_MOTIVO_DISPUTA = Object.fromEntries(MOTIVOS_DISPUTA.map((m) => [m.valor, m.etiqueta]));
+
+export const ESTADOS_DISPUTABLES = ["aceptada", "enviada", "recibida"];
+
+export const RESOLUCIONES_DISPUTA = {
+  cancelar: {
+    etiqueta: "Cancelar la operación",
+    corta: "Cancelada",
+    descripcion: "La orden se cancela y los artículos apartados vuelven a estar disponibles.",
+    peligro: true,
+  },
+  completar: {
+    etiqueta: "Dar por completada",
+    corta: "Completada",
+    descripcion: "La orden se completa: el artículo pasa a la colección de quien lo compró.",
+  },
+  continuar: {
+    etiqueta: "Que siga su curso",
+    corta: "Sigue su curso",
+    descripcion: "La orden se queda en su estado actual y las dos partes pueden volver a moverla.",
+  },
+};

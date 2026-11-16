@@ -11,7 +11,8 @@ const ACCIONES_MODERACION = [
     "reactivar",
     "cambiar_rol",
     "resolver_denuncia",
-    "descartar_denuncia"
+    "descartar_denuncia",
+    "resolver_disputa"
 ];
 
 const moderacionSchema = new mongoose.Schema(
@@ -19,7 +20,7 @@ const moderacionSchema = new mongoose.Schema(
         moderador: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario", required: true },
         accion: { type: String, enum: ACCIONES_MODERACION, required: true },
 
-        // Sobre qué se actuó: publicacion, comentario, producto, usuario o denuncia.
+        // Sobre qué se actuó: publicacion, comentario, producto, usuario, denuncia u orden.
         tipoObjetivo: { type: String, required: true },
         objetivo: { type: mongoose.Schema.Types.ObjectId, required: true },
 

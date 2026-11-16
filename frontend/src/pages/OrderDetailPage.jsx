@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { UserAvatar } from "../components/Avatar";
+import DisputeDialog from "../components/DisputeDialog";
+import DisputePanel from "../components/DisputePanel";
 import EmptyState from "../components/EmptyState";
 import Icon from "../components/Icon";
 import Photo from "../components/Photo";
 import { formatMoney } from "../utils/format";
-import { ESTADOS, PASOS, accionesDisponibles, etiquetaEstado, siguientePaso } from "../utils/ordenes";
+import { useAuth } from "../context/AuthContext";
+import { ESTADOS, ESTADOS_DISPUTABLES, PASOS, accionesDisponibles, etiquetaEstado, siguientePaso } from "../utils/ordenes";
 
 function fecha(valor) {
   return new Date(valor).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
@@ -40,6 +43,8 @@ function Estrellas({ valor, onChange }) {
 
 export default function OrderDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const [disputando, setDisputando] = useState(false);
   const [orden, setOrden] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -122,7 +127,9 @@ export default function OrderDetailPage() {
   }
 
   const otra = orden.miRol === "comprador" ? orden.vendedor : orden.comprador;
-  const acciones = accionesDisponibles(orden);
+  const enDisputa = orden.disputa?.estado === "abierta";
+  const acciones = enDisputa ? [] : accionesDisponibles(orden);
+  const puedeDisputar = orden.miRol && !enDisputa && ESTADOS_DISPUTABLES.includes(orden.estado);
   const terminada = ["rechazada", "cancelada"].includes(orden.estado);
   const pasos = orden.entrega === "envio" ? PASOS : PASOS.filter((p) => p !== "enviada");
   const indiceActual = pasos.indexOf(orden.estado);
@@ -131,9 +138,15 @@ export default function OrderDetailPage() {
 
   return (
     <main className="page order-detail">
-      <Link to={`/ordenes${orden.miRol === "vendedor" ? "?vista=ventas" : ""}`} className="detail-back">
-        <span aria-hidden="true">←</span> Volver a mis órdenes
-      </Link>
+      {orden.miRol ? (
+        <Link to={`/ordenes${orden.miRol === "vendedor" ? "?vista=ventas" : ""}`} className="detail-back">
+          <span aria-hidden="true">←</span> Volver a mis órdenes
+        </Link>
+      ) : (
+        <Link to="/moderacion?vista=disputas" className="detail-back">
+          <span aria-hidden="true">←</span> Volver a disputas
+        </Link>
+      )}
 
       <div className="card order-head">
         <span className="order-head-thumb">
@@ -148,6 +161,7 @@ export default function OrderDetailPage() {
             <span className={`pill ${ESTADOS[orden.estado]?.pill || ""}`}>{etiquetaEstado(orden.estado)}</span>
             <span className="pill purple">{orden.tipo === "compra" ? "Compra" : "Intercambio"}</span>
             <span className="pill">{orden.entrega === "envio" ? "Envío" : "En persona"}</span>
+            {enDisputa && <span className="pill pink">En disputa</span>}
           </div>
         </div>
         {orden.tipo === "compra" && (
@@ -161,7 +175,9 @@ export default function OrderDetailPage() {
       <div className="order-grid">
         <section className="card order-section">
           <h3>Estado</h3>
-          <p className="order-next">{siguientePaso(orden)}</p>
+          <p className="order-next">{enDisputa ? "En pausa mientras moderación revisa la disputa." : siguientePaso(orden)}</p>
+
+          <DisputePanel orden={orden} user={user} onResolved={setOrden} />
 
           {terminada ? (
             <ol className="order-timeline">
@@ -206,6 +222,15 @@ export default function OrderDetailPage() {
                 </button>
               ))}
             </div>
+          )}
+
+          {puedeDisputar && (
+            <p className="dispute-link">
+              ¿Algo salió mal y no lo resuelven en el chat?{" "}
+              <button type="button" className="link-btn" onClick={() => setDisputando(true)}>
+                Abrir una disputa
+              </button>
+            </p>
           )}
 
           {accionError && <p className="form-error">{accionError}</p>}
@@ -289,6 +314,8 @@ export default function OrderDetailPage() {
           )}
         </aside>
       </div>
+
+      {disputando && <DisputeDialog orden={orden} onDone={setOrden} onClose={() => setDisputando(false)} />}
     </main>
   );
 }

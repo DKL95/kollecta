@@ -44,4 +44,5 @@ export const ETIQUETA_ACCION = {
   cambiar_rol: "Cambió un rol",
   resolver_denuncia: "Resolvió una denuncia",
   descartar_denuncia: "Descartó una denuncia",
+  resolver_disputa: "Resolvió una disputa",
 };

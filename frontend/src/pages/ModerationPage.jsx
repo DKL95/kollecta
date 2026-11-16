@@ -2,13 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { UserAvatar } from "../components/Avatar";
+import DisputePanel from "../components/DisputePanel";
 import EmptyState from "../components/EmptyState";
 import Icon from "../components/Icon";
 import ModActionDialog from "../components/ModActionDialog";
 import RoleBadge from "../components/RoleBadge";
 import { useAuth } from "../context/AuthContext";
 import { DENUNCIAS_ACTUALIZADAS } from "../hooks/useDenunciasPendientes";
-import { timeAgo } from "../utils/format";
+import { formatMoney, timeAgo } from "../utils/format";
+import { etiquetaEstado } from "../utils/ordenes";
 import {
   ETIQUETA_ACCION,
   ETIQUETA_MOTIVO,
@@ -269,6 +271,99 @@ function ColaDenuncias({ user }) {
           onConfirm={ejecutar}
           onClose={() => setAccion(null)}
         />
+      )}
+    </>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Pestaña: disputas de órdenes
+   -------------------------------------------------------------------------- */
+const FILTROS_DISPUTA = [
+  { valor: "abiertas", etiqueta: "Abiertas" },
+  { valor: "resueltas", etiqueta: "Resueltas" },
+  { valor: "todas", etiqueta: "Todas" },
+];
+
+function Disputas({ user }) {
+  const [estado, setEstado] = useState("abiertas");
+  const [disputas, setDisputas] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    setError("");
+    try {
+      const data = await apiRequest(`/ordenes/disputas?estado=${estado}`);
+      setDisputas(data.disputas);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  }, [estado]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  return (
+    <>
+      <div className="filter-row">
+        {FILTROS_DISPUTA.map((f) => (
+          <button key={f.valor} className={`chip ${estado === f.valor ? "active" : ""}`} onClick={() => setEstado(f.valor)}>
+            {f.etiqueta}
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="form-error">{error}</p>}
+
+      {cargando ? (
+        <EmptyState icon="bag">Cargando disputas…</EmptyState>
+      ) : disputas.length === 0 ? (
+        <EmptyState icon="checkCircle">
+          {estado === "abiertas" ? "No hay disputas abiertas. Todas las operaciones van bien." : "No hay disputas con este filtro."}
+        </EmptyState>
+      ) : (
+        <div className="mod-list">
+          {disputas.map((orden) => (
+            <article key={orden._id} className="card mod-card">
+              <header className="mod-card-head">
+                <span className="pill purple">{orden.tipo === "compra" ? "Compra" : "Intercambio"}</span>
+                <span className="pill">{etiquetaEstado(orden.estado)}</span>
+                {orden.tipo === "compra" && <span className="pill">{formatMoney(orden.precio)} MXN</span>}
+                <Link to={`/ordenes/${orden._id}`} className="mod-open-link">
+                  {orden.articulo.titulo} →
+                </Link>
+              </header>
+
+              <div className="mod-people">
+                {[
+                  ["Comprador", orden.comprador],
+                  ["Vendedor", orden.vendedor],
+                ].map(([etiqueta, persona]) => (
+                  <Link key={etiqueta} to={`/perfil/${persona.username}`} className="mod-person">
+                    <UserAvatar user={persona} size={28} fontSize={11} />
+                    <span>
+                      <small>{etiqueta}</small>@{persona.username} <RoleBadge rol={persona.rol} />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              <DisputePanel
+                orden={orden}
+                user={user}
+                onResolved={() => {
+                  avisarContador();
+                  cargar();
+                }}
+              />
+            </article>
+          ))}
+        </div>
       )}
     </>
   );
@@ -554,6 +649,7 @@ function Bitacora({ user }) {
 
 const PESTANAS = [
   { id: "denuncias", etiqueta: "Denuncias" },
+  { id: "disputas", etiqueta: "Disputas" },
   { id: "usuarios", etiqueta: "Usuarios" },
   { id: "bitacora", etiqueta: "Bitácora" },
 ];
@@ -571,7 +667,7 @@ export default function ModerationPage() {
         <div>
           <h2>Moderación</h2>
           <div className="sub">
-            Eres {ETIQUETA_ROL[user.rol].toLowerCase()}. Revisa denuncias, oculta contenido y aplica sanciones. Todo queda en la
+            Eres {ETIQUETA_ROL[user.rol].toLowerCase()}. Revisa denuncias y disputas de órdenes, oculta contenido y aplica sanciones. Todo queda en la
             bitácora.
           </div>
         </div>
@@ -592,6 +688,7 @@ export default function ModerationPage() {
       </div>
 
       {pestana === "denuncias" && <ColaDenuncias user={user} />}
+      {pestana === "disputas" && <Disputas user={user} />}
       {pestana === "usuarios" && <Usuarios user={user} />}
       {pestana === "bitacora" && <Bitacora user={user} />}
     </main>
