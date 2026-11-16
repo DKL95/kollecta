@@ -11,7 +11,7 @@ Proyecto integrador de **Programación Web II** — Facultad de Ciencias Físico
 | Derek Alejandro Luna Hernandez | 1969757 | |
 | Jesús Antonio González Leal | 2072116 | |
 | Javier Peña Reyes | 2109195 | |
-| [Nombre integrante 4] | [Matrícula] | |
+| Tania Jazmín Herrera Cavazos | 1938779 | |
 
 ## Descripción de la aplicación
 
@@ -41,51 +41,56 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Búsqueda de personas | Conectado a la base de datos |
 | Colección, mensajes (directos y grupales), notificaciones | Conectado a la base de datos |
 | Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colecciones `productos` y `ordenes`, aparte de la colección personal) |
-| Roles usuario / moderador / administrador | Base hecha (`middleware/roles.js`, `/api/admin`); plan en `docs/PLAN-roles.md` |
-| Catálogo de grupos K-pop y amigos sugeridos | Datos de ejemplo (`frontend/src/data/mockData.js`) |
+| Roles usuario / moderador / administrador, denuncias, disputas, moderación y reportes | Conectado a la base de datos (`middleware/roles.js`, `/api/admin`, `/api/moderacion`, `/api/reportes`) |
+| Catálogo de grupos K-pop (nombres, colores, fotos) | Lista fija en el frontend (`frontend/src/data/mockData.js`); lo que cada usuario sigue sí se guarda en la base |
 
 ## Estructura de carpetas
 
 ```
 WEB2/
-├── server.js                 Punto de entrada del servidor Express (API + sirve el frontend compilado)
+├── server.js                 Punto de entrada: conecta a MongoDB, Socket.IO (chat en tiempo real) y abre el puerto
+├── app.js                    Configuración de Express (rutas de la API, errores, frontend compilado); las pruebas la usan sin abrir puerto
 ├── config/
-│   └── db.js                 Conexión a MongoDB
-├── models/                   Esquemas de Mongoose
-│   ├── Usuario.js
-│   ├── Publicacion.js
-│   └── Imagen.js             Imágenes subidas (se guardan como binario en MongoDB)
-├── controllers/              Lógica de cada endpoint
-│   ├── authController.js
-│   ├── usuarioController.js
-│   ├── publicacionController.js
-│   └── imagenController.js
-├── routes/                   Definición de rutas de la API
-│   ├── authRoutes.js
-│   ├── usuarioRoutes.js
-│   ├── publicacionRoutes.js
-│   └── imagenRoutes.js
+│   ├── db.js                 Conexión a MongoDB con Mongoose
+│   └── logger.js             Bitácora con winston (logs/app.log y logs/error.log)
+├── models/                   Esquemas de Mongoose: una colección por archivo (14) + subesquemas (gif.js, oculto.js)
+├── controllers/              Lógica de cada endpoint (validaciones, consultas, respuestas JSON)
+├── routes/                   Rutas de la API: método + URL + middlewares → función del controlador
 ├── middleware/
-│   ├── auth.js               Generación y verificación de JWT
-│   └── upload.js             Subida de imágenes (Multer) y guardado en MongoDB
+│   ├── auth.js               JWT de sesión, cookie de imágenes y permisos temporales de video
+│   ├── roles.js              requiereRol(): usuario, moderador, administrador
+│   ├── upload.js             Subida de imágenes y videos (Multer) y guardado en MongoDB
+│   └── registrarOperacion.js Inicio/fin de operaciones importantes en la bitácora
+├── services/
+│   ├── moderacion.js         Sanciones, bitácora de moderación y avisos
+│   ├── videoStorage.js       Videos en GridFS (modelo ArchivoVideo para sus datos)
+│   └── gifs.js               Búsqueda en GIPHY desde el servidor (la llave no llega al navegador)
 ├── scripts/
+│   ├── crear-base.mongodb.js Script de creación de la base para mongosh (equivalente al script SQL)
+│   ├── generarCrearBase.js   Genera el script anterior a partir de models/
+│   ├── documento/            Genera el PDF técnico (base de datos, endpoints y manual)
+│   ├── demo/                 Siembra y limpia las cuentas de demostración
+│   ├── asignarRol.js         Da rol de moderador/administrador desde la terminal
 │   └── migrarUploads.js      Migración única de fotos viejas de uploads/ a MongoDB
+├── tests/                    Pruebas automáticas de la API y del frontend (node:test)
 ├── frontend/                 Aplicación React (Vite)
 │   ├── index.html
 │   ├── vite.config.js        Proxy de /api y /uploads hacia Express en desarrollo
-│   ├── public/assets/img/    Fotos estáticas (grupos, colección, avatares)
+│   ├── public/               Íconos, manifest y service worker (app instalable), fotos estáticas
 │   └── src/
 │       ├── main.jsx          Punto de entrada de React
 │       ├── App.jsx           Rutas de todas las pantallas
-│       ├── styles.css        Sistema de diseño compartido
-│       ├── api/client.js     Cliente de la API (fetch + token)
+│       ├── styles.css        Sistema de diseño compartido (claro/oscuro, adaptable a teléfono)
+│       ├── api/              Cliente de la API (fetch + token) y conexión de Socket.IO
 │       ├── context/          Sesión del usuario (AuthContext)
-│       ├── hooks/            Hooks reutilizables
-│       ├── components/       Componentes compartidos (tarjetas, avatar, íconos, layout)
+│       ├── hooks/            Hooks reutilizables (contadores, grupos seguidos, instalar app)
+│       ├── components/       Componentes compartidos (tarjetas, diálogos, selectores de emoji/GIF, layout)
 │       ├── pages/            Una página por pantalla
-│       ├── data/mockData.js  Datos de ejemplo de secciones sin backend
-│       └── utils/            Formato de dinero/fechas, categorías
-├── docs/                     PDFs de diseño técnico, mockup y rúbrica del curso
+│       ├── data/mockData.js  Catálogo fijo de grupos K-pop
+│       └── utils/            Formato de dinero/fechas, categorías, roles, emojis
+├── docs/                     PDF técnico, manual de usuario con capturas y rúbrica del curso
+├── INTEGRANTES.txt           Nombres, matrículas y enlace al repositorio
+├── render.yaml               Despliegue en Render
 ├── .env.example              Variables de entorno necesarias
 └── package.json              Scripts para correr todo el proyecto
 ```
@@ -119,39 +124,24 @@ WEB2/
 
 ## Endpoints de la API
 
-Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bearer <token>`.
+Todos bajo `/api`, en JSON. **Todos exigen token** (`Authorization: Bearer <token>`) excepto `POST /auth/register` y `POST /auth/login`. El catálogo completo (método, acceso, entrada y respuesta de cada uno) está en [`docs/KollectA-documento-tecnico.pdf`](docs/KollectA-documento-tecnico.pdf).
 
-| Método | Ruta | Descripción |
+| Recurso | Base | Operaciones |
 |---|---|---|
-| POST | `/auth/register` | Registrar usuario (`multipart/form-data`, campo `fotoPerfil` opcional). Regresa `token` y `usuario` |
-| POST | `/auth/login` | Iniciar sesión con `email` y `password`. Regresa `token` y `usuario` |
-| GET 🔒 | `/auth/me` | Datos del usuario de la sesión |
-| GET 🔒 | `/usuarios?q=texto` | Buscar usuarios por nombre o username |
-| PUT 🔒 | `/usuarios/me` | Editar perfil propio (`nombre`, `descripcion`, `fotoPerfil`, `gruposFavoritos`) |
-| GET 🔒 | `/usuarios/:username` | Perfil público de un usuario |
-| GET 🔒 | `/usuarios/:username/publicaciones` | Publicaciones de un usuario |
-| GET 🔒 | `/publicaciones?grupo=TWICE` | Listar publicaciones (filtro opcional por grupo) |
-| POST 🔒 | `/publicaciones` | Crear publicación (`texto`, `grupo`, `imagen` opcional) |
-| GET 🔒 | `/publicaciones/:id` | Obtener una publicación |
-| PUT 🔒 | `/publicaciones/:id` | Editar publicación (solo el autor) |
-| DELETE 🔒 | `/publicaciones/:id` | Eliminar publicación (solo el autor) |
-| POST 🔒 | `/publicaciones/:id/like` | Dar o quitar like |
-| GET | `/imagenes/:id` | Devuelve una imagen subida (pública, para usarla en `<img src>`) |
-| POST 🔒 | `/coleccion/articulos/:id/imagenes` | Agregar fotos a una pieza propia de la colección (máximo 10) |
-| GET 🔒 | `/productos?tipo=venta\|intercambio&grupo=&categoria=&q=&vendedor=yo` | Productos activos del marketplace (`vendedor=yo`: mis anuncios) |
-| POST 🔒 | `/productos` | Publicar producto (`multipart`: `titulo`, `grupo`, `categoria`, `condicion`, `precio`, `disponibleCompra`, `disponibleIntercambio`, `busca`, `imagenes[]`; opcional `desdeColeccion` + `fotosCopiadas` para copiar una pieza) |
-| GET 🔒 | `/productos/:id` | Detalle de un producto |
-| PUT 🔒 | `/productos/:id` | Editar mi producto (`reactivar: true` vuelve a publicar uno retirado) |
-| DELETE 🔒 | `/productos/:id` | Retirar mi producto del marketplace (cierra sus solicitudes pendientes) |
-| POST 🔒 | `/ordenes` | Crear orden `{ productoId, tipo: compra\|intercambio, entrega: envio\|en_persona, nota, ofrecidos[] }` (ofrecidos = piezas de mi colección) |
-| GET 🔒 | `/ordenes?rol=comprador\|vendedor&estado=activas` | Mis compras o mis ventas |
-| GET 🔒 | `/ordenes/:id` | Detalle (participantes, o moderador/admin) |
-| PATCH 🔒 | `/ordenes/:id/estado` | `{ estado }`: aceptada, rechazada, enviada, recibida, completada o cancelada (según quién la pide) |
-| DELETE 🔒 | `/ordenes/:id` | El comprador retira su solicitud pendiente |
-| POST 🔒 | `/ordenes/:id/calificacion` | `{ estrellas: 1-5, comentario }` (comprador, orden completada) |
-| GET 🔒 | `/ordenes/resumen/:username` | Reputación del vendedor: operaciones, calificaciones y promedio |
-| GET 🔒 | `/admin/usuarios?q=&rol=` | Listar usuarios con su rol (solo administrador) |
-| PATCH 🔒 | `/admin/usuarios/:id/rol` | Cambiar el rol de alguien (solo administrador) |
+| Autenticación | `/auth` | registro, login, sesión actual, cerrar sesión |
+| Usuarios y amistades | `/usuarios` | buscar, ver perfil, editar el propio, solicitudes de amistad (enviar, aceptar, rechazar, cancelar), quitar amigo |
+| Publicaciones | `/publicaciones` | CRUD con imágenes, videos y GIF; likes; comentarios y respuestas (CRUD + likes) |
+| Colección | `/coleccion` | CRUD de piezas de la vitrina personal |
+| Marketplace | `/productos` | CRUD de anuncios (retirar / volver a publicar) |
+| Órdenes | `/ordenes` | crear, ver, cambiar estado, retirar, calificar, disputas |
+| Mensajes | `/mensajes` | conversaciones directas y grupales; enviar, **editar y borrar** mensajes propios |
+| Notificaciones | `/notificaciones` | listar, marcar leídas, **borrar** |
+| Denuncias y moderación | `/denuncias`, `/moderacion`, `/admin` | denunciar, atender, sancionar, bitácora, roles y baneos |
+| Reportes | `/reportes` | 12 reportes que cruzan varias colecciones |
+| Archivos | `/imagenes`, `/videos` | imágenes guardadas en MongoDB; videos en GridFS con URL temporal |
+| GIFs | `/gifs` | búsqueda en GIPHY a través del servidor |
+
+**Imágenes y videos**: las etiquetas `<img>` y `<video>` no pueden mandar el header `Authorization`. Por eso, al iniciar sesión el servidor deja una cookie `httpOnly` con un token de solo lectura que únicamente abre `/api/imagenes/:id` (no sirve como sesión para el resto de la API), y los videos se piden con una URL firmada que vence en 3 minutos.
 
 ## Manual de usuario
 
@@ -215,7 +205,7 @@ Agrega `MONGODB_URI_TEST` a tu `.env` (puede ser la misma URI de Atlas: las prue
 npm test
 ```
 
-Cubre registro, login, JWT, perfil, búsqueda, publicaciones (CRUD, likes y permisos), imágenes, colección, marketplace y órdenes, disputas, roles y moderación, reportes, logs, el script de la base y las utilidades del frontend. Requiere Node 21 o superior.
+Cubre registro, login, JWT, perfil, búsqueda, publicaciones (CRUD, likes y permisos), imágenes y videos protegidos, mensajes y notificaciones, colección, marketplace y órdenes, disputas, roles y moderación, reportes, logs, el script de la base y las utilidades del frontend. Requiere Node 21 o superior.
 
 Para comprobar además que el script de la base acepta todo lo que guarda la app, corre las pruebas con `CON_ESQUEMA=1`: cada base de prueba se crea con `scripts/crear-base.mongodb.js` (validadores `$jsonSchema` activos).
 

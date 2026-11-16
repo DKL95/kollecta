@@ -123,6 +123,8 @@ Si tu cuenta está suspendida o baneada, aquí aparece el motivo y, si es una su
 2. **Marcar todo como leído.**
 3. **Campana:** desde cualquier pantalla muestra cuántas notificaciones tienes sin leer.
 
+Para quitar una notificación de la lista, usa el **bote de basura** a su derecha.
+
 ---
 
 ## 8. Mensajes y chats grupales
@@ -134,6 +136,8 @@ Si tu cuenta está suspendida o baneada, aquí aparece el motivo y, si es una su
 3. **Conversación:** muestra el último mensaje y la hora. Cuando haces una compra o un intercambio, el chat con la otra persona se abre solo.
 4. **Opciones de la conversación:** ver participantes y, en un grupo, cambiar el nombre, agregar o quitar personas (si eres administrador del grupo) o **Salir del grupo**.
 5. **Escribe un mensaje** y pulsa **Enviar**. La palomita ✓ indica que se entregó. Los mensajes llegan en tiempo real. A la izquierda del campo, **😊** agrega emojis y **GIF** manda un GIF animado.
+
+**Editar o borrar un mensaje.** Pasa el cursor sobre un mensaje tuyo (en el teléfono siempre se ven) y elige **Editar** o **Borrar**. Un mensaje editado muestra *(editado)*; uno borrado desaparece para todos los participantes.
 
 ---
 

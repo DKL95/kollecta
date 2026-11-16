@@ -27,7 +27,8 @@ module.exports = [
                 "201 { token, usuario }"),
             E("POST", "/login", "publico", "Inicia sesión. Rechaza cuentas baneadas o suspendidas.",
                 "{ email, password }", "{ token, usuario }"),
-            E("GET", "/me", "token", "Datos del usuario de la sesión.", "—", "{ usuario }")
+            E("GET", "/me", "token", "Datos del usuario de la sesión (renueva la cookie de imágenes).", "—", "{ usuario }"),
+            E("POST", "/logout", "token", "Cierra sesión: borra la cookie de imágenes.", "—", "{ mensaje }")
         ]
     },
     {
@@ -96,7 +97,7 @@ module.exports = [
         base: "/api",
         archivo: "imagenRoutes.js / videoRoutes.js",
         endpoints: [
-            E("GET", "/imagenes/:id", "publico", "Devuelve una imagen guardada en MongoDB (ver nota de seguridad).", "—", "binario (image/*)"),
+            E("GET", "/imagenes/:id", "token", "Devuelve una imagen guardada en MongoDB. Acepta el token por header o la cookie de imágenes (ver nota de seguridad).", "header Bearer o cookie kollecta_medios", "binario (image/*)"),
             E("GET", "/videos/:id/playback-url", "token", "Genera una URL firmada y temporal para reproducir un video.", "—", "{ url }"),
             E("GET", "/videos/:id", "firmado", "Transmite el video por rangos (HTTP 206).", "query: token (firmado) o header Bearer", "binario (video/*)")
         ]
@@ -120,6 +121,8 @@ module.exports = [
             E("GET", "/no-leidos", "token", "Total de mensajes sin leer.", "—", "{ noLeidos }"),
             E("GET", "/:conversacionId", "token", "Mensajes de una conversación (y los marca como leídos).", "—", "[ mensaje ]"),
             E("POST", "/:conversacionId", "token", "Envía un mensaje (texto, emojis y/o GIF). También se emite por Socket.IO.", "{ texto?, gif? }", "201 mensaje"),
+            E("PATCH", "/:conversacionId/mensajes/:mensajeId", "token", "Edita el texto de un mensaje propio (queda marcado como editado).", "{ texto }", "mensaje"),
+            E("DELETE", "/:conversacionId/mensajes/:mensajeId", "token", "Borra un mensaje propio para todos.", "—", "{ mensaje }"),
             E("PATCH", "/:conversacionId/silenciar", "token", "Silencia o reactiva las notificaciones de un chat.", "—", "{ silenciada, mensaje }"),
             E("DELETE", "/:conversacionId", "token", "Quita la conversación de mi lista.", "—", "{ mensaje }"),
             E("POST", "/grupos", "token", "Crea un chat grupal.", "{ nombre, participantes[] }", "201 conversacion"),
@@ -135,7 +138,8 @@ module.exports = [
         endpoints: [
             E("GET", "/", "token", "Mis notificaciones.", "—", "{ notificaciones, noLeidas }"),
             E("PATCH", "/:id/leida", "token", "Marca una notificación como leída.", "—", "{ notificacion }"),
-            E("PATCH", "/leidas/todas", "token", "Marca todas como leídas.", "—", "{ mensaje }")
+            E("PATCH", "/leidas/todas", "token", "Marca todas como leídas.", "—", "{ mensaje }"),
+            E("DELETE", "/:id", "token", "Borra una notificación propia.", "—", "{ mensaje }")
         ]
     },
     {
