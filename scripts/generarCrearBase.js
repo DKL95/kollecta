@@ -200,4 +200,4 @@ if (require.main === module) {
     console.log(`Generado ${path.relative(process.cwd(), salida)} con ${colecciones} colecciones`);
 }
 
-module.exports = { generar };
+module.exports = { generar, DESCRIPCIONES };

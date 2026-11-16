@@ -157,6 +157,18 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 
 [`docs/manual/MANUAL-usuario.md`](docs/manual/MANUAL-usuario.md): una sección por pantalla, con capturas numeradas, roles, flujo de órdenes y disputas, reportes y moderación.
 
+## Documento técnico (PDF)
+
+[`docs/KollectA-documento-tecnico.pdf`](docs/KollectA-documento-tecnico.pdf): arquitectura, pantallas y rutas, diseño de la base de datos (diagrama entidad-relación y diccionario de datos), descripción de los 85 endpoints, reportes, seguridad, sistema de diseño y el manual de usuario con capturas.
+
+Casi todo se genera desde el código (modelos, `App.jsx`, `routes/`, reportes y el manual). Para regenerarlo, con Edge o Chrome instalados:
+
+```bash
+npm run documento
+```
+
+Si agregas o cambias una ruta, documéntala en `scripts/documento/endpoints.js`: el generador y `tests/documento.test.js` fallan si el catálogo no coincide con `routes/*.js`.
+
 ## Cómo ejecutar
 
 Requisitos: Node.js 18 o superior.

@@ -9,6 +9,7 @@
     "start": "node server.js",
     "migrar-uploads": "node scripts/migrarUploads.js",
     "generar-base": "node scripts/generarCrearBase.js",
+    "documento": "node scripts/documento/generarDocumento.js",
     "test": "node --test \"tests/*.test.*\""
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "marked": "^15.0.12"
   }
 }
