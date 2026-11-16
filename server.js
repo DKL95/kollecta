@@ -36,6 +36,9 @@ io.use((socket, next) => {
 
         const usuario = jwt.verify(token, JWT_SECRET);
 
+        // Los permisos de solo lectura (imágenes, video) no abren el chat.
+        if (usuario.tipo) throw new Error("No es un token de sesión");
+
         socket.data.usuarioId = usuario.id;
 
         next();

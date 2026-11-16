@@ -19,6 +19,7 @@ const moderacionRoutes = require("./routes/moderacionRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
 const gifRoutes = require("./routes/gifRoutes");
 const logger = require("./config/logger");
+const { requiereAuthMedios } = require("./middleware/auth");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
 // sin abrir el puerto real ni conectarse a la base de datos de Atlas.
@@ -30,7 +31,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Fotos subidas antes de guardarlas en MongoDB (rutas antiguas /uploads/...)
-app.use("/uploads", express.static(CARPETA_UPLOADS));
+app.use("/uploads", requiereAuthMedios, express.static(CARPETA_UPLOADS));
 
 // API
 app.use("/api/auth", authRoutes);
