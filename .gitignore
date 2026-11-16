@@ -24,3 +24,8 @@ build/
 
 # Archivos subidos por usuarios
 uploads/
+
+# Datos de demostración (se generan con npm run sembrar-demo)
+scripts/demo/dibujos/
+scripts/demo/.cuentas-demo.json
+docs/.documento-tecnico.html

@@ -4,6 +4,7 @@ const Conversacion = require("../models/Conversacion");
 const Mensaje = require("../models/Mensaje");
 const Usuario = require("../models/Usuario");
 const logger = require("../config/logger");
+const { normalizarGif, ErrorGif } = require("../services/gifs");
 
 // Obtener las conversaciones del usuario autenticado
 async function obtenerConversaciones(req, res) {
@@ -335,13 +336,21 @@ async function enviarMensaje(req, res) {
             ? req.body.texto.trim()
             : "";
 
+        let gif;
+        try {
+            gif = normalizarGif(req.body?.gif);
+        } catch (error) {
+            if (!(error instanceof ErrorGif)) throw error;
+            return res.status(400).json({ mensaje: error.message });
+        }
+
         if (!mongoose.isValidObjectId(conversacionId)) {
             return res.status(400).json({
                 mensaje: "El identificador de la conversación no es válido"
             });
         }
 
-        if (!texto) {
+        if (!texto && !gif) {
             return res.status(400).json({
                 mensaje: "Escribe un mensaje antes de enviarlo"
             });
@@ -376,6 +385,7 @@ async function enviarMensaje(req, res) {
             conversacion: conversacionId,
             remitente: usuarioId,
             texto,
+            gif,
             entregado: false,
             entregadoEn: null,
             leido: false,

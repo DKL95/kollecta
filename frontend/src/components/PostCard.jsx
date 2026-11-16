@@ -9,6 +9,9 @@ import RoleBadge from "./RoleBadge";
 import ReportDialog from "./ReportDialog";
 import ModActionDialog from "./ModActionDialog";
 import { esModerador } from "../utils/roles";
+import EmojiPicker from "./EmojiPicker";
+import GifPicker from "./GifPicker";
+import GifView from "./GifView";
 
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 5;
@@ -448,6 +451,7 @@ export default function PostCard({ post, onChange, onDelete }) {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
+  const [commentGif, setCommentGif] = useState(null);
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
 
@@ -466,6 +470,7 @@ export default function PostCard({ post, onChange, onDelete }) {
     });
   }
   const [replyText, setReplyText] = useState("");
+  const [replyGif, setReplyGif] = useState(null);
   const [sendingReply, setSendingReply] = useState(false);
 
   // Estado y lógica para editar comentarios y respuestas.
@@ -742,14 +747,14 @@ export default function PostCard({ post, onChange, onDelete }) {
     event.preventDefault();
 
     const textoComentario = commentText.trim();
-    if (!textoComentario || sendingComment) return;
+    if ((!textoComentario && !commentGif) || sendingComment) return;
 
     setSendingComment(true);
 
     try {
       const data = await apiRequest(`/publicaciones/${post.id}/comentarios`, {
         method: "POST",
-        body: { texto: textoComentario },
+        body: { texto: textoComentario, gif: commentGif },
       });
 
       if (data.comentario) {
@@ -757,6 +762,7 @@ export default function PostCard({ post, onChange, onDelete }) {
       }
 
       setCommentText("");
+      setCommentGif(null);
 
       onChange({
         ...post,
@@ -1067,7 +1073,7 @@ async function handleDeleteReply(comment, reply) {
   async function handleReplySubmit(event) {
     event.preventDefault();
 
-    if (!replyingTo || !replyText.trim() || sendingReply) return;
+    if (!replyingTo || (!replyText.trim() && !replyGif) || sendingReply) return;
 
     setSendingReply(true);
 
@@ -1078,6 +1084,7 @@ async function handleDeleteReply(comment, reply) {
           method: "POST",
           body: {
             texto: replyText.trim(),
+            gif: replyGif,
             responderA: replyingTo.targetId,
           },
         }
@@ -1100,6 +1107,7 @@ async function handleDeleteReply(comment, reply) {
       }
 
       setReplyText("");
+      setReplyGif(null);
       setReplyingTo(null);
 
       // Cada respuesta también cuenta como comentario de la publicación.
@@ -1187,7 +1195,10 @@ async function handleDeleteReply(comment, reply) {
                             </div>
                           </div>
                         ) : (
-                          <p>{renderTextWithMentions(comment.texto)}</p>
+                          <>
+                            {comment.texto && <p>{renderTextWithMentions(comment.texto)}</p>}
+                            <GifView gif={comment.gif} size="sm" />
+                          </>
                         )}
                       </div>
 
@@ -1335,7 +1346,10 @@ async function handleDeleteReply(comment, reply) {
                                   </div>
                                 </div>
                               ) : (
-                                <p>{renderTextWithMentions(reply.texto)}</p>
+                                <>
+                                  {reply.texto && <p>{renderTextWithMentions(reply.texto)}</p>}
+                                  <GifView gif={reply.gif} size="sm" />
+                                </>
                               )}
                             </div>
 
@@ -1406,11 +1420,14 @@ async function handleDeleteReply(comment, reply) {
                             autoFocus
                           />
 
+                          <EmojiPicker onSelect={(emoji) => setReplyText((actual) => (actual + emoji).slice(0, 500))} disabled={sendingReply} align="right" />
+                          <GifPicker onSelect={setReplyGif} disabled={sendingReply} align="right" />
+
                           <button
                             type="submit"
                             className="btn btn-primary btn-sm"
                             disabled={
-                              sendingReply || !replyText.trim()
+                              sendingReply || (!replyText.trim() && !replyGif)
                             }
                           >
                             {sendingReply
@@ -1424,11 +1441,13 @@ async function handleDeleteReply(comment, reply) {
                             onClick={() => {
                               setReplyingTo(null);
                               setReplyText("");
+                              setReplyGif(null);
                             }}
                             disabled={sendingReply}
                           >
                             Cancelar
                           </button>
+                          {replyGif && <div className="form-gif-preview"><GifView gif={replyGif} size="sm" onRemove={() => setReplyGif(null)} /></div>}
                         </form>
                       )}
                     </div>
@@ -1452,15 +1471,19 @@ async function handleDeleteReply(comment, reply) {
               ariaLabel="Escribe un comentario"
             />
 
+            <EmojiPicker onSelect={(emoji) => setCommentText((actual) => (actual + emoji).slice(0, 500))} disabled={sendingComment} align="right" />
+            <GifPicker onSelect={setCommentGif} disabled={sendingComment} align="right" />
+
             <button
               type="submit"
               className="btn btn-primary btn-sm"
               disabled={
-                sendingComment || !commentText.trim()
+                sendingComment || (!commentText.trim() && !commentGif)
               }
             >
               {sendingComment ? "Enviando..." : "Enviar"}
             </button>
+            {commentGif && <div className="form-gif-preview"><GifView gif={commentGif} size="sm" onRemove={() => setCommentGif(null)} /></div>}
           </form>
         </section>
 
@@ -1848,7 +1871,8 @@ async function handleDeleteReply(comment, reply) {
         </form>
       ) : (
         <>
-          <p className="post-text">{renderTextWithMentions(post.texto)}</p>
+          {post.texto && <p className="post-text">{renderTextWithMentions(post.texto)}</p>}
+          <GifView gif={post.gif} />
 
           {(() => {
             const mediaItems = [

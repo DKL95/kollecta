@@ -23,6 +23,18 @@ const Usuario = require("../models/Usuario");
 const CAMPOS_AUTOR = "nombre username fotoPerfil rol activo";
 const { alcanza } = require("../middleware/roles");
 const logger = require("../config/logger");
+const { normalizarGif, ErrorGif } = require("../services/gifs");
+
+// Lee el GIF del cuerpo; responde 400 si no es válido (regresa undefined en ese caso).
+function leerGif(req, res) {
+    try {
+        return { gif: normalizarGif(req.body?.gif) };
+    } catch (error) {
+        if (!(error instanceof ErrorGif)) throw error;
+        res.status(400).json({ mensaje: error.message });
+        return undefined;
+    }
+}
 
 // La moderación (moderador+) puede ver contenido oculto; el resto solo el suyo.
 function esModeracion(req) {
@@ -147,6 +159,7 @@ async function formatearPublicacion(publicacion, idUsuarioActual) {
         imagenes,
         imagen: imagenes[0] || "",
         videos: publicacion.videos || [],
+        gif: publicacion.gif || null,
         fechaCreacion: publicacion.fechaCreacion,
 
         autor: {
@@ -279,7 +292,16 @@ async function crearPublicacion(req, res) {
         const cuerpo = req.body || {};
         const texto = (cuerpo.texto || "").trim();
 
-        if (!texto) {
+        let gif;
+        try {
+            gif = normalizarGif(cuerpo.gif);
+        } catch (error) {
+            if (!(error instanceof ErrorGif)) throw error;
+            await limpiarTemporales();
+            return res.status(400).json({ mensaje: error.message });
+        }
+
+        if (!texto && !gif) {
             await limpiarTemporales();
 
             return res.status(400).json({
@@ -346,7 +368,8 @@ async function crearPublicacion(req, res) {
             texto,
             grupo: cuerpo.grupo || "",
             imagenes: imagenesGuardadas,
-            videos: videosGuardados
+            videos: videosGuardados,
+            gif
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
@@ -485,8 +508,18 @@ async function actualizarPublicacion(req, res) {
             videosEliminados
         } = req.body || {};
 
+        if (req.body?.gif !== undefined) {
+            try {
+                publicacion.gif = normalizarGif(req.body.gif);
+            } catch (error) {
+                if (!(error instanceof ErrorGif)) throw error;
+                await limpiarTemporales();
+                return res.status(400).json({ mensaje: error.message });
+            }
+        }
+
         if (texto !== undefined) {
-            if (typeof texto !== "string" || !texto.trim()) {
+            if (typeof texto !== "string" || (!texto.trim() && !publicacion.gif)) {
                 await limpiarTemporales();
 
                 return res.status(400).json({
@@ -833,8 +866,11 @@ async function agregarComentario(req, res) {
         }
 
         const texto = (req.body.texto || "").trim();
+        const lectura = leerGif(req, res);
+        if (!lectura) return;
+        const { gif } = lectura;
 
-        if (!texto) {
+        if (!texto && !gif) {
             return res.status(400).json({
                 mensaje: "El comentario no puede estar vacío"
             });
@@ -850,7 +886,8 @@ async function agregarComentario(req, res) {
         const comentario = await Comentario.create({
             publicacion: publicacion._id,
             autor: req.usuario.id,
-            texto
+            texto,
+            gif
         });
 
         await comentario.populate("autor", CAMPOS_AUTOR);
@@ -863,8 +900,9 @@ async function agregarComentario(req, res) {
 
         if (idAutorPublicacion !== idAutorComentario) {
             try {
-                const textoNotificacion =
-                    texto.length > 100
+                const textoNotificacion = !texto
+                    ? "GIF"
+                    : texto.length > 100
                         ? `${texto.slice(0, 100)}...`
                         : texto;
 
@@ -898,6 +936,7 @@ async function agregarComentario(req, res) {
             comentario: {
                 id: String(comentario._id),
                 texto: comentario.texto,
+                gif: comentario.gif || null,
                 fecha: comentario.fecha,
 
                 autor: {
@@ -984,6 +1023,7 @@ async function listarComentarios(req, res) {
             respuestasPorComentario.get(idComentario).push({
                 id: String(respuesta._id),
                 texto: respuesta.texto,
+                gif: respuesta.gif || null,
                 fecha: respuesta.fecha,
                 autor: formatearAutor(respuesta.autor),
 
@@ -1008,6 +1048,7 @@ async function listarComentarios(req, res) {
             return {
                 id: String(comentario._id),
                 texto: comentario.texto,
+                gif: comentario.gif || null,
                 fecha: comentario.fecha,
                 autor: formatearAutor(comentario.autor),
                 oculto: Boolean(comentario.oculto),
@@ -1195,8 +1236,11 @@ async function agregarRespuesta(req, res) {
         }
 
         const texto = (req.body.texto || "").trim();
+        const lectura = leerGif(req, res);
+        if (!lectura) return;
+        const { gif } = lectura;
 
-        if (!texto) {
+        if (!texto && !gif) {
             return res.status(400).json({
                 mensaje: "La respuesta no puede estar vacía"
             });
@@ -1232,6 +1276,7 @@ async function agregarRespuesta(req, res) {
             publicacion: publicacion._id,
             autor: req.usuario.id,
             texto,
+            gif,
             responderA,
             mencionado
         });
@@ -1272,6 +1317,7 @@ async function agregarRespuesta(req, res) {
             respuesta: {
                 id: String(respuesta._id),
                 texto: respuesta.texto,
+                gif: respuesta.gif || null,
                 fecha: respuesta.fecha,
                 autor: formatearAutor(respuesta.autor),
 

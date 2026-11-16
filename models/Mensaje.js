@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { campoGif } = require("./gif");
 
 const mensajeSchema = new mongoose.Schema(
     {
@@ -20,6 +21,8 @@ const mensajeSchema = new mongoose.Schema(
             maxlength: 5000,
             trim: true
         },
+
+        gif: campoGif,
 
         imagenes: {
             type: [String],

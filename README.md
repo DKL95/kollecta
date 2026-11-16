@@ -157,6 +157,18 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 
 [`docs/manual/MANUAL-usuario.md`](docs/manual/MANUAL-usuario.md): una sección por pantalla, con capturas numeradas, roles, flujo de órdenes y disputas, reportes y moderación.
 
+## Datos de demostración
+
+Para enseñar la app con movimiento real (publicaciones, compras, ventas, reseñas, una disputa y una denuncia) hay un script que lo crea **a través de la API**, como lo haría una persona. Todo queda marcado como demo: el nombre dice "· Demo" y el correo es `@demo.kollecta`. Las imágenes son dibujos originales que genera `scripts/demo/dibujos.js` (no usa fotos de terceros).
+
+```bash
+DEMO_URL=https://kollecta.onrender.com npm run sembrar-demo    # o http://localhost:3000
+npm run limpiar-demo                    # muestra qué se borraría (usa MONGODB_URI del .env)
+npm run limpiar-demo -- --confirmar     # borra todas las cuentas demo y lo que crearon
+```
+
+Las contraseñas de las cuentas demo quedan en `scripts/demo/.cuentas-demo.json`, que Git ignora. Si un nombre de usuario ya existe, el script usa otra variante.
+
 ## Documento técnico (PDF)
 
 [`docs/KollectA-documento-tecnico.pdf`](docs/KollectA-documento-tecnico.pdf): arquitectura, pantallas y rutas, diseño de la base de datos (diagrama entidad-relación y diccionario de datos), descripción de los 85 endpoints, reportes, seguridad, sistema de diseño y el manual de usuario con capturas.
@@ -178,6 +190,7 @@ Requisitos: Node.js 18 o superior.
    npm install
    ```
 2. Copiar `.env.example` como `.env` y poner la cadena de conexión de MongoDB Atlas y un `JWT_SECRET`.
+   - Opcional: `GIPHY_API_KEY` (gratis en https://developers.giphy.com) para el buscador de GIFs de publicaciones, comentarios y chat. Sin ella todo funciona, pero el botón **GIF** avisa que no está configurado. En Render se agrega en *Environment*.
 3. **Desarrollo** (backend en :3000 + frontend con recarga en caliente en :5173):
    ```bash
    npm run dev

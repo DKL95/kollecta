@@ -4777,3 +4777,61 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
 .review-stars .on { color: var(--gold); }
 .review-text { margin: 0; font-size: 14px; }
 .review-meta { color: var(--text-faint); font-size: 12px; }
+
+/* ===== Emojis y GIFs ===== */
+.picker { position: relative; display: inline-flex; flex-shrink: 0; }
+.picker-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 34px; padding: 0 8px;
+  border-radius: var(--radius-pill); border: 1px solid var(--border-strong);
+  background: var(--card); color: var(--text); font-size: 17px; line-height: 1;
+}
+.picker-toggle:hover:not(:disabled) { background: var(--card-hover); border-color: var(--pink); }
+.picker-toggle:disabled { opacity: .5; cursor: not-allowed; }
+.gif-toggle { font-size: 11px; font-weight: 800; letter-spacing: .5px; }
+.picker-panel {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-2); padding: 10px;
+}
+.picker-panel.align-right { left: auto; right: 0; }
+/* En el chat y los comentarios el campo está abajo: el panel abre hacia arriba. */
+.chat-input-row .picker-panel,
+.post-comment-form .picker-panel,
+.post-reply-form .picker-panel { top: auto; bottom: calc(100% + 8px); }
+
+.emoji-panel { width: 300px; }
+.emoji-tabs { display: flex; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.emoji-tabs button { flex: 1; background: none; border: 0; border-radius: var(--radius-sm); font-size: 18px; padding: 4px 0; }
+.emoji-tabs button.active { background: var(--card-hover); box-shadow: inset 0 -2px 0 var(--pink); }
+.emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; max-height: 210px; overflow-y: auto; }
+.emoji-grid button { background: none; border: 0; border-radius: 8px; font-size: 21px; padding: 4px 0; line-height: 1.2; }
+.emoji-grid button:hover { background: var(--card-hover); }
+
+.gif-panel { width: 340px; }
+.gif-search {
+  width: 100%; padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong); background: var(--card); color: var(--text);
+}
+.gif-grid { columns: 2; column-gap: 6px; max-height: 300px; overflow-y: auto; }
+.gif-grid button { display: block; width: 100%; padding: 0; margin: 0 0 6px; border: 0; background: var(--card); border-radius: var(--radius-sm); overflow: hidden; break-inside: avoid; }
+.gif-grid img { display: block; width: 100%; height: auto; }
+.gif-grid button:hover { outline: 2px solid var(--pink); }
+.picker-status { color: var(--text-dim); font-size: 13px; text-align: center; margin: 12px 0; }
+.gif-credit { color: var(--text-faint); font-size: 10px; text-align: right; margin: 6px 2px 0; letter-spacing: .3px; }
+
+.gif-view { position: relative; display: inline-block; max-width: 100%; margin-top: 8px; border-radius: var(--radius-md); overflow: hidden; background: var(--card); vertical-align: top; }
+.gif-view img { display: block; width: 100%; height: auto; max-height: 360px; object-fit: contain; }
+.gif-md { width: min(100%, 420px); }
+.gif-sm { width: min(100%, 220px); }
+.gif-sm img { max-height: 200px; }
+.gif-badge { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
+.gif-remove { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(0,0,0,.7); color: #fff; font-size: 18px; line-height: 1; }
+.bubble .gif-view { display: block; margin-top: 6px; }
+.form-gif-preview { flex-basis: 100%; }
+.chat-gif-preview { padding: 8px 16px 0; }
+.post-comment-form, .post-reply-form { flex-wrap: wrap; }
+.post-comment-form > div:first-child,
+.post-reply-form > div:first-child { flex: 1 1 220px; width: auto !important; min-width: 0; }
+.post-comment-form .picker-toggle,
+.post-reply-form .picker-toggle { background: var(--card); color: var(--text); border: 1px solid var(--border-strong); box-shadow: none; }

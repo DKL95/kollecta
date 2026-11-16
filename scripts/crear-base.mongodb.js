@@ -62,11 +62,21 @@ crear("publicaciones", {
   "bsonType": "object",
   "properties": {
     "autor": {"bsonType":"objectId","description":"→ Usuario"},
-    "texto": {"bsonType":"string","maxLength":1000},
+    "texto": {"bsonType":["string","null"],"maxLength":1000},
     "grupo": {"bsonType":["string","null"]},
     "imagenes": {"bsonType":"array"},
     "videos": {"bsonType":"array"},
     "likes": {"bsonType":"array"},
+    "gif": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "url": {"bsonType":"string","maxLength":500},
+        "ancho": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "alto": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "titulo": {"bsonType":["string","null"],"maxLength":200}
+      },
+      "required": ["url"]
+    },
     "oculto": {
       "bsonType": ["object","null"],
       "properties": {
@@ -80,7 +90,7 @@ crear("publicaciones", {
     "fechaCreacion": {"bsonType":["date","null"]},
     "fechaActualizacion": {"bsonType":["date","null"]}
   },
-  "required": ["autor","texto"]
+  "required": ["autor"]
 });
 
 // ---------------------------------------------------------------------------
@@ -91,8 +101,18 @@ crear("comentarios", {
   "properties": {
     "publicacion": {"bsonType":"objectId","description":"→ Publicacion"},
     "autor": {"bsonType":"objectId","description":"→ Usuario"},
-    "texto": {"bsonType":"string","maxLength":500},
+    "texto": {"bsonType":["string","null"],"maxLength":500},
     "likes": {"bsonType":"array"},
+    "gif": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "url": {"bsonType":"string","maxLength":500},
+        "ancho": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "alto": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "titulo": {"bsonType":["string","null"],"maxLength":200}
+      },
+      "required": ["url"]
+    },
     "oculto": {
       "bsonType": ["object","null"],
       "properties": {
@@ -105,7 +125,7 @@ crear("comentarios", {
     "_id": {"bsonType":["objectId","null"]},
     "fecha": {"bsonType":["date","null"]}
   },
-  "required": ["publicacion","autor","texto"]
+  "required": ["publicacion","autor"]
 });
 db.comentarios.createIndex({"publicacion":1});
 
@@ -118,14 +138,24 @@ crear("respuestas", {
     "comentario": {"bsonType":"objectId","description":"→ Comentario"},
     "publicacion": {"bsonType":"objectId","description":"→ Publicacion"},
     "autor": {"bsonType":"objectId","description":"→ Usuario"},
-    "texto": {"bsonType":"string","maxLength":500},
+    "texto": {"bsonType":["string","null"],"maxLength":500},
     "responderA": {"bsonType":["objectId","null"],"description":"→ Respuesta"},
+    "gif": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "url": {"bsonType":"string","maxLength":500},
+        "ancho": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "alto": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "titulo": {"bsonType":["string","null"],"maxLength":200}
+      },
+      "required": ["url"]
+    },
     "mencionado": {"bsonType":["objectId","null"],"description":"→ Usuario"},
     "likes": {"bsonType":"array"},
     "_id": {"bsonType":["objectId","null"]},
     "fecha": {"bsonType":["date","null"]}
   },
-  "required": ["comentario","publicacion","autor","texto"]
+  "required": ["comentario","publicacion","autor"]
 });
 db.respuestas.createIndex({"comentario":1});
 db.respuestas.createIndex({"publicacion":1});
@@ -178,6 +208,16 @@ crear("mensajes", {
     "conversacion": {"bsonType":"objectId","description":"→ Conversacion"},
     "remitente": {"bsonType":"objectId","description":"→ Usuario"},
     "texto": {"bsonType":["string","null"],"maxLength":5000},
+    "gif": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "url": {"bsonType":"string","maxLength":500},
+        "ancho": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "alto": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+        "titulo": {"bsonType":["string","null"],"maxLength":200}
+      },
+      "required": ["url"]
+    },
     "imagenes": {"bsonType":"array"},
     "entregado": {"bsonType":["bool","null"]},
     "entregadoEn": {"bsonType":["date","null"]},

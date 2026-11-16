@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { campoGif } = require("./gif");
 
 const respuestaSchema = new mongoose.Schema(
   {
@@ -28,7 +29,7 @@ const respuestaSchema = new mongoose.Schema(
     // Texto de la respuesta.
     texto: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       maxlength: 500
     },
@@ -40,6 +41,9 @@ const respuestaSchema = new mongoose.Schema(
       ref: "Respuesta",
       default: null
     },
+
+    // GIF opcional (con o sin texto).
+    gif: campoGif,
 
     // Usuario al que se menciona.
     mencionado: {

@@ -10,6 +10,8 @@
     "migrar-uploads": "node scripts/migrarUploads.js",
     "generar-base": "node scripts/generarCrearBase.js",
     "documento": "node scripts/documento/generarDocumento.js",
+    "sembrar-demo": "node scripts/demo/sembrarDemo.js",
+    "limpiar-demo": "node scripts/demo/limpiarDemo.js",
     "test": "node --test \"tests/*.test.*\""
   },
   "dependencies": {

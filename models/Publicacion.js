@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { campoOculto } = require("./oculto");
+const { campoGif } = require("./gif");
 
 // Esquema principal de publicaciones.
 const publicacionSchema = new mongoose.Schema(
@@ -12,7 +13,7 @@ const publicacionSchema = new mongoose.Schema(
 
     texto: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       maxlength: 1000
     },
@@ -39,6 +40,7 @@ const publicacionSchema = new mongoose.Schema(
     },
 
     // Ocultada por moderación (null = visible). Ver docs/PLAN-roles.md
+    gif: campoGif,
     oculto: campoOculto
   },
   {

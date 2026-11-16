@@ -17,6 +17,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const denunciaRoutes = require("./routes/denunciaRoutes");
 const moderacionRoutes = require("./routes/moderacionRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
+const gifRoutes = require("./routes/gifRoutes");
 const logger = require("./config/logger");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
@@ -46,6 +47,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/denuncias", denunciaRoutes);
 app.use("/api/moderacion", moderacionRoutes);
 app.use("/api/reportes", reporteRoutes);
+app.use("/api/gifs", gifRoutes);
 
 
 app.use("/api", (req, res) => {

@@ -3,6 +3,9 @@ import { apiRequest } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { UserAvatar } from "./Avatar";
 import Icon from "./Icon";
+import EmojiPicker from "./EmojiPicker";
+import GifPicker from "./GifPicker";
+import GifView from "./GifView";
 import { GROUP_NAMES } from "../data/mockData";
 
 const MAX_IMAGES = 10;
@@ -15,6 +18,7 @@ export default function Composer({ onCreated }) {
   const [group, setGroup] = useState("");
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [gif, setGif] = useState(null);
   const [sending, setSending] = useState(false);
 
   const fileInput = useRef(null);
@@ -142,11 +146,12 @@ export default function Composer({ onCreated }) {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!text.trim() || sending) return;
+    if ((!text.trim() && !gif) || sending) return;
 
     const form = new FormData();
     form.append("texto", text.trim());
     form.append("grupo", group);
+    if (gif) form.append("gif", JSON.stringify(gif));
 
     images.forEach((image) => {
       form.append("imagenes", image);
@@ -170,6 +175,7 @@ export default function Composer({ onCreated }) {
       setGroup("");
       setImages([]);
       setVideos([]);
+      setGif(null);
     } catch (error) {
       alert(error.message);
     } finally {
@@ -189,6 +195,8 @@ export default function Composer({ onCreated }) {
           maxLength={1000}
           onChange={(event) => setText(event.target.value)}
         />
+
+        {gif && <GifView gif={gif} onRemove={() => setGif(null)} />}
 
         {/* Vista previa de las fotografías */}
         {images.length > 0 && (
@@ -333,6 +341,10 @@ export default function Composer({ onCreated }) {
             onChange={handleVideoSelection}
           />
 
+          {/* Emojis y GIFs */}
+          <EmojiPicker onSelect={(emoji) => setText((actual) => (actual + emoji).slice(0, 1000))} disabled={sending} />
+          <GifPicker onSelect={setGif} disabled={sending} />
+
           {/* Etiquetar grupo */}
           <label className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
             <Icon name="tag" size={15} />
@@ -357,7 +369,7 @@ export default function Composer({ onCreated }) {
             type="submit"
             className="btn btn-primary btn-sm"
             style={{ marginLeft: "auto" }}
-            disabled={sending || !text.trim()}
+            disabled={sending || (!text.trim() && !gif)}
           >
             {sending ? "Publicando…" : "Publicar"}
           </button>

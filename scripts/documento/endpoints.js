@@ -58,18 +58,18 @@ module.exports = [
         endpoints: [
             E("GET", "/", "token", "Feed de publicaciones visibles.", "query: grupo?", "{ publicaciones }"),
             E("POST", "/", "token", "Crea una publicación con texto, imágenes y videos.",
-                "multipart: texto (≤1000), grupo?, imagenes[] (≤10), videos[] (≤5)", "201 { mensaje, publicacion }"),
+                "multipart: texto (≤1000), grupo?, gif? (JSON), imagenes[] (≤10), videos[] (≤5)", "201 { mensaje, publicacion }"),
             E("GET", "/:id", "token", "Una publicación.", "—", "{ publicacion }"),
             E("PUT", "/:id", "token", "Edita una publicación (solo el autor).",
                 "multipart: texto?, grupo?, imagenesEliminadas?, videosEliminados?, imagenes[]?, videos[]?", "{ mensaje, publicacion }"),
             E("DELETE", "/:id", "token", "Borra una publicación con sus comentarios y archivos (solo el autor).", "—", "{ mensaje }"),
             E("POST", "/:id/like", "token", "Da o quita like.", "—", "{ publicacion }"),
             E("GET", "/:id/comentarios", "token", "Comentarios de la publicación con sus respuestas.", "—", "{ comentarios, totalComentarios }"),
-            E("POST", "/:id/comentarios", "token", "Comenta una publicación.", "{ texto }", "201 { mensaje, comentario, totalComentarios }"),
+            E("POST", "/:id/comentarios", "token", "Comenta una publicación (texto, emojis y/o GIF).", "{ texto?, gif? }", "201 { mensaje, comentario, totalComentarios }"),
             E("PUT", "/:id/comentarios/:comentarioId", "token", "Edita un comentario propio.", "{ texto }", "{ mensaje, comentario }"),
             E("DELETE", "/:id/comentarios/:comentarioId", "token", "Borra un comentario (autor del comentario o de la publicación).", "—", "{ mensaje }"),
             E("POST", "/:id/comentarios/:comentarioId/like", "token", "Da o quita like a un comentario.", "—", "{ mensaje, comentario: { totalLikes, meGusta } }"),
-            E("POST", "/:id/comentarios/:comentarioId/respuestas", "token", "Responde a un comentario.", "{ texto, responderA? }", "201 { mensaje, respuesta, totalComentarios }"),
+            E("POST", "/:id/comentarios/:comentarioId/respuestas", "token", "Responde a un comentario.", "{ texto?, gif?, responderA? }", "201 { mensaje, respuesta, totalComentarios }"),
             E("PUT", "/:id/comentarios/:comentarioId/respuestas/:respuestaId", "token", "Edita una respuesta propia.", "{ texto }", "{ mensaje, respuesta }"),
             E("DELETE", "/:id/comentarios/:comentarioId/respuestas/:respuestaId", "token", "Borra una respuesta.", "—", "{ mensaje }"),
             E("POST", "/:id/comentarios/:comentarioId/respuestas/:respuestaId/like", "token", "Da o quita like a una respuesta.", "—", "{ mensaje, respuesta: { totalLikes, meGusta } }")
@@ -102,6 +102,15 @@ module.exports = [
         ]
     },
     {
+        grupo: "GIFs",
+        base: "/api/gifs",
+        archivo: "gifRoutes.js",
+        endpoints: [
+            E("GET", "/", "token", "Busca GIFs en GIPHY a través del back end (la llave no llega al navegador). Sin q regresa tendencias.",
+                "query: q?, limite? (≤50)", "{ gifs: [{ id, url, preview, ancho, alto, titulo }] }")
+        ]
+    },
+    {
         grupo: "Mensajes y chats grupales",
         base: "/api/mensajes",
         archivo: "mensajeRoutes.js",
@@ -110,7 +119,7 @@ module.exports = [
             E("POST", "/conversaciones/:usuarioId", "token", "Abre (o crea) el chat directo con un usuario.", "—", "conversacion"),
             E("GET", "/no-leidos", "token", "Total de mensajes sin leer.", "—", "{ noLeidos }"),
             E("GET", "/:conversacionId", "token", "Mensajes de una conversación (y los marca como leídos).", "—", "[ mensaje ]"),
-            E("POST", "/:conversacionId", "token", "Envía un mensaje. También se emite por Socket.IO.", "{ texto }", "201 mensaje"),
+            E("POST", "/:conversacionId", "token", "Envía un mensaje (texto, emojis y/o GIF). También se emite por Socket.IO.", "{ texto?, gif? }", "201 mensaje"),
             E("PATCH", "/:conversacionId/silenciar", "token", "Silencia o reactiva las notificaciones de un chat.", "—", "{ silenciada, mensaje }"),
             E("DELETE", "/:conversacionId", "token", "Quita la conversación de mi lista.", "—", "{ mensaje }"),
             E("POST", "/grupos", "token", "Crea un chat grupal.", "{ nombre, participantes[] }", "201 conversacion"),

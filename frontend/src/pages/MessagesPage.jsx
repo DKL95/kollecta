@@ -6,6 +6,9 @@ import { socket } from "../api/socket";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import GroupChatDialog from "../components/GroupChatDialog";
 import Icon from "../components/Icon";
+import EmojiPicker from "../components/EmojiPicker";
+import GifPicker from "../components/GifPicker";
+import GifView from "../components/GifView";
 
 function esGrupo(conversacion) {
   return conversacion?.tipo === "grupo";
@@ -77,6 +80,7 @@ export default function MessagesPage() {
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
+  const [draftGif, setDraftGif] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -502,7 +506,7 @@ export default function MessagesPage() {
 
     const texto = draft.trim();
 
-    if (!texto || !activeId || sending) return;
+    if ((!texto && !draftGif) || !activeId || sending) return;
 
     setSending(true);
     setError("");
@@ -510,7 +514,7 @@ export default function MessagesPage() {
     try {
       const nuevoMensaje = await apiRequest(`/mensajes/${activeId}`, {
         method: "POST",
-        body: { texto },
+        body: { texto, gif: draftGif },
       });
 
       setMessages((anteriores) => {
@@ -523,6 +527,7 @@ export default function MessagesPage() {
           : [...anteriores, nuevoMensaje];
       });
       setDraft("");
+      setDraftGif(null);
 
       // Actualizar la vista previa de la conversación.
       const data = await apiRequest("/mensajes/conversaciones");
@@ -732,7 +737,9 @@ export default function MessagesPage() {
                   <div className="preview">
                     {ultimoMensaje?.texto
                       ? `${autorUltimo}${ultimoMensaje.texto}`
-                      : esGrupo(thread)
+                      : ultimoMensaje?.gif
+                        ? `${autorUltimo}GIF`
+                        : esGrupo(thread)
                         ? "Grupo creado. ¡Saluda!"
                         : "Inicia la conversación"}
                   </div>
@@ -964,6 +971,7 @@ export default function MessagesPage() {
                           </span>
                         )}
                         {message.texto}
+                        <GifView gif={message.gif} size="sm" />
 
                         {esMio && (
                             <span
@@ -995,7 +1003,16 @@ export default function MessagesPage() {
               )}
             </div>
 
+            {draftGif && (
+              <div className="chat-gif-preview">
+                <GifView gif={draftGif} size="sm" onRemove={() => setDraftGif(null)} />
+              </div>
+            )}
+
             <form className="chat-input-row" onSubmit={handleSend}>
+              <EmojiPicker onSelect={(emoji) => setDraft((actual) => actual + emoji)} disabled={sending} />
+              <GifPicker onSelect={setDraftGif} disabled={sending} />
+
               <input
                 type="text"
                 placeholder="Escribe un mensaje..."
@@ -1008,7 +1025,7 @@ export default function MessagesPage() {
               <button
                 type="submit"
                 className="btn btn-primary btn-sm"
-                disabled={sending || !draft.trim()}
+                disabled={sending || (!draft.trim() && !draftGif)}
               >
                 {sending ? "Enviando..." : "Enviar"}
               </button>

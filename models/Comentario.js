@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { campoOculto } = require("./oculto");
+const { campoGif } = require("./gif");
 
 const comentarioSchema = new mongoose.Schema(
   {
@@ -18,7 +19,7 @@ const comentarioSchema = new mongoose.Schema(
 
     texto: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       maxlength: 500
     },
@@ -31,6 +32,7 @@ const comentarioSchema = new mongoose.Schema(
     ],
 
     // Ocultado por moderación (null = visible)
+    gif: campoGif,
     oculto: campoOculto
   },
   {

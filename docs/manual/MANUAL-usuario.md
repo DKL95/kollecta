@@ -87,6 +87,8 @@ Si tu cuenta está suspendida o baneada, aquí aparece el motivo y, si es una su
 6. **Grupos sugeridos:** síguelos con un clic.
 7. **Amigos activos:** abre un chat con un amigo.
 
+> **Emojis y GIFs:** junto a los botones de fotos están **😊**, que abre los emojis por categoría, y **GIF**, que abre un buscador de GIFs animados. Puedes publicar solo un GIF, o un GIF con texto. Antes de publicar, la **✕** quita el GIF elegido.
+
 ---
 
 ## 5. Detalle de una publicación
@@ -98,7 +100,7 @@ Si tu cuenta está suspendida o baneada, aquí aparece el motivo y, si es una su
 3. **Editar** (lápiz) o **borrar** (bote). Solo aparecen en tus propias publicaciones.
 4. **Responder** a un comentario.
 5. **Denunciar** un comentario.
-6. **Escribe un comentario** y pulsa **Enviar**. Si escribes @usuario, esa persona recibe una notificación de mención.
+6. **Escribe un comentario** y pulsa **Enviar**. Si escribes @usuario, esa persona recibe una notificación de mención. Con **😊** y **GIF** agregas emojis o un GIF, también en las respuestas.
 
 ---
 
@@ -131,7 +133,7 @@ Si tu cuenta está suspendida o baneada, aquí aparece el motivo y, si es una su
 2. **+ Grupo:** crea un chat grupal. Ponle nombre y elige a los participantes.
 3. **Conversación:** muestra el último mensaje y la hora. Cuando haces una compra o un intercambio, el chat con la otra persona se abre solo.
 4. **Opciones de la conversación:** ver participantes y, en un grupo, cambiar el nombre, agregar o quitar personas (si eres administrador del grupo) o **Salir del grupo**.
-5. **Escribe un mensaje** y pulsa **Enviar**. La palomita ✓ indica que se entregó. Los mensajes llegan en tiempo real.
+5. **Escribe un mensaje** y pulsa **Enviar**. La palomita ✓ indica que se entregó. Los mensajes llegan en tiempo real. A la izquierda del campo, **😊** agrega emojis y **GIF** manda un GIF animado.
 
 ---
 
