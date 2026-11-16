@@ -18,6 +18,7 @@ const {
 
 const { requiereAuth } = require("../middleware/auth");
 const { upload, validarFotoPerfil } = require("../middleware/upload");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
 
 const router = express.Router();
 
@@ -62,7 +63,7 @@ router.get("/:username/amistad", obtenerEstadoAmistad);
 router.delete("/:id/amigo", eliminarAmigo);
 
 router.get("/", buscarUsuarios);
-router.put("/me", upload.single("fotoPerfil"), validarFotoPerfil, actualizarPerfil);
+router.put("/me", registrarOperacion("editar perfil"), upload.single("fotoPerfil"), validarFotoPerfil, actualizarPerfil);
 router.get("/:username", obtenerPerfil);
 router.get("/:username/publicaciones", obtenerPublicacionesDeUsuario);
 

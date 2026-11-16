@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Notificacion = require("../models/Notificacion");
+const logger = require("../config/logger");
 
 // Obtener las notificaciones del usuario autenticado.
 async function listarNotificaciones(req, res) {
@@ -18,7 +19,7 @@ async function listarNotificaciones(req, res) {
 
         return res.json({ notificaciones, noLeidas });
     } catch (error) {
-        console.error("Error al obtener notificaciones:", error);
+        logger.error("Error al obtener notificaciones:", error);
 
         return res.status(500).json({
             mensaje: "Error al obtener las notificaciones"
@@ -54,7 +55,7 @@ async function marcarNotificacionLeida(req, res) {
 
         return res.json({ notificacion });
     } catch (error) {
-        console.error("Error al marcar notificación:", error);
+        logger.error("Error al marcar notificación:", error);
 
         return res.status(500).json({
             mensaje: "Error al actualizar la notificación"
@@ -77,7 +78,7 @@ async function marcarTodasLeidas(req, res) {
             mensaje: "Notificaciones marcadas como leídas"
         });
     } catch (error) {
-        console.error("Error al marcar notificaciones:", error);
+        logger.error("Error al marcar notificaciones:", error);
 
         return res.status(500).json({
             mensaje: "Error al actualizar las notificaciones"

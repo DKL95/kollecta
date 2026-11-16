@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const Usuario = require("../models/Usuario");
 const { generarToken, bloqueoDeCuenta } = require("../middleware/auth");
 const { guardarImagen } = require("../middleware/upload");
+const logger = require("../config/logger");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9._]{3,30}$/;
@@ -54,6 +55,7 @@ async function registrar(req, res) {
         }
 
         await nuevoUsuario.save();
+        res.locals.usuarioId = String(nuevoUsuario._id); // para la bitácora
 
         res.status(201).json({
             mensaje: "Usuario registrado correctamente",
@@ -61,7 +63,7 @@ async function registrar(req, res) {
             usuario: nuevoUsuario.aPublico()
         });
     } catch (error) {
-        console.error("Error en registro:", error);
+        logger.error("Error en registro:", error);
         res.status(500).json({ mensaje: "Error al registrar usuario" });
     }
 }
@@ -87,13 +89,15 @@ async function iniciarSesion(req, res) {
             return res.status(bloqueo.status).json(bloqueo.cuerpo);
         }
 
+        res.locals.usuarioId = String(usuario._id); // para la bitácora
+
         res.json({
             mensaje: "Inicio de sesión correcto",
             token: generarToken(usuario),
             usuario: usuario.aPublico()
         });
     } catch (error) {
-        console.error("Error en login:", error);
+        logger.error("Error en login:", error);
         res.status(500).json({ mensaje: "Error al iniciar sesión" });
     }
 }
@@ -111,7 +115,7 @@ async function usuarioActual(req, res) {
 
         res.json({ usuario: usuario.aPublico() });
     } catch (error) {
-        console.error("Error al obtener usuario actual:", error);
+        logger.error("Error al obtener usuario actual:", error);
         res.status(500).json({ mensaje: "Error al obtener el usuario" });
     }
 }

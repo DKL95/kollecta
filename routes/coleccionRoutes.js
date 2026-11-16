@@ -11,6 +11,8 @@ const {
     validarArchivos,
     guardarImagen
 } = require("../middleware/upload");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
+const logger = require("../config/logger");
 
 const router = express.Router();
 
@@ -50,7 +52,7 @@ router.get("/", requiereAuth, async (req, res) => {
 
         res.json(coleccion);
     } catch (error) {
-        console.error("Error al obtener la colección:", error);
+        logger.error("Error al obtener la colección:", error);
 
         res.status(500).json({
             mensaje: "No se pudo obtener la colección"
@@ -91,7 +93,7 @@ router.get("/usuario/:usuarioId", requiereAuth, async (req, res) => {
             articulos: coleccion ? coleccion.articulos : []
         });
     } catch (error) {
-        console.error("Error al consultar la colección:", error);
+        logger.error("Error al consultar la colección:", error);
 
         res.status(500).json({
             mensaje: "No se pudo consultar la colección"
@@ -139,7 +141,7 @@ router.get("/articulos/:articuloId", requiereAuth, async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error al obtener el artículo:", error);
+        logger.error("Error al obtener el artículo:", error);
 
         res.status(500).json({
             mensaje: "No se pudo obtener el artículo"
@@ -152,6 +154,7 @@ router.get("/articulos/:articuloId", requiereAuth, async (req, res) => {
 router.post(
     "/articulos",
     requiereAuth,
+    registrarOperacion("agregar a la colección"),
     upload.fields([
         {
             name: "imagenes",
@@ -245,7 +248,7 @@ router.post(
                 ]
             });
         } catch (error) {
-            console.error("Error al añadir el artículo:", error);
+            logger.error("Error al añadir el artículo:", error);
 
             // Si la publicación falla, eliminamos las imágenes que
             // ya se guardaron para evitar dejar imágenes huérfanas.
@@ -261,7 +264,7 @@ router.post(
                         _id: { $in: idsImagenes }
                     });
                 } catch (errorLimpieza) {
-                    console.error(
+                    logger.error(
                         "Error al limpiar imágenes:",
                         errorLimpieza
                     );
@@ -325,7 +328,7 @@ router.post(
 
             res.status(201).json({ mensaje: "Fotos agregadas", articulo });
         } catch (error) {
-            console.error("Error al agregar fotos al artículo:", error);
+            logger.error("Error al agregar fotos al artículo:", error);
             await limpiarArchivosTemporales(req);
             res.status(500).json({ mensaje: "No se pudieron agregar las fotos" });
         }
@@ -390,7 +393,7 @@ router.put("/articulos/:articuloId", requiereAuth, async (req, res) => {
             articulo
         });
     } catch (error) {
-        console.error("Error al editar el artículo:", error);
+        logger.error("Error al editar el artículo:", error);
 
         res.status(400).json({
             mensaje:
@@ -404,6 +407,7 @@ router.put("/articulos/:articuloId", requiereAuth, async (req, res) => {
 router.delete(
     "/articulos/:articuloId",
     requiereAuth,
+    registrarOperacion("borrar de la colección"),
     async (req, res) => {
         try {
             const { articuloId } = req.params;
@@ -446,7 +450,7 @@ router.delete(
                 mensaje: "Artículo eliminado de tu colección"
             });
         } catch (error) {
-            console.error("Error al eliminar el artículo:", error);
+            logger.error("Error al eliminar el artículo:", error);
 
             res.status(500).json({
                 mensaje: "No se pudo eliminar el artículo"

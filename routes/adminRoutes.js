@@ -17,6 +17,8 @@ const {
     avisar,
     responderError
 } = require("../services/moderacion");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
+const logger = require("../config/logger");
 
 const router = express.Router();
 
@@ -51,13 +53,13 @@ router.get("/usuarios", async (req, res) => {
 
         res.json({ usuarios });
     } catch (error) {
-        console.error("Error al listar usuarios (admin):", error);
+        logger.error("Error al listar usuarios (admin):", error);
         res.status(500).json({ mensaje: "No se pudieron cargar los usuarios" });
     }
 });
 
 // PATCH /api/admin/usuarios/:id/rol   body: { rol }
-router.patch("/usuarios/:id/rol", async (req, res) => {
+router.patch("/usuarios/:id/rol", registrarOperacion("cambiar rol"), async (req, res) => {
     try {
         const { id } = req.params;
         const { rol } = req.body || {};
@@ -109,7 +111,7 @@ router.patch("/usuarios/:id/rol", async (req, res) => {
 });
 
 // PATCH /api/admin/usuarios/:id/estado   body: { activo: false, motivo } (banear) | { activo: true } (reactivar)
-router.patch("/usuarios/:id/estado", async (req, res) => {
+router.patch("/usuarios/:id/estado", registrarOperacion("banear/reactivar cuenta"), async (req, res) => {
     try {
         const { id } = req.params;
         const { activo, motivo } = req.body || {};

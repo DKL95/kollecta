@@ -17,6 +17,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const denunciaRoutes = require("./routes/denunciaRoutes");
 const moderacionRoutes = require("./routes/moderacionRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
+const logger = require("./config/logger");
 
 // Configuración de Express. Se separa de server.js para poder usarla en las pruebas
 // sin abrir el puerto real ni conectarse a la base de datos de Atlas.
@@ -58,7 +59,10 @@ app.use((error, req, res, next) => {
         error.message === "Solo se permiten imágenes" ||
         error.message === "Solo se permiten videos";
 
-    if (!esErrorDeSubida) console.error(error);
+    const contexto = { metodo: req.method, ruta: req.originalUrl.split("?")[0], usuario: req.usuario?.id || null };
+
+    if (esErrorDeSubida) logger.warn(`Subida rechazada: ${error.message}`, contexto);
+    else logger.error("Error no controlado", contexto, error);
 
     let mensaje = error.message || "Error en la petición";
 

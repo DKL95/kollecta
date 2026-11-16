@@ -13,20 +13,20 @@ La entrega final vale **50 % de la calificación práctica**. Los puntos marcado
 
 | Requisito (pág. 4-6 y 10 del PDF) | Estado | Qué falta |
 |---|---|---|
-| Al menos 6 colecciones con buen diseño | ✅ 10 colecciones | Nada; agregar `ordenes` las vuelve 11 |
+| Al menos 6 colecciones con buen diseño | ✅ 14 colecciones (15-nov) | — |
 | Todo el acceso a BD por ORM | ✅ Mongoose | — |
 | El front solo habla con el back | ✅ | — |
-| **Sección "Reportes" con ≥ 4 consultas multi-tabla** | ❌ **No existe** | Pantalla + endpoints (ver §2.1) |
+| **Sección "Reportes" con ≥ 4 consultas multi-tabla** | ✅ `/reportes`: 12 reportes por rol, 11 cruzan colecciones (12-nov) | — |
 | Endpoints create/update/delete/get por colección | ⚠️ Parcial | Ver tabla de §2.3 |
 | Validaciones en back end independientes del front | ✅ En casi todo | Revisar `coleccionRoutes.js` |
-| **Excepciones e inicio/fin de procesos críticos en archivo de logs** | ❌ **No existe** (solo `console.log`) | Ver §2.2 |
+| **Excepciones e inicio/fin de procesos críticos en archivo de logs** | ✅ winston → `logs/app.log` y `logs/error.log` (15-nov) | Ver README "Archivo de logs" |
 | Pantallas por acción HTTP por colección | ⚠️ Parcial | Justificar las que no aplican (§2.3) |
 | Comunicación por JSON | ✅ | — |
 | Login obligatorio; solo registro fuera | ✅ | — |
 | Token en todos los endpoints salvo login/registro | ⚠️ | `GET /api/imagenes/:id` es público (las `<img>` no mandan token). Justificarlo o usar URL firmada como ya hacen los videos |
 | Diseño con patrones MaterialUI "o equivalentes" | ⚠️ | Tenemos design system propio: documentarlo en el PDF como el equivalente (tokens, componentes) |
-| **Script de SQL de creación de tablas** | ❌ | Usamos MongoDB: acordar con el profesor un **script de mongosh** con `createCollection` + `$jsonSchema` + índices (§2.4) |
-| PDF: BD + endpoints + **manual de usuario con capturas** | ❌ Pendiente | §2.5 |
+| **Script de SQL de creación de tablas** | ✅ `scripts/crear-base.mongodb.js` (15-nov) — confirmar con el profesor | Usamos MongoDB: acordar con el profesor un **script de mongosh** con `createCollection` + `$jsonSchema` + índices (§2.4) |
+| PDF: BD + endpoints + **manual de usuario con capturas** | ⚠️ Manual listo en `docs/manual/MANUAL-usuario.md` con 21 capturas (16-nov); falta armar el PDF con BD y endpoints | §2.5 |
 | README con instrucciones de ejecución | ✅ Revisar que esté al día | — |
 | Hosting público (opcional, 10 pts) | ✅ https://kollecta.onrender.com | — |
 | Uso real de Git por los 4 | ⚠️ | Commits de **cada** integrante en ramas propias + PRs a `dev` |

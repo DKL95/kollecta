@@ -16,6 +16,7 @@ const Producto = require("../models/Producto");
 const Mensaje = require("../models/Mensaje");
 const Moderacion = require("../models/Moderacion");
 const { crearNotificacion } = require("../controllers/notificacionController");
+const logger = require("../config/logger");
 
 const DIAS_SUSPENSION = { min: 1, max: 30 };
 
@@ -123,7 +124,7 @@ async function avisar(destinatario, mensaje, enlace = "") {
     try {
         await crearNotificacion({ destinatario, tipo: "moderacion", mensaje, enlace });
     } catch (error) {
-        console.error("No se pudo notificar la acción de moderación:", error);
+        logger.error("No se pudo notificar la acción de moderación:", error);
     }
 }
 
@@ -255,7 +256,7 @@ function responderError(res, error, mensajeGenerico) {
     if (error instanceof ErrorModeracion) {
         return res.status(error.status).json({ mensaje: error.message });
     }
-    console.error(mensajeGenerico, error);
+    logger.error(mensajeGenerico, error);
     return res.status(500).json({ mensaje: mensajeGenerico });
 }
 

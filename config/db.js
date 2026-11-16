@@ -1,5 +1,6 @@
 const dns = require("dns");
 const mongoose = require("mongoose");
+const logger = require("./logger");
 
 const DNS_PUBLICOS = ["8.8.8.8", "1.1.1.1"];
 
@@ -12,7 +13,7 @@ async function conectarMongo(uri, opciones) {
     } catch (error) {
         if (!String(error.message).includes("querySrv")) throw error;
 
-        console.warn("No se pudo resolver la dirección de Atlas con el DNS del sistema; reintentando con DNS públicos...");
+        logger.warn("No se pudo resolver la dirección de Atlas con el DNS del sistema; reintentando con DNS públicos...");
         dns.setServers(DNS_PUBLICOS);
         return mongoose.connect(uri, opciones);
     }
@@ -20,7 +21,7 @@ async function conectarMongo(uri, opciones) {
 
 const conectarDB = async () => {
     if (!process.env.MONGODB_URI) {
-        console.error(
+        logger.error(
             "\nFalta MONGODB_URI.\n" +
                 "Crea un archivo .env en la raíz del proyecto (copia .env.example) y pon la cadena de conexión de Atlas:\n" +
                 "    MONGODB_URI=mongodb+srv://<usuario>:<password>@<cluster>/\n" +
@@ -35,10 +36,10 @@ const conectarDB = async () => {
             serverSelectionTimeoutMS: 10000
         });
 
-        console.log("MongoDB conectado correctamente");
+        logger.info("MongoDB conectado correctamente");
     } catch (error) {
-        console.error("\nError al conectar MongoDB:", error.message);
-        console.error(
+        logger.error("Error al conectar MongoDB:", error);
+        logger.error(
             "Revisa:\n" +
                 "  1. Que MONGODB_URI en tu .env esté bien copiada (usuario y contraseña de Atlas).\n" +
                 "  2. En Atlas > Network Access, que tu IP actual esté permitida (o 0.0.0.0/0 para el equipo).\n" +

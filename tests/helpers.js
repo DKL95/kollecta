@@ -32,6 +32,13 @@ async function iniciarApi(nombre) {
     await conectarMongo(uri, { dbName: nombreBase });
     await mongoose.connection.dropDatabase();
 
+    // CON_ESQUEMA=1: crea la base con scripts/crear-base.mongodb.js (validadores $jsonSchema)
+    // para comprobar que el script acepta todo lo que la app guarda.
+    if (process.env.CON_ESQUEMA === "1") {
+        await require("./esquemaMongosh").aplicarEsquema();
+        await Promise.all(Object.values(mongoose.models).map((modelo) => modelo.createIndexes()));
+    }
+
     const servidor = await new Promise((resolve) => {
         const s = app.listen(0, () => resolve(s));
     });

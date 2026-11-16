@@ -2,6 +2,7 @@
 const express = require("express");
 const Notificacion = require("../models/Notificacion");
 const { requiereAuth } = require("../middleware/auth");
+const logger = require("../config/logger");
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get("/", async (req, res) => {
 
         res.json({ notificaciones, noLeidas });
     } catch (error) {
-        console.error("Error al obtener notificaciones:", error);
+        logger.error("Error al obtener notificaciones:", error);
         res.status(500).json({
             mensaje: "Error al obtener las notificaciones"
         });
@@ -51,7 +52,7 @@ router.patch("/:id/leida", async (req, res) => {
 
         res.json({ notificacion });
     } catch (error) {
-        console.error("Error al marcar notificación:", error);
+        logger.error("Error al marcar notificación:", error);
         res.status(500).json({
             mensaje: "Error al actualizar la notificación"
         });
@@ -68,7 +69,7 @@ router.patch("/leidas/todas", async (req, res) => {
 
         res.json({ mensaje: "Notificaciones marcadas como leídas" });
     } catch (error) {
-        console.error("Error al marcar notificaciones:", error);
+        logger.error("Error al marcar notificaciones:", error);
         res.status(500).json({
             mensaje: "Error al actualizar las notificaciones"
         });

@@ -17,12 +17,13 @@ const {
     agregarParticipantes,
     quitarParticipante
 } = require("../controllers/mensajeController");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
 
 router.use(requiereAuth);
 
 // Chats grupales (van antes de "/:conversacionId" para que no los capture).
-router.post("/grupos", crearGrupo);
-router.patch("/grupos/:conversacionId", actualizarGrupo);
+router.post("/grupos", registrarOperacion("crear grupo"), crearGrupo);
+router.patch("/grupos/:conversacionId", registrarOperacion("editar grupo"), actualizarGrupo);
 router.post("/grupos/:conversacionId/participantes", agregarParticipantes);
 router.delete("/grupos/:conversacionId/participantes/:usuarioId", quitarParticipante);
 

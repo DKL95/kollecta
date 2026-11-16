@@ -9,15 +9,16 @@ const {
 } = require("../controllers/productoController");
 const { requiereAuth } = require("../middleware/auth");
 const { upload, validarArchivos } = require("../middleware/upload");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
 
 const router = express.Router();
 
 router.use(requiereAuth);
 
 router.get("/", listarProductos);
-router.post("/", upload.fields([{ name: "imagenes", maxCount: 10 }]), validarArchivos, crearProducto);
+router.post("/", registrarOperacion("publicar producto"), upload.fields([{ name: "imagenes", maxCount: 10 }]), validarArchivos, crearProducto);
 router.get("/:id", obtenerProducto);
-router.put("/:id", editarProducto);
-router.delete("/:id", retirarProducto);
+router.put("/:id", registrarOperacion("editar producto"), editarProducto);
+router.delete("/:id", registrarOperacion("retirar producto"), retirarProducto);
 
 module.exports = router;

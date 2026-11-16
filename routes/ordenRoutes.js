@@ -14,20 +14,21 @@ const {
 } = require("../controllers/ordenController");
 const { requiereAuth } = require("../middleware/auth");
 const { requiereRol } = require("../middleware/roles");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
 
 const router = express.Router();
 
 router.use(requiereAuth);
 
 router.get("/", listarOrdenes);
-router.post("/", crearOrden);
+router.post("/", registrarOperacion("crear orden"), crearOrden);
 router.get("/resumen/:username", resumenVendedor);
 router.get("/disputas", requiereRol("moderador"), listarDisputas);
 router.get("/:id", obtenerOrden);
-router.patch("/:id/estado", cambiarEstado);
-router.post("/:id/calificacion", calificarOrden);
-router.post("/:id/disputa", abrirDisputa);
-router.patch("/:id/disputa", requiereRol("moderador"), resolverDisputa);
-router.delete("/:id", cancelarOrden);
+router.patch("/:id/estado", registrarOperacion("cambiar estado de orden"), cambiarEstado);
+router.post("/:id/calificacion", registrarOperacion("calificar orden"), calificarOrden);
+router.post("/:id/disputa", registrarOperacion("abrir disputa"), abrirDisputa);
+router.patch("/:id/disputa", requiereRol("moderador"), registrarOperacion("resolver disputa"), resolverDisputa);
+router.delete("/:id", registrarOperacion("retirar orden"), cancelarOrden);
 
 module.exports = router;

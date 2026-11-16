@@ -13,6 +13,7 @@ const Coleccion = require("../models/Coleccion");
 const { guardarImagen } = require("../middleware/upload");
 const { rechazarPendientesDe } = require("./ordenController");
 const { alcanza } = require("../middleware/roles");
+const logger = require("../config/logger");
 
 const MAX_FOTOS = 10;
 const CAMPOS_VENDEDOR = "nombre username fotoPerfil activo";
@@ -115,7 +116,7 @@ async function listarProductos(req, res) {
                 .map((p) => respuestaProducto(p, req.usuario.id))
         });
     } catch (error) {
-        console.error("Error al listar productos:", error);
+        logger.error("Error al listar productos:", error);
         res.status(500).json({ mensaje: "No se pudo cargar el marketplace" });
     }
 }
@@ -147,7 +148,7 @@ async function obtenerProducto(req, res) {
 
         res.json({ producto: respuestaProducto(producto, req.usuario.id) });
     } catch (error) {
-        console.error("Error al obtener el producto:", error);
+        logger.error("Error al obtener el producto:", error);
         res.status(500).json({ mensaje: "No se pudo cargar el producto" });
     }
 }
@@ -259,7 +260,7 @@ async function crearProducto(req, res) {
             producto: respuestaProducto(producto, req.usuario.id)
         });
     } catch (error) {
-        console.error("Error al publicar el producto:", error);
+        logger.error("Error al publicar el producto:", error);
 
         if (imagenesNuevas.length) {
             const Imagen = require("../models/Imagen");
@@ -319,7 +320,7 @@ async function editarProducto(req, res) {
 
         res.json({ mensaje: "Producto actualizado", producto: respuestaProducto(producto, req.usuario.id) });
     } catch (error) {
-        console.error("Error al editar el producto:", error);
+        logger.error("Error al editar el producto:", error);
         res.status(400).json({ mensaje: error.message || "No se pudo editar el producto" });
     }
 }
@@ -351,7 +352,7 @@ async function retirarProducto(req, res) {
 
         res.json({ mensaje: "Producto retirado del marketplace" });
     } catch (error) {
-        console.error("Error al retirar el producto:", error);
+        logger.error("Error al retirar el producto:", error);
         res.status(500).json({ mensaje: "No se pudo retirar el producto" });
     }
 }

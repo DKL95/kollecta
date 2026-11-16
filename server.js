@@ -9,6 +9,7 @@ const app = require("./app");
 const conectarDB = require("./config/db");
 const Conversacion = require("./models/Conversacion");
 const Mensaje = require("./models/Mensaje");
+const logger = require("./config/logger");
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "kollecta-dev-secret";
@@ -49,7 +50,7 @@ io.on("connection", (socket) => {
     // Sala individual del usuario.
     socket.join(`usuario:${usuarioId}`);
 
-    console.log("Usuario conectado a Socket.IO:", usuarioId);
+    logger.debug("Usuario conectado a Socket.IO", { usuario: String(usuarioId) });
 
     // Entrar a una conversación después de verificar los permisos.
     socket.on("conversacion:unirse", async (conversacionId, callback) => {
@@ -80,7 +81,7 @@ io.on("connection", (socket) => {
 
             responder({ ok: true });
         } catch (error) {
-            console.error("Error al entrar a la conversación:", error);
+            logger.error("Error al entrar a la conversación:", error);
 
             responder({
                 ok: false,
@@ -160,7 +161,7 @@ io.on("connection", (socket) => {
                 mensaje: "Entrega confirmada",
             });
         } catch (error) {
-            console.error("Error al confirmar la entrega:", error);
+            logger.error("Error al confirmar la entrega:", error);
 
             responder({
                 ok: false,
@@ -179,7 +180,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
-        console.log("Usuario desconectado de Socket.IO:", usuarioId);
+        logger.debug("Usuario desconectado de Socket.IO", { usuario: String(usuarioId) });
     });
 });
 
@@ -189,12 +190,12 @@ async function iniciarServidor() {
         await conectarDB();
 
         servidor.listen(PORT, () => {
-            console.log(
+            logger.info(
                 `Servidor ejecutándose en http://localhost:${PORT}`
             );
         });
     } catch (error) {
-        console.error("No se pudo iniciar el servidor:", error);
+        logger.error("No se pudo iniciar el servidor:", error);
         process.exit(1);
     }
 }

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Conversacion = require("../models/Conversacion");
 const Mensaje = require("../models/Mensaje");
 const Usuario = require("../models/Usuario");
+const logger = require("../config/logger");
 
 // Obtener las conversaciones del usuario autenticado
 async function obtenerConversaciones(req, res) {
@@ -25,7 +26,7 @@ async function obtenerConversaciones(req, res) {
 
         res.json(conversaciones);
     } catch (error) {
-        console.error("Error al obtener conversaciones:", error);
+        logger.error("Error al obtener conversaciones:", error);
         res.status(500).json({
             mensaje: "Error al obtener las conversaciones"
         });
@@ -91,7 +92,7 @@ async function obtenerOCrearConversacion(req, res) {
 
         res.json(conversacion);
     } catch (error) {
-        console.error("Error al abrir conversación:", error);
+        logger.error("Error al abrir conversación:", error);
         res.status(500).json({
             mensaje: "Error al abrir la conversación"
         });
@@ -143,7 +144,7 @@ async function alternarSilencioConversacion(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al cambiar silencio:", error);
+        logger.error("Error al cambiar silencio:", error);
 
         res.status(500).json({
             mensaje: "No se pudo cambiar el silencio"
@@ -183,7 +184,7 @@ async function eliminarConversacion(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al eliminar conversación:", error);
+        logger.error("Error al eliminar conversación:", error);
 
         res.status(500).json({
             mensaje: "No se pudo eliminar la conversación"
@@ -272,7 +273,7 @@ async function obtenerMensajes(req, res) {
 
         res.json(mensajes);
     } catch (error) {
-        console.error("Error al obtener mensajes:", error);
+        logger.error("Error al obtener mensajes:", error);
 
         res.status(500).json({
             mensaje: "Error al obtener los mensajes"
@@ -316,7 +317,7 @@ async function obtenerMensajesNoLeidos(req, res) {
 
         res.json({ noLeidos: total });
     } catch (error) {
-        console.error("Error al contar mensajes sin leer:", error);
+        logger.error("Error al contar mensajes sin leer:", error);
 
         res.status(500).json({
             mensaje: "Error al obtener los mensajes sin leer"
@@ -395,7 +396,7 @@ async function enviarMensaje(req, res) {
         const io = req.app.get("io");
 
         if (io) {
-            console.log(
+            logger.info(
                 "📨 Emitiendo mensaje a la conversación:",
                 String(conversacionId)
             );
@@ -417,7 +418,7 @@ async function enviarMensaje(req, res) {
 
         res.status(201).json(mensaje);
     } catch (error) {
-        console.error("Error al enviar mensaje:", error);
+        logger.error("Error al enviar mensaje:", error);
 
         res.status(500).json({
             mensaje: "Error al enviar el mensaje"
@@ -585,7 +586,7 @@ async function crearGrupo(req, res) {
 
         await responderGrupo(res, conversacion, 201);
     } catch (error) {
-        console.error("Error al crear grupo:", error);
+        logger.error("Error al crear grupo:", error);
         res.status(500).json({ mensaje: "No se pudo crear el grupo" });
     }
 }
@@ -616,7 +617,7 @@ async function actualizarGrupo(req, res) {
 
         await responderGrupo(res, conversacion);
     } catch (error) {
-        console.error("Error al actualizar grupo:", error);
+        logger.error("Error al actualizar grupo:", error);
         res.status(500).json({ mensaje: "No se pudo actualizar el grupo" });
     }
 }
@@ -664,7 +665,7 @@ async function agregarParticipantes(req, res) {
 
         await responderGrupo(res, conversacion);
     } catch (error) {
-        console.error("Error al agregar participantes:", error);
+        logger.error("Error al agregar participantes:", error);
         res.status(500).json({ mensaje: "No se pudieron agregar las personas" });
     }
 }
@@ -738,7 +739,7 @@ async function quitarParticipante(req, res) {
 
         await responderGrupo(res, conversacion);
     } catch (error) {
-        console.error("Error al quitar participante:", error);
+        logger.error("Error al quitar participante:", error);
         res.status(500).json({ mensaje: "No se pudo quitar a la persona del grupo" });
     }
 }

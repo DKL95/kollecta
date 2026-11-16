@@ -153,6 +153,10 @@ Todos bajo `/api`. Los marcados con 🔒 requieren el header `Authorization: Bea
 | GET 🔒 | `/admin/usuarios?q=&rol=` | Listar usuarios con su rol (solo administrador) |
 | PATCH 🔒 | `/admin/usuarios/:id/rol` | Cambiar el rol de alguien (solo administrador) |
 
+## Manual de usuario
+
+[`docs/manual/MANUAL-usuario.md`](docs/manual/MANUAL-usuario.md): una sección por pantalla, con capturas numeradas, roles, flujo de órdenes y disputas, reportes y moderación.
+
 ## Cómo ejecutar
 
 Requisitos: Node.js 18 o superior.
@@ -182,7 +186,40 @@ Agrega `MONGODB_URI_TEST` a tu `.env` (puede ser la misma URI de Atlas: las prue
 npm test
 ```
 
-Cubre registro, login, JWT, perfil, búsqueda, publicaciones (CRUD, likes y permisos), imágenes y las utilidades del frontend. Requiere Node 21 o superior.
+Cubre registro, login, JWT, perfil, búsqueda, publicaciones (CRUD, likes y permisos), imágenes, colección, marketplace y órdenes, disputas, roles y moderación, reportes, logs, el script de la base y las utilidades del frontend. Requiere Node 21 o superior.
+
+Para comprobar además que el script de la base acepta todo lo que guarda la app, corre las pruebas con `CON_ESQUEMA=1`: cada base de prueba se crea con `scripts/crear-base.mongodb.js` (validadores `$jsonSchema` activos).
+
+### Archivo de logs
+
+El backend escribe su bitácora con [winston](https://github.com/winstonjs/winston) en la carpeta `logs/` (ignorada por Git):
+
+| Archivo | Contenido |
+|---|---|
+| `logs/app.log` | Todo desde el nivel `LOG_LEVEL` (por defecto `info`), una línea JSON por evento |
+| `logs/error.log` | Solo errores, con ruta, usuario y stack |
+
+- Se registran el **inicio y el fin** de las operaciones importantes: registro, login, crear, editar y borrar publicaciones (con imágenes y videos), comentar, crear o editar grupos, publicar productos, órdenes (crear, cambiar estado, calificar, disputas), denuncias y acciones de moderación. El fin incluye el código HTTP, el usuario y la duración en ms. Nunca se guarda el cuerpo de la petición (puede traer contraseñas).
+- El middleware de errores de `app.js` manda cada excepción al log con método, ruta, usuario y stack.
+- Variables opcionales: `LOG_LEVEL` (`error`, `warn`, `info`, `http`, `debug`) y `LOG_DIR`.
+- Cada archivo rota al llegar a 5 MB (se guardan 5). En Render los archivos se borran al reiniciar el servicio.
+
+Para agregar el registro a una ruta nueva: `router.post("/", registrarOperacion("nombre de la operación"), controlador)` (`middleware/registrarOperacion.js`).
+
+### Script de creación de la base (mongosh)
+
+`scripts/crear-base.mongodb.js` es el equivalente del script SQL de creación de tablas: crea las 14 colecciones con su validador `$jsonSchema` (tipos, campos obligatorios, enums y límites) y sus índices, incluidos los únicos.
+
+```bash
+mongosh "<MONGODB_URI>" scripts/crear-base.mongodb.js          # base "kpop"
+BASE=otra_base mongosh "<MONGODB_URI>" scripts/crear-base.mongodb.js
+```
+
+Se puede correr varias veces: si una colección ya existe, solo actualiza su validador. El archivo **se genera** a partir de `models/` y no se edita a mano. Si cambias un modelo, regenéralo así (la prueba `tests/esquema.test.js` falla si se quedó desactualizado):
+
+```bash
+npm run generar-base
+```
 
 ### Fotos subidas antes de guardarlas en MongoDB
 

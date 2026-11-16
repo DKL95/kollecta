@@ -9,6 +9,7 @@ const {
     generarTokenReproduccion,
     requiereAuthVideo
 } = require("../middleware/auth");
+const logger = require("../config/logger");
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.get("/:id/playback-url", requiereAuth, async (req, res) => {
             url: `/api/videos/${id}?token=${encodeURIComponent(token)}`
         });
     } catch (error) {
-        console.error("Error al generar URL de reproducción:", error);
+        logger.error("Error al generar URL de reproducción:", error);
 
         return res.status(500).json({
             mensaje: "No se pudo preparar la reproducción del video"
@@ -178,7 +179,7 @@ router.get("/:id", requiereAuthVideo, async (req, res) => {
         }
 
         flujo.on("error", (error) => {
-            console.error("Error al transmitir el video:", error.message);
+            logger.error("Error al transmitir el video:", error.message);
 
             if (!res.headersSent) {
                 res.status(500).end();
@@ -195,7 +196,7 @@ router.get("/:id", requiereAuthVideo, async (req, res) => {
 
         flujo.pipe(res);
     } catch (error) {
-        console.error("Error al obtener el video:", error);
+        logger.error("Error al obtener el video:", error);
 
         if (!res.headersSent) {
             return res.status(500).json({

@@ -20,6 +20,7 @@ const {
 
 const { requiereAuth } = require("../middleware/auth");
 const { upload, validarArchivos } = require("../middleware/upload");
+const { registrarOperacion } = require("../middleware/registrarOperacion");
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ const recibirMultimedia = upload.fields([
 // Crear publicación con hasta 10 imágenes y 5 videos.
 router.post(
     "/",
+    registrarOperacion("crear publicación (imágenes/videos)"),
     recibirMultimedia,
     validarArchivos,
     crearPublicacion
@@ -43,7 +45,7 @@ router.post(
 
 // Comentarios
 router.get("/:id/comentarios", listarComentarios);
-router.post("/:id/comentarios", agregarComentario);
+router.post("/:id/comentarios", registrarOperacion("comentar"), agregarComentario);
 
 // Likes de comentarios
 router.post(
@@ -68,13 +70,14 @@ router.get("/:id", obtenerPublicacion);
 // Editar publicación con imágenes y videos.
 router.put(
     "/:id",
+    registrarOperacion("editar publicación (imágenes/videos)"),
     recibirMultimedia,
     validarArchivos,
     actualizarPublicacion
 );
 
 // Eliminar publicación
-router.delete("/:id", eliminarPublicacion);
+router.delete("/:id", registrarOperacion("borrar publicación"), eliminarPublicacion);
 
 // Like de publicación
 router.post("/:id/like", alternarLike);

@@ -17,6 +17,7 @@ const Usuario = require("../models/Usuario");
 const Denuncia = require("../models/Denuncia");
 const Moderacion = require("../models/Moderacion");
 const { alcanza } = require("../middleware/roles");
+const logger = require("../config/logger");
 
 const MAX_MESES = 24;
 
@@ -945,7 +946,7 @@ async function obtenerReporte(req, res) {
         if (/fecha|'desde'/.test(error.message)) {
             return res.status(400).json({ mensaje: error.message });
         }
-        console.error(`Error en el reporte ${reporte.id}:`, error);
+        logger.error(`Error en el reporte ${reporte.id}:`, error);
         return res.status(500).json({ mensaje: "No se pudo generar el reporte" });
     }
 

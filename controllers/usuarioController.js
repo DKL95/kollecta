@@ -14,6 +14,7 @@ const {
 } = require("../middleware/upload");
 const SolicitudAmistad = require("../models/SolicitudAmistad");
 const { crearNotificacion } = require("./notificacionController");
+const logger = require("../config/logger");
 
 // GET /api/usuarios
 // Buscar usuarios y priorizar amigos para el autocompletado de menciones.
@@ -77,7 +78,7 @@ async function buscarUsuarios(req, res) {
             }))
         });
     } catch (error) {
-        console.error("Error al buscar usuarios:", error);
+        logger.error("Error al buscar usuarios:", error);
 
         return res.status(500).json({
             mensaje: "Error al buscar usuarios"
@@ -129,7 +130,7 @@ async function obtenerPerfil(req, res) {
             }
         });
     } catch (error) {
-        console.error("Error al obtener perfil:", error);
+        logger.error("Error al obtener perfil:", error);
 
         return res.status(500).json({
             mensaje: "Error al obtener el perfil"
@@ -170,7 +171,7 @@ async function obtenerPublicacionesDeUsuario(req, res) {
             publicaciones: publicacionesFormateadas
         });
     } catch (error) {
-        console.error(
+        logger.error(
             "Error al obtener publicaciones del usuario:",
             error
         );
@@ -219,7 +220,7 @@ async function actualizarPerfil(req, res) {
             usuario: usuario.aPublico()
         });
     } catch (error) {
-        console.error("Error al actualizar perfil:", error);
+        logger.error("Error al actualizar perfil:", error);
 
         return res.status(500).json({
             mensaje: "Error al actualizar el perfil"
@@ -345,7 +346,7 @@ async function enviarSolicitud(req, res) {
                 enlace: `/perfil/${solicitante.username}`
             });
         } catch (errorNotificacion) {
-            console.error(
+            logger.error(
                 "Error al crear la notificación de solicitud de amistad:",
                 errorNotificacion
             );
@@ -359,7 +360,7 @@ async function enviarSolicitud(req, res) {
             }
         });
     } catch (error) {
-        console.error("Error al enviar solicitud:", error);
+        logger.error("Error al enviar solicitud:", error);
 
         if (error.code === 11000) {
             return res.status(409).json({
@@ -402,7 +403,7 @@ async function listarSolicitudesRecibidas(req, res) {
             }))
         });
     } catch (error) {
-        console.error("Error al listar solicitudes recibidas:", error);
+        logger.error("Error al listar solicitudes recibidas:", error);
 
         return res.status(500).json({
             mensaje: "Error al consultar las solicitudes recibidas"
@@ -441,7 +442,7 @@ async function listarSolicitudesEnviadas(req, res) {
             }))
         });
     } catch (error) {
-        console.error("Error al listar solicitudes enviadas:", error);
+        logger.error("Error al listar solicitudes enviadas:", error);
 
         return res.status(500).json({
             mensaje: "Error al consultar las solicitudes enviadas"
@@ -520,7 +521,7 @@ async function aceptarSolicitud(req, res) {
             }
         });
     } catch (error) {
-        console.error("Error al aceptar solicitud:", error);
+        logger.error("Error al aceptar solicitud:", error);
 
         return res.status(500).json({
             mensaje: "Error al aceptar la solicitud"
@@ -561,7 +562,7 @@ async function rechazarSolicitud(req, res) {
             mensaje: "Solicitud rechazada"
         });
     } catch (error) {
-        console.error("Error al rechazar solicitud:", error);
+        logger.error("Error al rechazar solicitud:", error);
 
         return res.status(500).json({
             mensaje: "Error al rechazar la solicitud"
@@ -599,7 +600,7 @@ async function cancelarSolicitud(req, res) {
             mensaje: "Solicitud cancelada"
         });
     } catch (error) {
-        console.error("Error al cancelar solicitud:", error);
+        logger.error("Error al cancelar solicitud:", error);
 
         return res.status(500).json({
             mensaje: "Error al cancelar la solicitud"
@@ -688,7 +689,7 @@ async function obtenerEstadoAmistad(req, res) {
             solicitudId: String(solicitud._id)
         });
     } catch (error) {
-        console.error(
+        logger.error(
             "Error al consultar el estado de amistad:",
             error
         );
@@ -793,7 +794,7 @@ async function eliminarAmigo(req, res) {
             mensaje: "Amistad eliminada correctamente"
         });
     } catch (error) {
-        console.error("Error al eliminar amistad:", error);
+        logger.error("Error al eliminar amistad:", error);
 
         return res.status(500).json({
             mensaje: "Error al eliminar la amistad"
@@ -840,7 +841,7 @@ async function listarMisAmigos(req, res) {
 
         res.json({ amigos: lista });
     } catch (error) {
-        console.error("Error al listar amigos:", error);
+        logger.error("Error al listar amigos:", error);
         res.status(500).json({ mensaje: "No se pudieron cargar tus amigos" });
     }
 }

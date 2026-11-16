@@ -15,6 +15,7 @@ const Usuario = require("../models/Usuario");
 const { crearNotificacion } = require("./notificacionController");
 const { tieneRol } = require("../middleware/roles");
 const { registrar, avisar, recortar } = require("../services/moderacion");
+const logger = require("../config/logger");
 
 const CAMPOS_USUARIO = "nombre username fotoPerfil";
 const CAMPOS_USUARIO_MOD = "nombre username fotoPerfil rol";
@@ -122,7 +123,7 @@ async function mensajeAutomatico(req, conversacionId, remitenteId, texto) {
             }
         }
     } catch (error) {
-        console.error("No se pudo enviar el mensaje automático de la orden:", error);
+        logger.error("No se pudo enviar el mensaje automático de la orden:", error);
     }
 }
 
@@ -136,7 +137,7 @@ async function notificar(destinatario, emisor, mensaje, ordenId) {
             enlace: `/ordenes/${ordenId}`
         });
     } catch (error) {
-        console.error("No se pudo crear la notificación de la orden:", error);
+        logger.error("No se pudo crear la notificación de la orden:", error);
     }
 }
 
@@ -291,7 +292,7 @@ async function crearOrden(req, res) {
             orden: respuestaOrden(orden, compradorId)
         });
     } catch (error) {
-        console.error("Error al crear la orden:", error);
+        logger.error("Error al crear la orden:", error);
         return res.status(500).json({ mensaje: "No se pudo crear la orden" });
     }
 }
@@ -324,7 +325,7 @@ async function listarOrdenes(req, res) {
 
         return res.json({ ordenes: ordenes.map((orden) => respuestaOrden(orden, usuarioId)) });
     } catch (error) {
-        console.error("Error al listar órdenes:", error);
+        logger.error("Error al listar órdenes:", error);
         return res.status(500).json({ mensaje: "No se pudieron cargar las órdenes" });
     }
 }
@@ -356,7 +357,7 @@ async function obtenerOrden(req, res) {
 
         return res.json({ orden: respuestaOrden(orden, req.usuario.id) });
     } catch (error) {
-        console.error("Error al obtener la orden:", error);
+        logger.error("Error al obtener la orden:", error);
         return res.status(500).json({ mensaje: "No se pudo cargar la orden" });
     }
 }
@@ -586,7 +587,7 @@ async function cambiarEstado(req, res) {
 
         return res.json({ mensaje: `Orden ${estado}`, orden: respuestaOrden(orden, usuarioId) });
     } catch (error) {
-        console.error("Error al cambiar el estado de la orden:", error);
+        logger.error("Error al cambiar el estado de la orden:", error);
         return res.status(500).json({ mensaje: "No se pudo actualizar la orden" });
     }
 }
@@ -620,7 +621,7 @@ async function cancelarOrden(req, res) {
 
         return res.json({ mensaje: "Solicitud retirada" });
     } catch (error) {
-        console.error("Error al cancelar la orden:", error);
+        logger.error("Error al cancelar la orden:", error);
         return res.status(500).json({ mensaje: "No se pudo cancelar la orden" });
     }
 }
@@ -671,7 +672,7 @@ async function calificarOrden(req, res) {
         await poblarOrden(orden);
         return res.json({ mensaje: "¡Gracias por calificar!", orden: respuestaOrden(orden, req.usuario.id) });
     } catch (error) {
-        console.error("Error al calificar la orden:", error);
+        logger.error("Error al calificar la orden:", error);
         return res.status(500).json({ mensaje: "No se pudo guardar la calificación" });
     }
 }
@@ -732,7 +733,7 @@ async function resumenVendedor(req, res) {
             }))
         });
     } catch (error) {
-        console.error("Error al calcular la reputación:", error);
+        logger.error("Error al calcular la reputación:", error);
         return res.status(500).json({ mensaje: "No se pudo calcular la reputación" });
     }
 }
@@ -834,7 +835,7 @@ async function abrirDisputa(req, res) {
             orden: respuestaOrden(orden, usuarioId)
         });
     } catch (error) {
-        console.error("Error al abrir la disputa:", error);
+        logger.error("Error al abrir la disputa:", error);
         return res.status(500).json({ mensaje: "No se pudo abrir la disputa" });
     }
 }
@@ -863,7 +864,7 @@ async function listarDisputas(req, res) {
 
         return res.json({ disputas: ordenes.map((orden) => respuestaOrden(orden, req.usuario.id)) });
     } catch (error) {
-        console.error("Error al listar disputas:", error);
+        logger.error("Error al listar disputas:", error);
         return res.status(500).json({ mensaje: "No se pudieron cargar las disputas" });
     }
 }
@@ -964,7 +965,7 @@ async function resolverDisputa(req, res) {
 
         return res.json({ mensaje: "Disputa resuelta", orden: respuestaOrden(orden, actor.id) });
     } catch (error) {
-        console.error("Error al resolver la disputa:", error);
+        logger.error("Error al resolver la disputa:", error);
         return res.status(500).json({ mensaje: "No se pudo resolver la disputa" });
     }
 }

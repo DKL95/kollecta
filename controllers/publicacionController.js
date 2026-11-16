@@ -22,6 +22,7 @@ const Usuario = require("../models/Usuario");
 
 const CAMPOS_AUTOR = "nombre username fotoPerfil rol activo";
 const { alcanza } = require("../middleware/roles");
+const logger = require("../config/logger");
 
 // La moderación (moderador+) puede ver contenido oculto; el resto solo el suyo.
 function esModeracion(req) {
@@ -36,8 +37,8 @@ function filtroVisible(idUsuarioActual, campoAutor = "autor") {
 // Detectar menciones y crear sus notificaciones.
 async function notificarMenciones(texto, emisorId, enlace, contexto) {
     try {
-        console.log("🔎 Texto recibido:", texto);
-        console.log("👤 ID del emisor:", String(emisorId));
+        logger.debug("🔎 Texto recibido:", texto);
+        logger.debug("👤 ID del emisor:", String(emisorId));
 
         const coincidencias = [
             ...String(texto || "").matchAll(
@@ -53,10 +54,10 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
             )
         ];
 
-        console.log("🏷️ Usuarios detectados:", usernames);
+        logger.debug("🏷️ Usuarios detectados:", usernames);
 
         if (usernames.length === 0) {
-            console.log("⚠️ No se detectaron menciones.");
+            logger.debug("⚠️ No se detectaron menciones.");
             return;
         }
 
@@ -76,7 +77,7 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
             }
         }).select("_id username");
 
-        console.log(
+        logger.debug(
             "👥 Usuarios encontrados:",
             usuarios.map((usuario) => ({
                 id: String(usuario._id),
@@ -86,7 +87,7 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
 
         for (const usuario of usuarios) {
             if (String(usuario._id) === String(emisorId)) {
-                console.log(
+                logger.debug(
                     "⏭️ Se omite la notificación al propio usuario:",
                     usuario.username
                 );
@@ -101,7 +102,7 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
                 enlace
             });
 
-            console.log(
+            logger.debug(
                 "✅ Notificación creada:",
                 String(notificacion._id),
                 "para @",
@@ -109,7 +110,7 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
             );
         }
     } catch (error) {
-        console.error(
+        logger.error(
             "❌ Error al notificar menciones:",
             error
         );
@@ -205,7 +206,7 @@ async function listarPublicaciones(req, res) {
             publicaciones: publicacionesFormateadas
         });
     } catch (error) {
-        console.error("Error al listar publicaciones:", error);
+        logger.error("Error al listar publicaciones:", error);
 
         return res.status(500).json({
             mensaje: "Error al obtener las publicaciones"
@@ -224,7 +225,7 @@ async function obtenerPublicacion(req, res) {
             (publicacion.oculto || publicacion.autor?.activo === false);
 
         if (!publicacion || ocultaParaMi) {
-            console.log("No se encontró la publicación.");
+            logger.debug("No se encontró la publicación.");
 
             return res.status(404).json({
                 mensaje: "Publicación no encontrada"
@@ -240,7 +241,7 @@ async function obtenerPublicacion(req, res) {
             publicacion: resultado
         });
     } catch (error) {
-        console.error("Error al obtener publicación:", error);
+        logger.error("Error al obtener publicación:", error);
 
         return res.status(500).json({
             mensaje: "Error al obtener la publicación"
@@ -372,7 +373,7 @@ async function crearPublicacion(req, res) {
         // Eliminar imágenes que ya se hayan guardado.
         for (const imagen of imagenesGuardadas) {
             await eliminarImagen(imagen).catch((errorLimpieza) => {
-                console.error(
+                logger.error(
                     "No se pudo limpiar una imagen:",
                     errorLimpieza
                 );
@@ -384,7 +385,7 @@ async function crearPublicacion(req, res) {
             const idVideo = video.split("/").pop();
 
             await eliminarVideo(idVideo).catch((errorLimpieza) => {
-                console.error(
+                logger.error(
                     "No se pudo limpiar un video:",
                     errorLimpieza
                 );
@@ -393,7 +394,7 @@ async function crearPublicacion(req, res) {
 
         await limpiarTemporales();
 
-        console.error("Error al crear publicación:", error);
+        logger.error("Error al crear publicación:", error);
 
         return res.status(500).json({
             mensaje: "Error al crear la publicación"
@@ -640,7 +641,7 @@ async function actualizarPublicacion(req, res) {
         // Eliminar las imágenes que el usuario quitó.
         for (const imagen of imagenesPorEliminar) {
             await eliminarImagen(imagen).catch((error) => {
-                console.error(
+                logger.error(
                     "No se pudo eliminar una imagen:",
                     error
                 );
@@ -652,7 +653,7 @@ async function actualizarPublicacion(req, res) {
             const idVideo = video.split("/").pop();
 
             await eliminarVideo(idVideo).catch((error) => {
-                console.error(
+                logger.error(
                     "No se pudo eliminar un video:",
                     error
                 );
@@ -684,7 +685,7 @@ async function actualizarPublicacion(req, res) {
             await eliminarVideo(idVideo).catch(() => {});
         }
 
-        console.error("Error al actualizar publicación:", error);
+        logger.error("Error al actualizar publicación:", error);
 
         return res.status(500).json({
             mensaje: "Error al actualizar la publicación"
@@ -727,7 +728,7 @@ async function eliminarPublicacion(req, res) {
         // Eliminar sus imágenes almacenadas.
         for (const imagen of imagenes) {
             await eliminarImagen(imagen).catch((error) => {
-                console.error(
+                logger.error(
                     "No se pudo eliminar una imagen:",
                     error
                 );
@@ -739,7 +740,7 @@ async function eliminarPublicacion(req, res) {
             const idVideo = video.split("/").pop();
 
             await eliminarVideo(idVideo).catch((error) => {
-                console.error(
+                logger.error(
                     "No se pudo eliminar un video:",
                     error
                 );
@@ -751,7 +752,7 @@ async function eliminarPublicacion(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al eliminar publicación:", error);
+        logger.error("Error al eliminar publicación:", error);
 
         return res.status(500).json({
             mensaje: "Error al eliminar la publicación"
@@ -796,7 +797,7 @@ async function alternarLike(req, res) {
                     enlace: `/publicaciones/${publicacion._id}`
                 });
             } catch (error) {
-                console.error(
+                logger.error(
                     "Error al crear notificación:",
                     error
                 );
@@ -812,7 +813,7 @@ async function alternarLike(req, res) {
             )
         });
     } catch (error) {
-        console.error("Error al dar like:", error);
+        logger.error("Error al dar like:", error);
 
         return res.status(500).json({
             mensaje: "Error al dar like"
@@ -876,7 +877,7 @@ async function agregarComentario(req, res) {
                 });
             } catch (error) {
                 // Un error de notificación no debe impedir publicar.
-                console.error(
+                logger.error(
                     "Error al crear notificación de comentario:",
                     error
                 );
@@ -916,7 +917,7 @@ async function agregarComentario(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al agregar comentario:", error);
+        logger.error("Error al agregar comentario:", error);
 
         return res.status(500).json({
             mensaje: "Error al publicar el comentario"
@@ -1032,7 +1033,7 @@ async function listarComentarios(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al listar comentarios:", error);
+        logger.error("Error al listar comentarios:", error);
 
         return res.status(500).json({
             mensaje: "Error al obtener los comentarios"
@@ -1083,7 +1084,7 @@ async function alternarLikeComentario(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al dar like al comentario:", error);
+        logger.error("Error al dar like al comentario:", error);
 
         return res.status(500).json({
             mensaje: "Error al dar like al comentario"
@@ -1138,7 +1139,7 @@ async function alternarLikeComentario(req, res) {
                 });
             } catch (errorNotificacion) {
                 // Un error en la notificación no debe impedir el like.
-                console.error(
+                logger.error(
                     "Error al crear notificación de like al comentario:",
                     errorNotificacion
                 );
@@ -1158,7 +1159,7 @@ async function alternarLikeComentario(req, res) {
         });
 
     } catch (error) {
-        console.error(
+        logger.error(
             "Error al dar like al comentario:",
             error
         );
@@ -1289,7 +1290,7 @@ async function agregarRespuesta(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al agregar respuesta:", error);
+        logger.error("Error al agregar respuesta:", error);
 
         return res.status(500).json({
             mensaje: "Error al publicar la respuesta"
@@ -1350,7 +1351,7 @@ async function alternarLikeRespuesta(req, res) {
                 });
             } catch (errorNotificacion) {
                 // La notificación no debe impedir que funcione el like.
-                console.error(
+                logger.error(
                     "Error al crear notificación de like a la respuesta:",
                     errorNotificacion
                 );
@@ -1370,7 +1371,7 @@ async function alternarLikeRespuesta(req, res) {
         });
 
     } catch (error) {
-        console.error(
+        logger.error(
             "Error al dar like a la respuesta:",
             error
         );
@@ -1461,7 +1462,7 @@ async function eliminarComentario(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al eliminar comentario:", error);
+        logger.error("Error al eliminar comentario:", error);
 
         return res.status(500).json({
             mensaje: "Error al eliminar el comentario"
@@ -1587,7 +1588,7 @@ async function eliminarRespuesta(req, res) {
         });
 
     } catch (error) {
-        console.error("Error al eliminar respuesta:", error);
+        logger.error("Error al eliminar respuesta:", error);
 
         return res.status(500).json({
             mensaje: "Error al eliminar la respuesta"
@@ -1679,7 +1680,7 @@ async function actualizarComentario(req, res) {
             }
         });
     } catch (error) {
-        console.error("Error al actualizar comentario:", error);
+        logger.error("Error al actualizar comentario:", error);
 
         return res.status(500).json({
             mensaje: "Error al actualizar el comentario"
@@ -1812,7 +1813,7 @@ async function actualizarRespuesta(req, res) {
             }
         });
     } catch (error) {
-        console.error("Error al actualizar respuesta:", error);
+        logger.error("Error al actualizar respuesta:", error);
 
         return res.status(500).json({
             mensaje: "Error al actualizar la respuesta"
