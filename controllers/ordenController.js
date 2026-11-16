@@ -698,10 +698,38 @@ async function resumenVendedor(req, res) {
             }
         ]);
 
+        const calificadas = { vendedor: usuario._id, estado: "completada", "calificacion.estrellas": { $ne: null } };
+
+        const [porEstrellas, recientes] = await Promise.all([
+            Orden.aggregate([
+                { $match: calificadas },
+                { $group: { _id: "$calificacion.estrellas", total: { $sum: 1 } } }
+            ]),
+            Orden.find(calificadas)
+                .sort({ "calificacion.fecha": -1 })
+                .limit(10)
+                .select("comprador articulo.titulo articulo.imagen tipo calificacion")
+                .populate("comprador", CAMPOS_USUARIO)
+        ]);
+
+        const distribucion = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        for (const fila of porEstrellas) distribucion[fila._id] = fila.total;
+
         return res.json({
             operaciones: resumen?.operaciones || 0,
             calificaciones: resumen?.calificaciones || 0,
-            promedio: resumen?.promedio ? Math.round(resumen.promedio * 10) / 10 : null
+            promedio: resumen?.promedio ? Math.round(resumen.promedio * 10) / 10 : null,
+            distribucion,
+            resenas: recientes.map((orden) => ({
+                id: orden._id,
+                comprador: orden.comprador,
+                articulo: orden.articulo.titulo,
+                imagen: orden.articulo.imagen,
+                tipo: orden.tipo,
+                estrellas: orden.calificacion.estrellas,
+                comentario: orden.calificacion.comentario,
+                fecha: orden.calificacion.fecha
+            }))
         });
     } catch (error) {
         console.error("Error al calcular la reputación:", error);

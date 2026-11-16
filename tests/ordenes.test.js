@@ -243,7 +243,13 @@ describe("Marketplace (/api/productos) y compra-venta (/api/ordenes)", () => {
             assert.equal((await api("POST", `/api/ordenes/${orden._id}/calificacion`, { token: compradora.token, json: { estrellas: 4 } })).status, 409);
 
             const resumen = await api("GET", `/api/ordenes/resumen/${vendedora.usuario.username}`, { token: otra.token });
-            assert.deepEqual(resumen.body, { operaciones: 1, calificaciones: 1, promedio: 5 });
+            const { operaciones, calificaciones, promedio, distribucion, resenas } = resumen.body;
+            assert.deepEqual({ operaciones, calificaciones, promedio }, { operaciones: 1, calificaciones: 1, promedio: 5 });
+            assert.deepEqual(distribucion, { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 });
+            assert.equal(resenas.length, 1);
+            assert.equal(resenas[0].comentario, "Perfecto");
+            assert.equal(resenas[0].articulo, "Álbum Ready to Be");
+            assert.equal(resenas[0].comprador.username, compradora.usuario.username);
         });
 
         it("si el producto se copió de la colección, al venderse esa pieza sale de la colección del vendedor", async () => {

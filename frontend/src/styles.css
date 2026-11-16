@@ -4752,3 +4752,28 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
 .dispute-text { margin: 0; color: var(--text-dim); font-size: 13.5px; }
 .dispute-link { margin: 14px 0 0; color: var(--text-dim); font-size: 13px; }
 .link-btn { padding: 0; border: 0; background: none; color: var(--pink); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+
+/* Reputación del vendedor (perfil) */
+.profile-stats .stat-link { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.profile-stats .stat-link:hover span { color: var(--text-dim); text-decoration: underline; }
+.profile-stats .stat-gold { color: var(--gold); }
+.reviews { display: grid; gap: 14px; max-width: 680px; }
+.reviews-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; padding: 18px 20px; }
+.reviews-score { display: grid; gap: 4px; min-width: 150px; }
+.reviews-score b { font-size: 34px; line-height: 1; }
+.reviews-score small { color: var(--text-faint); font-size: 12px; }
+.reviews-bars { display: grid; flex: 1; gap: 6px; min-width: 200px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--text-dim); }
+.reviews-bars li { display: grid; grid-template-columns: 30px 1fr 24px; align-items: center; gap: 8px; }
+.reviews-bar { height: 8px; overflow: hidden; border-radius: var(--radius-pill); background: var(--border); }
+.reviews-bar span { display: block; height: 100%; border-radius: inherit; background: var(--gold); }
+.reviews-count { text-align: right; color: var(--text-faint); }
+.reviews-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.review { display: grid; gap: 8px; padding: 14px 16px; }
+.review-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.review-author { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+.review-author span { display: grid; }
+.review-author small { color: var(--text-faint); font-size: 12px; }
+.review-stars { display: inline-flex; gap: 1px; color: var(--border-strong); font-size: 15px; }
+.review-stars .on { color: var(--gold); }
+.review-text { margin: 0; font-size: 14px; }
+.review-meta { color: var(--text-faint); font-size: 12px; }

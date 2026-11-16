@@ -4,6 +4,7 @@ import { apiRequest } from "../api/client";
 import { UserAvatar } from "../components/Avatar";
 import CollectionItem from "../components/CollectionItem";
 import EmptyState from "../components/EmptyState";
+import SellerReviews from "../components/SellerReviews";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
@@ -13,7 +14,7 @@ import ReportDialog from "../components/ReportDialog";
 import ModActionDialog from "../components/ModActionDialog";
 import { esAdmin, esModerador } from "../utils/roles";
 
-const TABS = ["Publicaciones", "Colección", "Grupos que sigo"];
+const TABS = ["Publicaciones", "Colección", "Reseñas", "Grupos que sigo"];
 
 export default function ProfilePage() {
   const { user, saveUser } = useAuth();
@@ -37,6 +38,19 @@ export default function ProfilePage() {
   const [friendError, setFriendError] = useState("");
   const [denunciando, setDenunciando] = useState(false);
   const [sancion, setSancion] = useState(null); // "suspender" | "banear"
+  // Reputación como vendedor (null = cargando)
+  const [reputacion, setReputacion] = useState(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    setReputacion(null);
+    apiRequest(`/ordenes/resumen/${encodeURIComponent(username)}`)
+      .then((data) => !cancelado && setReputacion(data))
+      .catch(() => !cancelado && setReputacion({ operaciones: 0, calificaciones: 0, promedio: null }));
+    return () => {
+      cancelado = true;
+    };
+  }, [username]);
 
   useEffect(() => {
     setProfile(null);
@@ -531,6 +545,17 @@ export default function ProfilePage() {
           </b>
           <span>Likes recibidos</span>
         </div>
+
+        {reputacion?.operaciones > 0 && (
+          <button type="button" className="stat stat-link" onClick={() => setActiveTab("Reseñas")}>
+            <b className="stat-gold">{reputacion.promedio ? `★ ${reputacion.promedio}` : reputacion.operaciones}</b>
+            <span>
+              {reputacion.promedio
+                ? `${reputacion.calificaciones} reseña${reputacion.calificaciones === 1 ? "" : "s"}`
+                : `Venta${reputacion.operaciones === 1 ? "" : "s"} completada${reputacion.operaciones === 1 ? "" : "s"}`}
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="tabs">
@@ -589,6 +614,10 @@ export default function ProfilePage() {
             ))}
           </div>
         ))}
+
+      {activeTab === "Reseñas" && (
+        <SellerReviews reputacion={reputacion} username={shown.username} propio={isOwnProfile} />
+      )}
 
       {activeTab === "Grupos que sigo" && (
         <div className="badges-row">

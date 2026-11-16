@@ -279,7 +279,7 @@ canceladas, conversión gratis → Plus, y retención a 30 días.
   `GET /api/coleccion/marketplace`, mensaje automático en el chat y notificación en cada
   cambio, traspaso de artículos al completar, calificación y reputación del vendedor.
   Marketplace, Buscar y Detalle de grupo ya leen datos reales; nuevas pantallas
-  "Mis órdenes" y "Detalle de orden". Falta: mostrar la reputación en el perfil.
+  "Mis órdenes" y "Detalle de orden". La reputación se ve en el perfil: promedio, distribución de estrellas y pestaña "Reseñas" (15-nov).
 - **Venta y colección separadas** (decisión del equipo): nueva colección `productos` (anuncios
   del marketplace, ya van 12 colecciones). La colección personal es solo la vitrina y no se
   vende. "Añadir artículo de la colección" en Vender copia título, grupo, categoría, condición,
