@@ -90,6 +90,7 @@ WEB2/
 │       └── utils/            Formato de dinero/fechas, categorías, roles, emojis
 ├── docs/                     PDF técnico, manual de usuario con capturas y rúbrica del curso
 ├── INTEGRANTES.txt           Nombres, matrículas y enlace al repositorio
+├── app-android/              App de Android (APK) con Capacitor
 ├── render.yaml               Despliegue en Render
 ├── .env.example              Variables de entorno necesarias
 └── package.json              Scripts para correr todo el proyecto
@@ -150,6 +151,10 @@ Todos bajo `/api`, en JSON. **Todos exigen token** (`Authorization: Bearer <toke
 ## Instalar como app (PWA)
 
 KollectA se puede instalar en el celular o la computadora desde el navegador: `frontend/public/manifest.webmanifest` (nombre, colores e íconos en `frontend/public/icons/`) y un service worker (`frontend/public/sw.js`) que guarda la app para abrirla rápido. El service worker **nunca** guarda respuestas de `/api`, así que los datos siempre vienen del servidor. Solo se registra en la versión compilada (`npm run build`), no con `npm run dev`. El botón **Instalar app** aparece cuando el navegador lo permite (Chrome, Edge, Android); en iPhone se indica cómo hacerlo desde Safari.
+
+## App de Android (APK)
+
+En [`app-android/`](app-android/README.md) está la app nativa para Android hecha con Capacitor: abre la versión publicada de KollectA en un WebView, con su propio ícono y pantalla de inicio. Para compilarla: `cd app-android && npm install && npm run apk`.
 
 ## Datos de demostración
 
