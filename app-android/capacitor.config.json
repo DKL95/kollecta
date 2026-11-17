@@ -1,0 +1,13 @@
+{
+  "appId": "com.kollecta.app",
+  "appName": "KollectA",
+  "webDir": "www",
+  "server": {
+    "url": "https://kollecta.onrender.com",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#100a1e"
+  }
+}

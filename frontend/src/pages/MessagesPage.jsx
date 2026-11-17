@@ -83,6 +83,9 @@ export default function MessagesPage() {
   const [draftGif, setDraftGif] = useState(null);
   // Mensaje propio que se está editando: { id, texto }
   const [editando, setEditando] = useState(null);
+  // Mensaje al que se está respondiendo (se cita arriba del campo de texto)
+  const [respondiendo, setRespondiendo] = useState(null);
+  const campoMensaje = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -211,9 +214,12 @@ export default function MessagesPage() {
     if (!socket.connected) socket.connect();
 
     socket.on("conversaciones:actualizar", cargarConversaciones);
+    // Llegó un mensaje a cualquier chat o leí alguno: se actualizan los pendientes de la lista.
+    socket.on("mensajes:contador-actualizar", cargarConversaciones);
 
     return () => {
       socket.off("conversaciones:actualizar", cargarConversaciones);
+      socket.off("mensajes:contador-actualizar", cargarConversaciones);
     };
   }, [cargarConversaciones]);
 
@@ -328,6 +334,8 @@ export default function MessagesPage() {
 
   // Cargar el historial de la conversación seleccionada.
   useEffect(() => {
+    setRespondiendo(null);
+    setEditando(null);
     if (!activeId) {
       setMessages([]);
       return;
@@ -343,6 +351,8 @@ export default function MessagesPage() {
 
         if (!cancelado) {
           setMessages(Array.isArray(data) ? data : []);
+          // Al abrirlo ya se leyó todo: el chat deja de tener pendientes.
+          setThreads((anteriores) => anteriores.map((t) => (t._id === activeId ? { ...t, noLeidos: 0 } : t)));
         }
       } catch (err) {
         if (!cancelado) {
@@ -379,6 +389,11 @@ export default function MessagesPage() {
 
     const esMio =
         String(remitenteId) === String(miId);
+
+    // Si el mensaje es de otra persona y tengo el chat abierto, ya lo estoy leyendo.
+    if (!esMio) {
+        apiRequest(`/mensajes/${activeId}/leidos`, { method: "PATCH" }).catch(() => {});
+    }
 
     // Si el mensaje es de otra persona, confirmar su entrega.
     if (!esMio) {
@@ -529,6 +544,21 @@ export default function MessagesPage() {
     }
   }
 
+  function responderA(message) {
+    setEditando(null);
+    setRespondiendo(message);
+    campoMensaje.current?.focus();
+  }
+
+  // Al tocar una cita, baja (o sube) al mensaje original y lo resalta un momento.
+  function irAlMensaje(id) {
+    const elemento = document.getElementById(`message-${id}`);
+    if (!elemento) return;
+    elemento.scrollIntoView({ behavior: "smooth", block: "center" });
+    elemento.classList.add("msg-resaltado");
+    setTimeout(() => elemento.classList.remove("msg-resaltado"), 1600);
+  }
+
   async function borrarMensaje(message) {
     if (!window.confirm("¿Borrar este mensaje para todos?")) return;
 
@@ -562,7 +592,7 @@ export default function MessagesPage() {
     try {
       const nuevoMensaje = await apiRequest(`/mensajes/${activeId}`, {
         method: "POST",
-        body: { texto, gif: draftGif },
+        body: { texto, gif: draftGif, respondeA: respondiendo?._id || null },
       });
 
       setMessages((anteriores) => {
@@ -576,6 +606,7 @@ export default function MessagesPage() {
       });
       setDraft("");
       setDraftGif(null);
+      setRespondiendo(null);
 
       // Actualizar la vista previa de la conversación.
       const data = await apiRequest("/mensajes/conversaciones");
@@ -732,19 +763,25 @@ export default function MessagesPage() {
           threads.map((thread) => {
             const datos = datosConversacion(thread, user);
             const ultimoMensaje = thread.ultimoMensaje;
-            const autorUltimo =
-              esGrupo(thread) && ultimoMensaje?.remitente
-                ? String(ultimoMensaje.remitente._id) === String(user?._id || user?.id)
-                  ? "Tú: "
-                  : `${obtenerNombre(ultimoMensaje.remitente).split(" ")[0]}: `
-                : "";
+            // ¿El último mensaje es mío o de la otra persona? En grupos se dice quién.
+            const ultimoEsMio =
+              ultimoMensaje?.remitente &&
+              String(ultimoMensaje.remitente._id || ultimoMensaje.remitente) === String(user?._id || user?.id);
+            const autorUltimo = !ultimoMensaje?.remitente
+              ? ""
+              : ultimoEsMio
+                ? "Tú: "
+                : esGrupo(thread)
+                  ? `${obtenerNombre(ultimoMensaje.remitente).split(" ")[0]}: `
+                  : "";
+            const pendientes = thread._id === activeId ? 0 : thread.noLeidos || 0;
 
             return (
               <div
                 key={thread._id}
                 className={`thread-item ${
                   thread._id === activeId ? "active" : ""
-                }`}
+                } ${pendientes ? "con-pendientes" : ""}`}
                 onClick={() => {
                   setActiveId(thread._id);
                   setMobileView("chat");
@@ -782,14 +819,23 @@ export default function MessagesPage() {
                     </span>
                   </div>
 
+                  <div className="bottom-line">
                   <div className="preview">
-                    {ultimoMensaje?.texto
+                    {ultimoEsMio && <span className="preview-tu">{autorUltimo}</span>}
+                    {ultimoEsMio ? (ultimoMensaje?.texto || (ultimoMensaje?.gif ? "GIF" : "")) : null}
+                    {!ultimoEsMio && (ultimoMensaje?.texto
                       ? `${autorUltimo}${ultimoMensaje.texto}`
                       : ultimoMensaje?.gif
                         ? `${autorUltimo}GIF`
                         : esGrupo(thread)
                         ? "Grupo creado. ¡Saluda!"
-                        : "Inicia la conversación"}
+                        : "Inicia la conversación")}
+                  </div>
+                  {pendientes > 0 && (
+                    <span className="unread" aria-label={`${pendientes} mensajes sin leer`}>
+                      {pendientes > 99 ? "99+" : pendientes}
+                    </span>
+                  )}
                   </div>
                 </div>
               </div>
@@ -1018,6 +1064,12 @@ export default function MessagesPage() {
                             {obtenerNombre(message.remitente)}
                           </span>
                         )}
+                        {message.respondeA && (
+                          <button type="button" className="msg-cita" onClick={() => irAlMensaje(message.respondeA._id)}>
+                            <span className="msg-cita-autor">{obtenerNombre(message.respondeA.remitente)}</span>
+                            <span className="msg-cita-texto">{message.respondeA.texto || (message.respondeA.gif ? "GIF" : "Mensaje")}</span>
+                          </button>
+                        )}
                         {editando?.id === message._id ? (
                           <form className="msg-edit" onSubmit={guardarEdicion}>
                             <input
@@ -1044,14 +1096,21 @@ export default function MessagesPage() {
                           </span>
                         )}
 
-                        {esMio && editando?.id !== message._id && (
+                        {editando?.id !== message._id && (
                           <span className="msg-actions">
-                            <button type="button" title="Editar" aria-label="Editar mensaje" onClick={() => setEditando({ id: message._id, texto: message.texto || "" })}>
-                              Editar
+                            <button type="button" title="Responder" aria-label="Responder mensaje" onClick={() => responderA(message)}>
+                              Responder
                             </button>
-                            <button type="button" title="Borrar" aria-label="Borrar mensaje" onClick={() => borrarMensaje(message)}>
-                              Borrar
-                            </button>
+                            {esMio && (
+                              <>
+                                <button type="button" title="Editar" aria-label="Editar mensaje" onClick={() => setEditando({ id: message._id, texto: message.texto || "" })}>
+                                  Editar
+                                </button>
+                                <button type="button" title="Borrar" aria-label="Borrar mensaje" onClick={() => borrarMensaje(message)}>
+                                  Borrar
+                                </button>
+                              </>
+                            )}
                           </span>
                         )}
                     </div>  
@@ -1060,6 +1119,18 @@ export default function MessagesPage() {
                 })
               )}
             </div>
+
+            {respondiendo && (
+              <div className="chat-reply-preview">
+                <div className="chat-reply-info">
+                  <span className="msg-cita-autor">Respondiendo a {obtenerNombre(respondiendo.remitente)}</span>
+                  <span className="msg-cita-texto">{respondiendo.texto || (respondiendo.gif ? "GIF" : "Mensaje")}</span>
+                </div>
+                <button type="button" className="icon-btn" aria-label="Cancelar respuesta" onClick={() => setRespondiendo(null)}>
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            )}
 
             {draftGif && (
               <div className="chat-gif-preview">
@@ -1074,7 +1145,9 @@ export default function MessagesPage() {
               <input
                 type="text"
                 placeholder="Escribe un mensaje..."
+                ref={campoMensaje}
                 value={draft}
+                onKeyDown={(event) => event.key === "Escape" && setRespondiendo(null)}
                 onChange={(event) => setDraft(event.target.value)}
                 maxLength={5000}
                 disabled={sending}

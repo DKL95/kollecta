@@ -11,6 +11,7 @@ const {
     enviarMensaje,
     editarMensaje,
     eliminarMensaje,
+    marcarConversacionLeida,
     obtenerMensajesNoLeidos,
     alternarSilencioConversacion,
     eliminarConversacion,
@@ -49,6 +50,9 @@ router.delete(
     "/:conversacionId",
     eliminarConversacion
 );
+
+// Marcar como leído lo recibido en un chat abierto
+router.patch("/:conversacionId/leidos", marcarConversacionLeida);
 
 // Editar o borrar un mensaje propio
 router.patch("/:conversacionId/mensajes/:mensajeId", registrarOperacion("editar mensaje"), editarMensaje);

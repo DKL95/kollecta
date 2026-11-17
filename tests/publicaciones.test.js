@@ -161,5 +161,21 @@ describe("Publicaciones (/api/publicaciones)", () => {
             const imagenBorrada = await api("GET", imagen, { token: autor.token });
             assert.equal(imagenBorrada.status, 404);
         });
+
+        it("al borrar una publicación se borran sus comentarios y respuestas", async () => {
+            const mongoose = require("mongoose");
+            const post = await api("POST", "/api/publicaciones", { token: autor.token, json: { texto: "Con comentarios" } });
+            const id = post.body.publicacion.id;
+            const com = await api("POST", `/api/publicaciones/${id}/comentarios`, { token: otro.token, json: { texto: "Hola" } });
+            const comId = com.body.comentario.id || com.body.comentario._id;
+            const resp = await api("POST", `/api/publicaciones/${id}/comentarios/${comId}/respuestas`, { token: autor.token, json: { texto: "¡Gracias!" } });
+            assert.equal(resp.status, 201);
+
+            assert.equal((await api("DELETE", `/api/publicaciones/${id}`, { token: autor.token })).status, 200);
+
+            const pid = new mongoose.Types.ObjectId(String(id));
+            assert.equal(await mongoose.model("Comentario").countDocuments({ publicacion: pid }), 0);
+            assert.equal(await mongoose.model("Respuesta").countDocuments({ publicacion: pid }), 0);
+        });
     });
 });

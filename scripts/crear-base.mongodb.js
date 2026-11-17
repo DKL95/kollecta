@@ -218,6 +218,7 @@ crear("mensajes", {
       },
       "required": ["url"]
     },
+    "respondeA": {"bsonType":["objectId","null"],"description":"→ Mensaje"},
     "editadoEn": {"bsonType":["date","null"]},
     "imagenes": {"bsonType":"array"},
     "entregado": {"bsonType":["bool","null"]},

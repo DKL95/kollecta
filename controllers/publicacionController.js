@@ -755,8 +755,12 @@ async function eliminarPublicacion(req, res) {
         // Obtener los videos asociados.
         const videos = [...(publicacion.videos || [])];
 
-        // Eliminar la publicación de la base de datos.
+        // Eliminar la publicación de la base de datos, con sus comentarios y respuestas.
         await publicacion.deleteOne();
+        await Promise.all([
+            Comentario.deleteMany({ publicacion: publicacion._id }),
+            Respuesta.deleteMany({ publicacion: publicacion._id })
+        ]);
 
         // Eliminar sus imágenes almacenadas.
         for (const imagen of imagenes) {
