@@ -6,6 +6,16 @@ const Usuario = require("../models/Usuario");
 const logger = require("../config/logger");
 const { normalizarGif, ErrorGif } = require("../services/gifs");
 
+// Datos que se muestran de un mensaje y del mensaje al que responde (la cita).
+const POBLAR_MENSAJE = [
+    { path: "remitente", select: "nombre username fotoPerfil" },
+    {
+        path: "respondeA",
+        select: "texto gif remitente",
+        populate: { path: "remitente", select: "nombre username" }
+    }
+];
+
 // Obtener las conversaciones del usuario autenticado
 async function obtenerConversaciones(req, res) {
     try {
@@ -25,7 +35,25 @@ async function obtenerConversaciones(req, res) {
             })
             .sort({ fechaActividad: -1 });
 
-        res.json(conversaciones);
+        // Mensajes pendientes por chat (los que me mandaron y no he leído).
+        const yo = new mongoose.Types.ObjectId(String(usuarioId));
+        const directas = conversaciones.filter((c) => c.tipo !== "grupo").map((c) => c._id);
+        const grupos = conversaciones.filter((c) => c.tipo === "grupo").map((c) => c._id);
+        const pendientes = await Mensaje.aggregate([
+            {
+                $match: {
+                    remitente: { $ne: yo },
+                    $or: [
+                        { conversacion: { $in: directas }, leido: false },
+                        { conversacion: { $in: grupos }, leidoPor: { $ne: yo } }
+                    ]
+                }
+            },
+            { $group: { _id: "$conversacion", total: { $sum: 1 } } }
+        ]);
+        const porChat = new Map(pendientes.map((p) => [String(p._id), p.total]));
+
+        res.json(conversaciones.map((c) => ({ ...c.toObject(), noLeidos: porChat.get(String(c._id)) || 0 })));
     } catch (error) {
         logger.error("Error al obtener conversaciones:", error);
         res.status(500).json({
@@ -193,6 +221,84 @@ async function eliminarConversacion(req, res) {
     }
 }
 
+// Marca como leídos los mensajes que recibió el usuario en esa conversación y avisa
+// a cada remitente (palomitas). En grupos, cada quien lleva su propia lectura.
+async function marcarLeidos(req, conversacion, usuarioId) {
+    const io = req.app.get("io");
+
+    // Mis contadores (menú y lista de chats) se actualizan en todos mis dispositivos.
+    if (io) io.to(`usuario:${usuarioId}`).emit("mensajes:contador-actualizar");
+
+    if (conversacion.tipo === "grupo") {
+        await marcarLeidosEnGrupo(conversacion, usuarioId, io);
+    }
+
+    // Marcar como leídos los mensajes recibidos que aún no se han leído.
+    const mensajesActualizados = conversacion.tipo === "grupo" ? [] : await Mensaje.find({
+        conversacion: conversacion._id,
+        remitente: { $ne: usuarioId },
+        leido: false
+    }).select("_id remitente");
+
+    const idsActualizados = mensajesActualizados.map(
+        (mensaje) => mensaje._id
+    );
+
+    if (idsActualizados.length > 0) {
+        const fechaLectura = new Date();
+
+        await Mensaje.updateMany(
+            { _id: { $in: idsActualizados } },
+            {
+                $set: {
+                    leido: true,
+                    leidoEn: fechaLectura,
+                    entregado: true,
+                    entregadoEn: fechaLectura
+                }
+            }
+        );
+
+        // Avisar a cada remitente de que sus mensajes fueron leídos.
+        if (io) {
+            for (const mensaje of mensajesActualizados) {
+                io.to(`usuario:${mensaje.remitente}`).emit(
+                    "mensaje:estado",
+                    {
+                        _id: mensaje._id,
+                        conversacion: conversacion._id,
+                        entregado: true,
+                        entregadoEn: fechaLectura,
+                        leido: true,
+                        leidoEn: fechaLectura
+                    }
+                );
+            }
+        }
+    }
+}
+
+// PATCH /api/mensajes/:conversacionId/leidos  → marca como leído lo recibido (chat abierto)
+async function marcarConversacionLeida(req, res) {
+    try {
+        const { conversacionId } = req.params;
+        if (!mongoose.isValidObjectId(conversacionId)) {
+            return res.status(400).json({ mensaje: "El identificador de la conversación no es válido" });
+        }
+
+        const conversacion = await Conversacion.findOne({ _id: conversacionId, participantes: req.usuario.id });
+        if (!conversacion) {
+            return res.status(404).json({ mensaje: "Conversación no encontrada" });
+        }
+
+        await marcarLeidos(req, conversacion, req.usuario.id);
+        res.json({ mensaje: "Mensajes marcados como leídos" });
+    } catch (error) {
+        logger.error("Error al marcar mensajes como leídos:", error);
+        res.status(500).json({ mensaje: "Error al marcar los mensajes como leídos" });
+    }
+}
+
 // Obtener los mensajes de una conversación y marcar los recibidos como leídos.
 async function obtenerMensajes(req, res) {
     try {
@@ -216,60 +322,12 @@ async function obtenerMensajes(req, res) {
             });
         }
 
-        const io = req.app.get("io");
-
-        if (conversacion.tipo === "grupo") {
-            await marcarLeidosEnGrupo(conversacion, usuarioId, io);
-        }
-
-        // Marcar como leídos los mensajes recibidos que aún no se han leído.
-        const mensajesActualizados = conversacion.tipo === "grupo" ? [] : await Mensaje.find({
-            conversacion: conversacionId,
-            remitente: { $ne: usuarioId },
-            leido: false
-        }).select("_id remitente");
-
-        const idsActualizados = mensajesActualizados.map(
-            (mensaje) => mensaje._id
-        );
-
-        if (idsActualizados.length > 0) {
-            const fechaLectura = new Date();
-
-            await Mensaje.updateMany(
-                { _id: { $in: idsActualizados } },
-                {
-                    $set: {
-                        leido: true,
-                        leidoEn: fechaLectura,
-                        entregado: true,
-                        entregadoEn: fechaLectura
-                    }
-                }
-            );
-
-            // Avisar a cada remitente de que sus mensajes fueron leídos.
-            if (io) {
-                for (const mensaje of mensajesActualizados) {
-                    io.to(`usuario:${mensaje.remitente}`).emit(
-                        "mensaje:estado",
-                        {
-                            _id: mensaje._id,
-                            conversacion: conversacionId,
-                            entregado: true,
-                            entregadoEn: fechaLectura,
-                            leido: true,
-                            leidoEn: fechaLectura
-                        }
-                    );
-                }
-            }
-        }
+        await marcarLeidos(req, conversacion, usuarioId);
 
         const mensajes = await Mensaje.find({
             conversacion: conversacionId
         })
-            .populate("remitente", "nombre username fotoPerfil")
+            .populate(POBLAR_MENSAJE)
             .sort({ createdAt: 1 });
 
         res.json(mensajes);
@@ -362,6 +420,18 @@ async function enviarMensaje(req, res) {
             });
         }
 
+        // Respuesta a un mensaje específico: debe existir y ser de esta misma conversación.
+        const respondeA = req.body?.respondeA || null;
+        if (respondeA) {
+            if (!mongoose.isValidObjectId(respondeA)) {
+                return res.status(400).json({ mensaje: "El mensaje al que respondes no es válido" });
+            }
+            const original = await Mensaje.exists({ _id: respondeA, conversacion: conversacionId });
+            if (!original) {
+                return res.status(400).json({ mensaje: "El mensaje al que respondes ya no existe en este chat" });
+            }
+        }
+
         const conversacion = await Conversacion.findOne({
             _id: conversacionId,
             participantes: usuarioId
@@ -386,6 +456,7 @@ async function enviarMensaje(req, res) {
             remitente: usuarioId,
             texto,
             gif,
+            respondeA,
             entregado: false,
             entregadoEn: null,
             leido: false,
@@ -397,10 +468,7 @@ async function enviarMensaje(req, res) {
 
         await conversacion.save();
 
-        await mensaje.populate(
-            "remitente",
-            "nombre username fotoPerfil"
-        );
+        await mensaje.populate(POBLAR_MENSAJE);
 
         // Notificar a los participantes mediante Socket.IO.
         const io = req.app.get("io");
@@ -481,7 +549,7 @@ async function editarMensaje(req, res) {
         mensaje.texto = texto;
         mensaje.editadoEn = new Date();
         await mensaje.save();
-        await mensaje.populate("remitente", CAMPOS_USUARIO);
+        await mensaje.populate(POBLAR_MENSAJE);
 
         const io = req.app.get("io");
         if (io) io.to(`conversacion:${conversacion._id}`).emit("mensaje:editado", mensaje);
@@ -868,6 +936,7 @@ module.exports = {
     enviarMensaje,
     editarMensaje,
     eliminarMensaje,
+    marcarConversacionLeida,
     obtenerMensajesNoLeidos,
     alternarSilencioConversacion,
     eliminarConversacion,

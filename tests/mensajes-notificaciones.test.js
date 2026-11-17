@@ -60,6 +60,26 @@ describe("Editar/borrar mensajes y borrar notificaciones", () => {
             assert.equal((await api("DELETE", `/api/mensajes/${grupoId}/mensajes/${mensajeId}`)).status, 401);
         });
 
+        it("responder a un mensaje específico lo cita, y solo dentro del mismo chat", async () => {
+            const res = await api("POST", `/api/mensajes/${grupoId}`, { token: beto.token, json: { texto: "¡Hola Ana!", respondeA: mensajeId } });
+            assert.equal(res.status, 201);
+            assert.equal(String(res.body.respondeA._id), String(mensajeId));
+            assert.ok(res.body.respondeA.texto);
+            assert.ok(res.body.respondeA.remitente.username);
+
+            const lista = await api("GET", `/api/mensajes/${grupoId}`, { token: caro.token });
+            const respuesta = lista.body.find((m) => m._id === res.body._id);
+            assert.equal(String(respuesta.respondeA._id), String(mensajeId));
+
+            const idMalo = await api("POST", `/api/mensajes/${grupoId}`, { token: beto.token, json: { texto: "x", respondeA: "abc" } });
+            assert.equal(idMalo.status, 400);
+            const inexistente = await api("POST", `/api/mensajes/${grupoId}`, { token: beto.token, json: { texto: "x", respondeA: "0123456789abcdef01234567" } });
+            assert.equal(inexistente.status, 400);
+
+            // Limpieza para no cambiar las pruebas siguientes
+            await api("DELETE", `/api/mensajes/${grupoId}/mensajes/${res.body._id}`, { token: beto.token });
+        });
+
         it("borrar el último mensaje regresa la vista previa al anterior", async () => {
             const segundo = await api("POST", `/api/mensajes/${grupoId}`, { token: ana.token, json: { texto: "Me equivoqué" } });
 
@@ -73,6 +93,26 @@ describe("Editar/borrar mensajes y borrar notificaciones", () => {
             const conversaciones = await api("GET", "/api/mensajes/conversaciones", { token: caro.token });
             const grupo = conversaciones.body.find((c) => String(c._id) === String(grupoId));
             assert.equal(grupo.ultimoMensaje?.texto, "Hola, fans");
+        });
+    });
+
+    describe("mensajes pendientes por chat", () => {
+        it("cada conversación trae noLeidos, y PATCH /leidos los pone en 0", async () => {
+            await api("POST", `/api/mensajes/${grupoId}`, { token: ana.token, json: { texto: "Uno" } });
+            await api("POST", `/api/mensajes/${grupoId}`, { token: ana.token, json: { texto: "Dos" } });
+
+            const deCaro = (await api("GET", "/api/mensajes/conversaciones", { token: caro.token })).body;
+            const antes = deCaro.find((c) => String(c._id) === String(grupoId)).noLeidos;
+            assert.ok(antes >= 2, `esperaba 2 o más pendientes, hubo ${antes}`);
+
+            const deAna = (await api("GET", "/api/mensajes/conversaciones", { token: ana.token })).body;
+            assert.equal(deAna.find((c) => String(c._id) === String(grupoId)).noLeidos, 0, "lo que yo mando no cuenta");
+
+            assert.equal((await api("PATCH", `/api/mensajes/${grupoId}/leidos`, { token: caro.token })).status, 200);
+            const despues = (await api("GET", "/api/mensajes/conversaciones", { token: caro.token })).body;
+            assert.equal(despues.find((c) => String(c._id) === String(grupoId)).noLeidos, 0);
+
+            assert.equal((await api("PATCH", "/api/mensajes/abc/leidos", { token: caro.token })).status, 400);
         });
     });
 

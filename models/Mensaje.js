@@ -24,6 +24,13 @@ const mensajeSchema = new mongoose.Schema(
 
         gif: campoGif,
 
+        // Mensaje de la misma conversación al que responde (null si no responde a ninguno)
+        respondeA: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Mensaje",
+            default: null
+        },
+
         // Fecha de la última edición del texto (null si nunca se editó)
         editadoEn: {
             type: Date,
