@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/client";
+import PasswordInput from "../../components/PasswordInput";
 import { useAuth } from "../../context/AuthContext";
 import { GROUP_NAMES } from "../../data/mockData";
 import AuthVisual from "./AuthVisual";
@@ -87,7 +88,7 @@ export default function RegisterPage() {
           </div>
           <div className="field">
             <label htmlFor="password">Contraseña</label>
-            <input type="password" id="password" name="password" placeholder="Mínimo 8 caracteres" required value={form.password} onChange={updateField} />
+            <PasswordInput id="password" name="password" placeholder="Mínimo 8 caracteres" required autoComplete="new-password" value={form.password} onChange={updateField} />
           </div>
           <div className="field">
             <label htmlFor="fotoPerfil">Foto de perfil</label>
