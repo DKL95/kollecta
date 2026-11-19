@@ -3,8 +3,6 @@ import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import CollectionItemPage from "./pages/CollectionItemPage";
 import CollectionPage from "./pages/CollectionPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
@@ -29,8 +27,6 @@ const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/inicio" replace /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/registro", element: <RegisterPage /> },
-  { path: "/recuperar", element: <ForgotPasswordPage /> },
-  { path: "/restablecer", element: <ResetPasswordPage /> },
   {
     element: <AppLayout />,
     children: [

@@ -76,18 +76,6 @@ const usuarioSchema = new mongoose.Schema(
         amigos: {
             type: [mongoose.Schema.Types.ObjectId],
             default: []
-        },
-
-        // Recuperar contraseña: hash SHA-256 del enlace enviado por correo y su vencimiento.
-        // select: false para que nunca salgan en consultas normales.
-        recuperacionHash: {
-            type: String,
-            select: false
-        },
-
-        recuperacionExpira: {
-            type: Date,
-            select: false
         }
     },
     {
