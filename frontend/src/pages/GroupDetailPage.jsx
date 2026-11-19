@@ -7,7 +7,7 @@ import Icon from "../components/Icon";
 import Photo from "../components/Photo";
 import PostCard from "../components/PostCard";
 import ProductCard from "../components/ProductCard";
-import { GROUPS } from "../data/mockData";
+import { GROUPS } from "../data/catalogo";
 import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 

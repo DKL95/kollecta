@@ -1,7 +1,7 @@
 import { useState } from "react";
 import EmptyState from "../components/EmptyState";
 import GroupCard from "../components/GroupCard";
-import { GROUPS } from "../data/mockData";
+import { GROUPS } from "../data/catalogo";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 export default function GroupsPage() {

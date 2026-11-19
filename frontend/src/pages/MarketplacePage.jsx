@@ -4,7 +4,7 @@ import { apiRequest } from "../api/client";
 import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
 import ProductCard from "../components/ProductCard";
-import { GROUP_NAMES } from "../data/mockData";
+import { GROUP_NAMES } from "../data/catalogo";
 import { adaptarProducto } from "../utils/coleccion";
 
 const MODE_TABS = [

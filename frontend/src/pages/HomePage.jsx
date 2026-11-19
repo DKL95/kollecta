@@ -7,7 +7,7 @@ import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
-import { GROUPS, GROUP_NAMES } from "../data/mockData";
+import { GROUPS, GROUP_NAMES } from "../data/catalogo";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 export default function HomePage() {

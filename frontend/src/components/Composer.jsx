@@ -6,7 +6,7 @@ import Icon from "./Icon";
 import EmojiPicker from "./EmojiPicker";
 import GifPicker from "./GifPicker";
 import GifView from "./GifView";
-import { GROUP_NAMES } from "../data/mockData";
+import { GROUP_NAMES } from "../data/catalogo";
 
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 5;

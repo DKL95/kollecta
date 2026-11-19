@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { formatMoney, getInitials, timeAgo } from "../frontend/src/utils/format.js";
 import { categoryClass, categoryIcon, CATEGORY_ICON } from "../frontend/src/utils/categories.js";
-import { CATEGORIES, GROUPS, THREADS } from "../frontend/src/data/mockData.js";
+import { CATEGORIES, GROUPS } from "../frontend/src/data/catalogo.js";
 import { adaptarProducto, modalidad } from "../frontend/src/utils/coleccion.js";
 import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 
@@ -38,7 +38,7 @@ describe("Frontend: utilidades de formato", () => {
     });
 });
 
-describe("Frontend: datos de ejemplo consistentes", () => {
+describe("Frontend: catálogo consistente", () => {
     it("las categorías del formulario son las mismas que acepta el backend", async () => {
         const { createRequire } = await import("node:module");
         const require = createRequire(import.meta.url);
@@ -56,12 +56,6 @@ describe("Frontend: datos de ejemplo consistentes", () => {
     it("las rutas de imagen son absolutas (empiezan con /) para funcionar en rutas anidadas", () => {
         for (const item of GROUPS) {
             assert.ok(item.img.startsWith("/assets/img/"), item.img);
-        }
-    });
-
-    it("cada conversación tiene al menos un mensaje", () => {
-        for (const hilo of THREADS) {
-            assert.ok(hilo.messages.length > 0, hilo.name);
         }
     });
 });

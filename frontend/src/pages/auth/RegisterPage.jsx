@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import PasswordInput from "../../components/PasswordInput";
 import { useAuth } from "../../context/AuthContext";
-import { GROUP_NAMES } from "../../data/mockData";
+import { GROUP_NAMES } from "../../data/catalogo";
 import AuthVisual from "./AuthVisual";
 
 const INITIAL_FORM = { name: "", username: "", email: "", password: "", descripcion: "", bias: GROUP_NAMES[0] };

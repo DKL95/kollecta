@@ -5,7 +5,7 @@ import { UserAvatar } from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import GroupCard from "../components/GroupCard";
 import ProductCard from "../components/ProductCard";
-import { GROUPS } from "../data/mockData";
+import { GROUPS } from "../data/catalogo";
 import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 

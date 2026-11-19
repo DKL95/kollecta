@@ -1,9 +1,5 @@
-/* ==========================================================================
-   Datos de ejemplo para las secciones que todavía no tienen backend
-   (catálogo de grupos). El marketplace y la colección ya
-   vienen de la base de datos.
-   Usuarios y publicaciones ya vienen de la base de datos.
-   ========================================================================== */
+/* Catálogo fijo de grupos K-pop y categorías de merch.
+   Lo que cada usuario sigue, publica o vende se guarda en la base de datos. */
 
 export const GROUPS = [
   { name: "BTS", fandom: "ARMY", agency: "HYBE / BIGHIT MUSIC", members: 7, debut: 2013, color: "linear-gradient(135deg,#7c3aed,#a78bfa)", initials: "BTS", img: "/assets/img/groups/bts.jpg" },
@@ -26,49 +22,3 @@ export const GROUP_NAMES = GROUPS.map((group) => group.name);
 
 // Deben coincidir con el enum "categoria" de models/Coleccion.js.
 export const CATEGORIES = ["Photocard", "Álbum", "Lightstick", "Merch", "Poster", "Otro"];
-
-export const THREADS = [
-  {
-    name: "Mina Cardona", initials: "MC", time: "10:32", unread: 2, online: true,
-    messages: [
-      { mine: false, text: "Hola, vi tu photocard de Jimin, ¿sigue disponible?" },
-      { mine: true, text: "¡Hola! Sí, todavía la tengo." },
-      { mine: false, text: "¿Aceptas $250 en vez de $280?" },
-      { mine: true, text: "Te la dejo en $265 y va con funda protectora." },
-    ],
-  },
-  {
-    name: "Diego Norte", initials: "SN", time: "09:15", unread: 0, online: true,
-    messages: [
-      { mine: false, text: "Va el intercambio, te mando la mía primero." },
-      { mine: true, text: "Perfecto, en cuanto la reciba te mando la mía." },
-    ],
-  },
-  {
-    name: "Caro Ximénez", initials: "CX", time: "Ayer", unread: 0, online: false,
-    messages: [
-      { mine: false, text: "Nos vemos el sábado en la reunión." },
-      { mine: true, text: "Ahí estaré, llevo mi colección de SEVENTEEN." },
-    ],
-  },
-  {
-    name: "Sofía Nena", initials: "BN", time: "Ayer", unread: 0, online: false,
-    messages: [
-      { mine: false, text: "Gracias, ya llegó el paquete." },
-      { mine: true, text: "Qué bueno, espero disfrutes tu photocard." },
-    ],
-  },
-  {
-    name: "Ale Bunny", initials: "AB", time: "Lun", unread: 1, online: true,
-    messages: [{ mine: false, text: "Escribiendo…" }],
-  },
-];
-
-export const NOTIFICATIONS = [
-  { id: 1, icon: "heart", actor: "Mina Cardona", text: "le dio like a tu publicación de Photocard Suga.", time: "hace 5 min", unread: true },
-  { id: 2, icon: "repeat", actor: "Diego Norte", text: "propuso un intercambio por tu Lightstick Ver.3.", time: "hace 22 min", unread: true },
-  { id: 3, icon: "users", actor: "Caro Ximénez", text: "te empezó a seguir.", time: "hace 1 h", unread: true },
-  { id: 4, icon: "chat", actor: "Sofía Nena", text: "te envió un mensaje nuevo.", time: "hace 3 h", unread: false },
-  { id: 5, icon: "package", actor: "Tu pedido #KA-2291", text: "fue marcado como enviado.", time: "hace 1 día", unread: false },
-  { id: 6, icon: "star", actor: "ATEEZ", text: "publicó nuevo merch oficial que podría interesarte.", time: "hace 2 días", unread: false },
-];

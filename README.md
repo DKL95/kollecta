@@ -42,7 +42,7 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Colección, mensajes (directos y grupales), notificaciones | Conectado a la base de datos |
 | Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colecciones `productos` y `ordenes`, aparte de la colección personal) |
 | Roles usuario / moderador / administrador, denuncias, disputas, moderación y reportes | Conectado a la base de datos (`middleware/roles.js`, `/api/admin`, `/api/moderacion`, `/api/reportes`) |
-| Catálogo de grupos K-pop (nombres, colores, fotos) | Lista fija en el frontend (`frontend/src/data/mockData.js`); lo que cada usuario sigue sí se guarda en la base |
+| Catálogo de grupos K-pop (nombres, colores, fotos) | Lista fija en el frontend (`frontend/src/data/catalogo.js`); lo que cada usuario sigue sí se guarda en la base |
 
 ## Estructura de carpetas
 
@@ -86,7 +86,7 @@ WEB2/
 │       ├── hooks/            Hooks reutilizables (contadores, grupos seguidos, instalar app)
 │       ├── components/       Componentes compartidos (tarjetas, diálogos, selectores de emoji/GIF, layout)
 │       ├── pages/            Una página por pantalla
-│       ├── data/mockData.js  Catálogo fijo de grupos K-pop
+│       ├── data/catalogo.js  Catálogo fijo de grupos K-pop
 │       └── utils/            Formato de dinero/fechas, categorías, roles, emojis
 ├── docs/                     PDF técnico, manual de usuario con capturas y rúbrica del curso
 ├── INTEGRANTES.txt           Nombres, matrículas y enlace al repositorio
@@ -107,7 +107,7 @@ WEB2/
 | Inicio (feed) | `/inicio` | Publicar, ver y dar like a publicaciones; filtrar por grupo |
 | Buscar | `/buscar?q=<texto>` | Búsqueda de merch, grupos y personas |
 | Notificaciones | `/notificaciones` | Likes, intercambios, seguidores |
-| Mensajes | `/mensajes` | Conversaciones directas entre usuarios |
+| Mensajes | `/mensajes` | Conversaciones directas y chats grupales |
 | Marketplace | `/marketplace` | Artículos en venta / intercambio con filtros por grupo |
 | Detalle de producto | `/marketplace/:productId` | Producto del marketplace; comprar o proponer intercambio; el dueño lo retira o lo vuelve a publicar |
 | Pieza de colección | `/articulo/:id` | Pieza de la vitrina personal (no se vende); el dueño puede publicar un anuncio con sus datos |
@@ -120,6 +120,10 @@ WEB2/
 | Perfil de otro usuario | `/perfil/:username` | Perfil público de cualquier usuario |
 | Grupos | `/grupos` | Explorar y seguir grupos de K-pop |
 | Detalle de grupo | `/grupos/:groupName` | Info del grupo, merch disponible y publicaciones de la comunidad |
+| Detalle de publicación | `/publicaciones/:id` | Una publicación con sus comentarios y respuestas (se abre desde el feed o una notificación) |
+| Reportes | `/reportes` | 12 reportes estadísticos; cada rol ve los que le corresponden |
+| Moderación | `/moderacion` | Solo moderadores y administradores: denuncias, disputas, sanciones, usuarios y bitácora |
+| Página no encontrada | cualquier otra ruta | Aviso con enlace de regreso al inicio |
 
 `/` redirige a `/inicio`. Todas las rutas excepto `/login` y `/registro` requieren sesión iniciada.
 

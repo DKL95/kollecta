@@ -6,7 +6,7 @@ import CollectionPickerDialog from "../components/CollectionPickerDialog";
 import Icon from "../components/Icon";
 import Photo from "../components/Photo";
 import { useAuth } from "../context/AuthContext";
-import { CATEGORIES, GROUP_NAMES } from "../data/mockData";
+import { CATEGORIES, GROUP_NAMES } from "../data/catalogo";
 import { categoryClass, categoryIcon } from "../utils/categories";
 import { formatMoney } from "../utils/format";
 
