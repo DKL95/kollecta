@@ -174,4 +174,88 @@ describe("Autenticación (/api/auth)", () => {
             assert.equal(res.status, 401);
         });
     });
+
+    describe("Recuperar contraseña (POST /recuperar y /restablecer)", () => {
+        // Sin BREVO_API_KEY el correo no sale: queda en correosSimulados.
+        const { correosSimulados } = require("../services/correo");
+        let usuario;
+
+        before(async () => {
+            delete process.env.BREVO_API_KEY;
+            ({ usuario } = await registrarUsuario(api, { username: "olvidadiza", email: "olvidadiza@test.com", password: "vieja12345" }));
+        });
+
+        function tokenDelUltimoCorreo() {
+            const correo = correosSimulados.at(-1);
+            return correo.texto.match(/\/restablecer\?token=([a-f0-9]{64})/)[1];
+        }
+
+        it("responde lo mismo exista o no el correo, y solo manda correo si existe", async () => {
+            const antes = correosSimulados.length;
+            const existe = await api("POST", "/api/auth/recuperar", { json: { email: "OLVIDADIZA@test.com " } });
+            const noExiste = await api("POST", "/api/auth/recuperar", { json: { email: "nadie@test.com" } });
+
+            assert.equal(existe.status, 200);
+            assert.equal(noExiste.status, 200);
+            assert.equal(existe.body.mensaje, noExiste.body.mensaje);
+            assert.equal(correosSimulados.length, antes + 1);
+            assert.equal(correosSimulados.at(-1).para, "olvidadiza@test.com");
+        });
+
+        it("guarda solo el hash del token y no lo expone en /me", async () => {
+            const guardado = await mongoose.connection.collection("usuarios").findOne({ username: "olvidadiza" });
+            const token = tokenDelUltimoCorreo();
+            assert.match(guardado.recuperacionHash, /^[a-f0-9]{64}$/);
+            assert.notEqual(guardado.recuperacionHash, token);
+            assert.ok(guardado.recuperacionExpira > new Date());
+
+            const login = await api("POST", "/api/auth/login", { json: { email: "olvidadiza@test.com", password: "vieja12345" } });
+            const me = await api("GET", "/api/auth/me", { token: login.body.token });
+            assert.equal(me.body.usuario.recuperacionHash, undefined);
+            assert.equal(usuario.recuperacionHash, undefined);
+        });
+
+        it("no manda otro correo si se pide de nuevo antes de 1 minuto", async () => {
+            const antes = correosSimulados.length;
+            const res = await api("POST", "/api/auth/recuperar", { json: { email: "olvidadiza@test.com" } });
+            assert.equal(res.status, 200);
+            assert.equal(correosSimulados.length, antes);
+        });
+
+        it("rechaza correo inválido, token falso y contraseña corta", async () => {
+            const correoMalo = await api("POST", "/api/auth/recuperar", { json: { email: "no-es-correo" } });
+            const tokenFalso = await api("POST", "/api/auth/restablecer", { json: { token: "a".repeat(64), password: "nueva12345" } });
+            const corta = await api("POST", "/api/auth/restablecer", { json: { token: tokenDelUltimoCorreo(), password: "corta" } });
+            assert.equal(correoMalo.status, 400);
+            assert.equal(tokenFalso.status, 400);
+            assert.equal(corta.status, 400);
+        });
+
+        it("cambia la contraseña con el enlace, que solo sirve una vez", async () => {
+            const token = tokenDelUltimoCorreo();
+            const res = await api("POST", "/api/auth/restablecer", { json: { token, password: "nueva12345" } });
+            assert.equal(res.status, 200);
+
+            const vieja = await api("POST", "/api/auth/login", { json: { email: "olvidadiza@test.com", password: "vieja12345" } });
+            const nueva = await api("POST", "/api/auth/login", { json: { email: "olvidadiza@test.com", password: "nueva12345" } });
+            assert.equal(vieja.status, 401);
+            assert.equal(nueva.status, 200);
+
+            const otraVez = await api("POST", "/api/auth/restablecer", { json: { token, password: "otra123456" } });
+            assert.equal(otraVez.status, 400);
+        });
+
+        it("rechaza un enlace vencido", async () => {
+            await mongoose.connection.collection("usuarios").updateOne(
+                { username: "olvidadiza" }, { $unset: { recuperacionHash: "", recuperacionExpira: "" } }
+            );
+            await api("POST", "/api/auth/recuperar", { json: { email: "olvidadiza@test.com" } });
+            await mongoose.connection.collection("usuarios").updateOne(
+                { username: "olvidadiza" }, { $set: { recuperacionExpira: new Date(Date.now() - 1000) } }
+            );
+
+            const res = await api("POST", "/api/auth/restablecer", { json: { token: tokenDelUltimoCorreo(), password: "nueva98765" } });
+            assert.equal(res.status, 400);
+        });
+    });
 });
