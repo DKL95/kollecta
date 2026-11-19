@@ -17,3 +17,7 @@ services:
         generateValue: true
       - key: GIPHY_API_KEY
         sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: CORREO_REMITENTE
+        sync: false
