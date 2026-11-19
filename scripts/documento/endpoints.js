@@ -27,10 +27,6 @@ module.exports = [
                 "201 { token, usuario }"),
             E("POST", "/login", "publico", "Inicia sesión. Rechaza cuentas baneadas o suspendidas.",
                 "{ email, password }", "{ token, usuario }"),
-            E("POST", "/recuperar", "publico", "Manda al correo un enlace (1 hora, un solo uso) para restablecer la contraseña. Responde igual exista o no la cuenta.",
-                "{ email }", "{ mensaje }"),
-            E("POST", "/restablecer", "publico", "Cambia la contraseña con el token del enlace del correo.",
-                "{ token, password }", "{ mensaje }"),
             E("GET", "/me", "token", "Datos del usuario de la sesión (renueva la cookie de imágenes).", "—", "{ usuario }"),
             E("POST", "/logout", "token", "Cierra sesión: borra la cookie de imágenes.", "—", "{ mensaje }")
         ]

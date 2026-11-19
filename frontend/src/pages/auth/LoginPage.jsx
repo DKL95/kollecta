@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { apiRequest, BLOQUEO_KEY } from "../../api/client";
 import PasswordInput from "../../components/PasswordInput";
 import { useAuth } from "../../context/AuthContext";
@@ -8,8 +8,6 @@ import AuthVisual from "./AuthVisual";
 export default function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  // Aviso al volver de "Restablecer contraseña"
-  const aviso = useLocation().state?.aviso || "";
   const [form, setForm] = useState({ email: "", password: "" });
   // Si la sesión se cerró por una suspensión o baneo, se explica aquí.
   const [error, setError] = useState(() => {
@@ -76,10 +74,8 @@ export default function LoginPage() {
           <div className="field">
             <label htmlFor="password">Contraseña</label>
             <PasswordInput id="password" name="password" placeholder="••••••••" required autoComplete="current-password" value={form.password} onChange={updateField} />
-            <Link to="/recuperar" className="forgot-link">Recuperar contraseña</Link>
           </div>
 
-          {aviso && !error && <p className="form-success">{aviso}</p>}
           {error && <p className="form-error">{error}</p>}
 
           <button type="submit" className="btn btn-primary btn-block" disabled={sending}>

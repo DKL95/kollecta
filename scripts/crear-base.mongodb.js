@@ -48,8 +48,6 @@ crear("usuarios", {
     "suspendidoHasta": {"bsonType":["date","null"]},
     "motivoSuspension": {"bsonType":["string","null"]},
     "amigos": {"bsonType":"array"},
-    "recuperacionHash": {"bsonType":["string","null"]},
-    "recuperacionExpira": {"bsonType":["date","null"]},
     "_id": {"bsonType":["objectId","null"]}
   },
   "required": ["username","email","password"]
