@@ -324,10 +324,10 @@ const DESCRIPCION_PANTALLA = {
     "/coleccion": "Vitrina personal de merch.",
     "/perfil": "Perfil propio: datos, edición, publicaciones, colección y reseñas.",
     "/perfil/:username": "Perfil público de otra persona, con su reputación como vendedor.",
-    "/grupos": "Catálogo de grupos de K-pop para seguir.",
+    "/grupos": "Catálogo de grupos de K-pop para seguir; solicitar un grupo nuevo (moderador+: agregarlo directo) y ver mis solicitudes.",
     "/grupos/:groupName": "Información del grupo, su merch y las publicaciones de la comunidad.",
     "/reportes": "Reportes con consultas entre colecciones; cambian según el rol.",
-    "/moderacion": "Denuncias, disputas, usuarios y bitácora (moderador y administrador).",
+    "/moderacion": "Denuncias, disputas, solicitudes de grupos, usuarios y bitácora (moderador y administrador).",
     "*": "Página no encontrada."
 };
 
