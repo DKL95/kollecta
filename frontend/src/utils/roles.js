@@ -45,4 +45,14 @@ export const ETIQUETA_ACCION = {
   resolver_denuncia: "Resolvió una denuncia",
   descartar_denuncia: "Descartó una denuncia",
   resolver_disputa: "Resolvió una disputa",
+  crear_grupo: "Agregó un grupo",
+  aprobar_grupo: "Aprobó un grupo",
+  rechazar_grupo: "Rechazó un grupo",
+};
+
+// Solicitudes de grupos nuevos (models/Grupo.js).
+export const ESTADO_SOLICITUD_GRUPO = {
+  pendiente: { etiqueta: "En revisión", clase: "gold" },
+  aprobado: { etiqueta: "Aprobado", clase: "green" },
+  rechazado: { etiqueta: "Rechazado", clase: "pink" },
 };

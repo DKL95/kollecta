@@ -59,6 +59,8 @@ async function limpiarDemo(db, { confirmar = false } = {}) {
         ordenes: { $or: [{ comprador: enDemo }, { vendedor: enDemo }] },
         denuncias: { _id: { $in: idsDenuncias } },
         moderaciones: { $or: [{ usuarioAfectado: enDemo }, { denuncia: { $in: idsDenuncias } }] },
+        // Las solicitudes de grupo de la demo; un grupo ya aprobado se queda (otras personas pueden seguirlo).
+        grupos: { solicitante: enDemo, estado: { $ne: "aprobado" } },
         usuarios: { _id: enDemo }
     };
 

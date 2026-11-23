@@ -91,7 +91,7 @@ function describirColecciones() {
     const { DESCRIPCIONES } = require("../generarCrearBase");
     const modelos = cargarModelos();
     const porNombreModelo = {};
-    // Solo las 14 colecciones de models/ (ArchivoVideo describe videos.files de GridFS, que crea el driver).
+    // Solo las 15 colecciones de models/ (ArchivoVideo describe videos.files de GridFS, que crea el driver).
     const colecciones = Object.values(modelos).filter((modelo) => DESCRIPCIONES[modelo.collection.collectionName]).map((modelo) => {
         const nombre = modelo.collection.collectionName;
         porNombreModelo[modelo.modelName] = nombre;
@@ -122,7 +122,7 @@ const POSICIONES = {
     solicitudes_amistad: [0, 1], imagenes: [3, 1],
     colecciones: [0, 2], usuarios: [1.5, 2], conversaciones: [3, 2],
     denuncias: [0, 3], mensajes: [3, 3],
-    moderaciones: [0, 4], productos: [1, 4], ordenes: [2, 4]
+    moderaciones: [0, 4], productos: [1, 4], ordenes: [2, 4], grupos: [3, 4]
 };
 const FILAS_ER = 5;
 
@@ -426,7 +426,8 @@ const MATRIZ_CRUD = [
     ["productos", "POST /productos", "GET /productos, /:id", "PUT /productos/:id", "DELETE /productos/:id (retirar)"],
     ["ordenes", "POST /ordenes", "GET /ordenes, /:id", "PATCH /ordenes/:id/estado, …/disputa", "DELETE /ordenes/:id (retirar solicitud)"],
     ["denuncias", "POST /denuncias", "GET /denuncias, /mias", "PATCH /denuncias/:id", "Se conservan como historial"],
-    ["moderaciones", "La crea cada acción de moderación", "GET /moderacion/bitacora", "— (bitácora inmutable)", "— (bitácora inmutable)"]
+    ["moderaciones", "La crea cada acción de moderación", "GET /moderacion/bitacora", "— (bitácora inmutable)", "— (bitácora inmutable)"],
+    ["grupos", "POST /grupos", "GET /grupos, /grupos/solicitudes, …/mias", "PATCH /grupos/solicitudes/:id (aprobar o rechazar)", "DELETE /grupos/solicitudes/:id (cancelar pendiente)"]
 ];
 
 function construirHtml() {
@@ -610,8 +611,8 @@ td.ruta { overflow-wrap: normal; }
   </table>
   <h3>Roles</h3>
   <table><colgroup><col style="width:20%"><col></colgroup><tbody>
-    <tr><td><strong>Usuario</strong></td><td>Publica, comenta, chatea, arma su colección, compra, vende, intercambia, denuncia y ve sus propios reportes.</td></tr>
-    <tr><td><strong>Moderador</strong></td><td>Además atiende denuncias y disputas, oculta contenido, suspende cuentas de 1 a 30 días y ve los reportes de moderación.</td></tr>
+    <tr><td><strong>Usuario</strong></td><td>Publica, comenta, chatea, arma su colección, compra, vende, intercambia, solicita grupos nuevos, denuncia y ve sus propios reportes.</td></tr>
+    <tr><td><strong>Moderador</strong></td><td>Además atiende denuncias y disputas, aprueba o rechaza las solicitudes de grupos nuevos (y los crea directo), oculta contenido, suspende cuentas de 1 a 30 días y ve los reportes de moderación.</td></tr>
     <tr><td><strong>Administrador</strong></td><td>Además banea o reactiva cuentas, cambia roles y ve todos los reportes de la plataforma.</td></tr>
   </tbody></table>
 </section>

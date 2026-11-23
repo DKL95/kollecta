@@ -18,6 +18,7 @@ const denunciaRoutes = require("./routes/denunciaRoutes");
 const moderacionRoutes = require("./routes/moderacionRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
 const gifRoutes = require("./routes/gifRoutes");
+const grupoRoutes = require("./routes/grupoRoutes");
 const logger = require("./config/logger");
 const { requiereAuthMedios } = require("./middleware/auth");
 
@@ -49,6 +50,7 @@ app.use("/api/denuncias", denunciaRoutes);
 app.use("/api/moderacion", moderacionRoutes);
 app.use("/api/reportes", reporteRoutes);
 app.use("/api/gifs", gifRoutes);
+app.use("/api/grupos", grupoRoutes);
 
 
 app.use("/api", (req, res) => {

@@ -1,7 +1,7 @@
 /* ==========================================================================
    KollectA — creación de la base de datos (equivalente al script SQL de tablas).
 
-   Crea las 14 colecciones con su validador $jsonSchema (tipos, campos
+   Crea las 15 colecciones con su validador $jsonSchema (tipos, campos
    obligatorios, enums y límites) y sus índices, incluidos los únicos.
 
    Uso:   mongosh "<MONGODB_URI>" scripts/crear-base.mongodb.js
@@ -513,7 +513,10 @@ crear("moderaciones", {
         "cambiar_rol",
         "resolver_denuncia",
         "descartar_denuncia",
-        "resolver_disputa"
+        "resolver_disputa",
+        "crear_grupo",
+        "aprobar_grupo",
+        "rechazar_grupo"
       ]
     },
     "tipoObjetivo": {"bsonType":"string"},
@@ -529,5 +532,36 @@ crear("moderaciones", {
 });
 db.moderaciones.createIndex({"moderador":1,"fecha":-1});
 db.moderaciones.createIndex({"fecha":-1});
+
+// ---------------------------------------------------------------------------
+// grupos: Grupos K-pop que agrega la comunidad (pendiente → aprobado | rechazado). solicitante/revisadoPor → usuarios.
+// ---------------------------------------------------------------------------
+crear("grupos", {
+  "bsonType": "object",
+  "properties": {
+    "nombre": {"bsonType":"string","maxLength":40},
+    "clave": {"bsonType":"string"},
+    "fandom": {"bsonType":["string","null"],"maxLength":40},
+    "agencia": {"bsonType":["string","null"],"maxLength":60},
+    "integrantes": {"bsonType":["int","long","double","decimal","null"],"minimum":1,"maximum":50},
+    "debut": {"bsonType":["int","long","double","decimal","null"],"minimum":1990,"maximum":2100},
+    "descripcion": {"bsonType":["string","null"],"maxLength":500},
+    "imagen": {"bsonType":["string","null"]},
+    "color": {"bsonType":["string","null"]},
+    "iniciales": {"bsonType":["string","null"],"maxLength":6},
+    "estado": {"bsonType":["string","null"],"enum":["pendiente","aprobado","rechazado",null]},
+    "solicitante": {"bsonType":"objectId","description":"→ Usuario"},
+    "revisadoPor": {"bsonType":["objectId","null"],"description":"→ Usuario"},
+    "fechaRevision": {"bsonType":["date","null"]},
+    "motivoRechazo": {"bsonType":["string","null"],"maxLength":300},
+    "_id": {"bsonType":["objectId","null"]},
+    "fechaCreacion": {"bsonType":["date","null"]},
+    "fechaActualizacion": {"bsonType":["date","null"]}
+  },
+  "required": ["nombre","clave","solicitante"]
+});
+db.grupos.createIndex({"clave":1,"estado":1});
+db.grupos.createIndex({"estado":1,"fechaCreacion":-1});
+db.grupos.createIndex({"solicitante":1,"fechaCreacion":-1});
 
 print("Listo: " + db.getCollectionNames().length + " colecciones en " + nombreBase);

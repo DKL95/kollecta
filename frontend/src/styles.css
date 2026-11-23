@@ -4967,3 +4967,41 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
   .install-banner-text strong { color: var(--text); font-size: 13.5px; }
   .install-banner-close { background: none; border: 0; color: var(--text-faint); font-size: 22px; line-height: 1; padding: 0 4px; }
 }
+
+/* ==========================================================================
+   Solicitudes de grupos nuevos (GroupsPage, GroupRequestDialog, Moderación)
+   ========================================================================== */
+.groups-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.groups-toolbar .tabs { flex: 1; min-width: 0; margin-bottom: 0; border-bottom: 0; }
+.groups-toolbar > .btn { flex-shrink: 0; margin-bottom: 8px; }
+.group-request-card .avatar { flex-shrink: 0; }
+.group-request-reason { margin: 0; color: var(--text-dim); font-size: 13px; }
+.group-request-info { display: flex; gap: 14px; align-items: flex-start; }
+.group-request-info p { margin: 4px 0 0; color: var(--text-dim); font-size: 13px; line-height: 1.45; }
+.group-request-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.group-request-actions textarea {
+  flex: 1 1 260px;
+  min-height: 60px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.group-dialog-body .field { margin-bottom: 0; }
+.group-description { margin: 8px 0 0; max-width: 620px; color: var(--text-dim); font-size: 13.5px; line-height: 1.5; }
+
+@media (max-width: 560px) {
+  .groups-toolbar { flex-direction: column-reverse; align-items: stretch; border-bottom: 0; }
+  .groups-toolbar .tabs { border-bottom: 1px solid var(--border); }
+  .groups-toolbar > .btn { margin-bottom: 0; }
+}

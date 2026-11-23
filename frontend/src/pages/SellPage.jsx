@@ -6,7 +6,8 @@ import CollectionPickerDialog from "../components/CollectionPickerDialog";
 import Icon from "../components/Icon";
 import Photo from "../components/Photo";
 import { useAuth } from "../context/AuthContext";
-import { CATEGORIES, GROUP_NAMES } from "../data/mockData";
+import { CATEGORIES } from "../data/catalogo";
+import useGrupos from "../hooks/useGrupos";
 import { categoryClass, categoryIcon } from "../utils/categories";
 import { formatMoney } from "../utils/format";
 
@@ -60,9 +61,10 @@ export default function SellPage({ soloColeccion = false }) {
   const [publicando, setPublicando] = useState(false);
   const [errorPublicacion, setErrorPublicacion] = useState("");
 
+  const { nombres: GROUP_NAMES } = useGrupos();
   const [form, setForm] = useState({
     title: "",
-    group: GROUP_NAMES[0],
+    group: "",
     type: CATEGORIES[0],
     mode: "Venta",
     price: "",
@@ -350,7 +352,12 @@ export default function SellPage({ soloColeccion = false }) {
                 name="group"
                 value={form.group}
                 onChange={updateField}
+                required
               >
+                <option value="" disabled>
+                  Elige un grupo
+                </option>
+
                 {GROUP_NAMES.map((name) => (
                   <option key={name} value={name}>
                     {name}

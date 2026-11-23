@@ -196,12 +196,28 @@ module.exports = [
         base: "/api/moderacion",
         archivo: "moderacionRoutes.js",
         endpoints: [
-            E("GET", "/resumen", "moderador", "Pendientes para el menú (denuncias + disputas).", "—", "{ pendientes, denuncias, disputas }"),
+            E("GET", "/resumen", "moderador", "Pendientes para el menú (denuncias + disputas + solicitudes de grupo).", "—", "{ pendientes, denuncias, disputas, grupos }"),
             E("GET", "/usuarios", "moderador", "Busca cuentas para moderar.", "query: q?, estado=suspendidos|baneados?, rol?", "{ usuarios }"),
             E("POST", "/usuarios/:id/suspension", "moderador", "Suspende una cuenta de 1 a 30 días.", "{ dias, motivo }", "{ mensaje, hasta }"),
             E("DELETE", "/usuarios/:id/suspension", "moderador", "Levanta una suspensión.", "{ motivo? }", "{ mensaje }"),
             E("PATCH", "/contenido/:tipo/:id", "moderador", "Oculta o vuelve a mostrar contenido.", "{ oculto, motivo }", "{ mensaje }"),
             E("GET", "/bitacora", "moderador", "Bitácora de acciones de moderación.", "query: moderador?, accion?", "{ registros }")
+        ]
+    },
+    {
+        grupo: "Grupos K-pop",
+        base: "/api/grupos",
+        archivo: "grupoRoutes.js",
+        endpoints: [
+            E("GET", "/", "publico", "Catálogo de grupos: los fijos de la app más los aprobados.", "—", "{ grupos }"),
+            E("POST", "/", "token", "Solicita un grupo nuevo (queda pendiente). Moderador+ lo crea ya aprobado.",
+                "multipart: nombre, fandom?, agencia?, integrantes?, debut?, descripcion?, imagenes? (1 foto)",
+                "201 { mensaje, grupo }"),
+            E("GET", "/solicitudes/mias", "token", "Mis solicitudes de grupo y su estado.", "—", "{ solicitudes }"),
+            E("DELETE", "/solicitudes/:id", "token", "Cancela una solicitud propia que sigue pendiente.", "—", "{ mensaje }"),
+            E("GET", "/solicitudes", "moderador", "Cola de solicitudes de grupo.", "query: estado=pendiente|aprobado|rechazado|todas", "{ solicitudes }"),
+            E("PATCH", "/solicitudes/:id", "moderador", "Aprueba o rechaza una solicitud y avisa a quien la envió.",
+                "{ decision: aprobar|rechazar, motivo? (obligatorio al rechazar) }", "{ mensaje, grupo }")
         ]
     },
     {

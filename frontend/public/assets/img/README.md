@@ -24,23 +24,10 @@ tuyo, no la foto de un idol real como si fuera tu foto de perfil.
 
 | Carpeta | Corresponde a | Nombre de archivo |
 |---|---|---|
-| `products/` | Cada artículo del marketplace (`src/data/mockData.js` → `PRODUCTS`) | `p1.jpg`, `p2.jpg`, … `p12.jpg` (según el `id` del producto) |
-| `groups/` | Avatar de cada grupo (`src/data/mockData.js` → `GROUPS`) | `bts.jpg`, `blackpink.jpg`, `twice.jpg`, `stray-kids.jpg`, `seventeen.jpg`, `newjeans.jpg`, `aespa.jpg`, `ateez.jpg`, `itzy.jpg`, `txt.jpg` |
-| `covers/` | Banner grande de la pantalla `/grupos/:groupName` (opcional, formato ancho) | mismo nombre que en `groups/`, ej. `bts.jpg` |
-| `collection/` | Piezas de "Mi colección" (`src/data/mockData.js` → `MY_COLLECTION`) | `1.jpg` … `8.jpg` |
-| `avatars/`, `banners/`, `posts/` | Ya no se usan: las fotos de perfil y de publicaciones ahora las suben los usuarios y se guardan en `uploads/` | — |
+| `groups/` | Foto de cada grupo (`src/data/catalogo.js` → `GROUPS`, campo `img`) | `bts.jpg`, `blackpink.jpg`, `twice.jpg`, `stray-kids.jpg`, … |
+| `products/`, `collection/`, `covers/`, `avatars/`, `banners/`, `posts/` | Ya no se usan: productos, piezas de colección, fotos de perfil y de publicaciones las suben los usuarios y se guardan en MongoDB (colección `imagenes`) | — |
 
-Formato recomendado: `.jpg` o `.png`, cuadrado (1:1) para `products/` y
-`collection/`, panorámico (ancho) para `covers/`. Si agregas más productos o
-grupos en `mockData.js`, añade el campo `img: "/assets/img/<carpeta>/<archivo>"`
-al objeto correspondiente y coloca el archivo con ese mismo nombre aquí.
-
-## Ejemplo
-
-```js
-// src/data/mockData.js
-{ id: "p1", title: "Photocard Jimin — 'Face' PC Album", /* ... */, img: "/assets/img/products/p1.jpg" }
-```
-
-Basta con guardar tu foto como `frontend/public/assets/img/products/p1.jpg` — no
-hay que editar código para que aparezca.
+Formato recomendado: `.jpg` o `.png`, cuadrado (1:1). Si agregas un grupo en
+`src/data/catalogo.js`, ponle `img: "/assets/img/groups/<archivo>"` y guarda la
+foto con ese mismo nombre en `groups/`. Si la foto no existe, el grupo se ve con
+sus iniciales sobre su degradado.

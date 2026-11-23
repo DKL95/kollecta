@@ -4,7 +4,7 @@ import { apiRequest } from "../api/client";
 import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
 import ProductCard from "../components/ProductCard";
-import { GROUP_NAMES } from "../data/mockData";
+import useGrupos from "../hooks/useGrupos";
 import { adaptarProducto } from "../utils/coleccion";
 
 const MODE_TABS = [
@@ -16,6 +16,7 @@ const MODE_TABS = [
 
 export default function MarketplacePage() {
   const [activeGroup, setActiveGroup] = useState("Todos");
+  const { nombres: GROUP_NAMES } = useGrupos();
   const [activeMode, setActiveMode] = useState("todos");
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);

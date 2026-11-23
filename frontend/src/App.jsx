@@ -48,7 +48,7 @@ const router = createBrowserRouter([
       { path: "/grupos", element: <GroupsPage />, handle: { title: "Grupos", subtitle: "Sigue a tus grupos favoritos y no te pierdas su merch" } },
       { path: "/grupos/:groupName", element: <GroupDetailPage />, handle: { title: "Detalle de grupo" } },
       { path: "/reportes", element: <ReportsPage />, handle: { title: "Reportes", subtitle: "Estadísticas según tu rol" } },
-      { path: "/moderacion", element: <ModerationPage />, handle: { title: "Moderación", subtitle: "Denuncias, sanciones y bitácora" } },
+      { path: "/moderacion", element: <ModerationPage />, handle: { title: "Moderación", subtitle: "Denuncias, grupos, sanciones y bitácora" } },
       { path: "*", element: <NotFoundPage />, handle: { title: "Página no encontrada" } },
     ],
   },

@@ -6,7 +6,7 @@ import Icon from "./Icon";
 import EmojiPicker from "./EmojiPicker";
 import GifPicker from "./GifPicker";
 import GifView from "./GifView";
-import { GROUP_NAMES } from "../data/mockData";
+import useGrupos from "../hooks/useGrupos";
 
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 5;
@@ -16,6 +16,7 @@ export default function Composer({ onCreated }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [group, setGroup] = useState("");
+  const { nombres: GROUP_NAMES } = useGrupos();
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
   const [gif, setGif] = useState(null);
