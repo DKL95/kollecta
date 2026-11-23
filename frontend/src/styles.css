@@ -5126,3 +5126,32 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
   .banner-edit-btn { top: 8px; right: 8px; }
   .followed-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Banner animado: el degradado va y viene, la textura y los logos se deslizan (un mosaico
+   por vuelta, sin cortes) y el logo flota. Una imagen GIF/WebP animada se mueve sola. */
+@keyframes banner-degradado {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@keyframes banner-deslizar {
+  from { background-position: 0 0; }
+  to { background-position: var(--banner-mover, 0 0); }
+}
+@keyframes banner-flotar {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
+}
+.banner-capas.animado { background-size: 220% 220%; animation: banner-degradado 12s ease-in-out infinite alternate; }
+.banner-capas.animado .banner-textura { animation: banner-deslizar 5s linear infinite; }
+.banner-capas.animado .banner-logos { --banner-mover: 72px -72px; animation: banner-deslizar 9s linear infinite; }
+.banner-capas.animado .banner-logo { animation: banner-flotar 3.6s ease-in-out infinite; }
+.banner-texture-sample.animado > span { animation: banner-deslizar 5s linear infinite; }
+.banner-toggle { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 700; color: var(--text); cursor: pointer; }
+.banner-toggle input { width: 18px; height: 18px; accent-color: var(--pink); }
+@media (prefers-reduced-motion: reduce) {
+  .banner-capas.animado,
+  .banner-capas.animado .banner-textura,
+  .banner-capas.animado .banner-logos,
+  .banner-capas.animado .banner-logo,
+  .banner-texture-sample.animado > span { animation: none; }
+}

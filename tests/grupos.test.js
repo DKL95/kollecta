@@ -7,6 +7,24 @@ const Moderacion = require("../models/Moderacion");
 const Notificacion = require("../models/Notificacion");
 const { MAX_PENDIENTES } = require("../controllers/grupoController");
 
+// GIF animado real de 1x1 px con dos cuadros (negro y blanco) que se repite sin fin.
+const GIF_ANIMADO = Buffer.from(
+    [
+        "474946383961", // "GIF89a"
+        "01000100800000", // 1x1, paleta de 2 colores
+        "000000ffffff", // negro, blanco
+        "21ff0b4e45545343415045322e300301000000", // NETSCAPE2.0: repetir siempre
+        "21f904000a000000", // cuadro 1: espera 0.1 s
+        "2c000000000100010000", // posición y tamaño
+        "0202440100", // pixel negro
+        "21f904000a000000", // cuadro 2
+        "2c000000000100010000",
+        "02024c0100", // pixel blanco
+        "3b" // fin
+    ].join(""),
+    "hex"
+);
+
 // Solicitudes de grupos nuevos: el usuario pide, la moderación aprueba o rechaza.
 describe("Grupos: catálogo y solicitudes", () => {
     let entorno;
@@ -227,7 +245,7 @@ describe("Grupos: catálogo y solicitudes", () => {
         it("guarda color, textura y logo de un grupo del catálogo", async () => {
             const res = await banner(fan, { color: "oceano", textura: "estrellas", logo: "TWICE" });
             assert.equal(res.status, 200, JSON.stringify(res.body));
-            assert.deepEqual(res.body.usuario.banner, { color: "oceano", textura: "estrellas", logo: "TWICE", imagen: "" });
+            assert.deepEqual(res.body.usuario.banner, { color: "oceano", textura: "estrellas", logo: "TWICE", imagen: "", animado: false });
 
             const perfil = await api("GET", `/api/usuarios/${fan.usuario.username}`, { token: otraFan.token });
             assert.equal(perfil.body.usuario.banner.textura, "estrellas");
@@ -237,6 +255,7 @@ describe("Grupos: catálogo y solicitudes", () => {
             assert.equal((await banner(fan, { color: "arcoiris" })).status, 400);
             assert.equal((await banner(fan, { textura: "lunares" })).status, 400);
             assert.equal((await banner(fan, { logo: "Grupo Que No Existe" })).status, 400);
+            assert.equal((await banner(fan, { animado: "quizas" })).status, 400);
         });
 
         it("sube una imagen propia y la puede quitar", async () => {
@@ -248,8 +267,24 @@ describe("Grupos: catálogo y solicitudes", () => {
             assert.equal(sinImagen.body.usuario.banner.imagen, "");
         });
 
+        it("se puede animar y desanimar", async () => {
+            assert.equal((await banner(fan, { animado: "true" })).body.usuario.banner.animado, true);
+            assert.equal((await banner(fan, { animado: "false" })).body.usuario.banner.animado, false);
+        });
+
+        it("acepta un GIF animado como imagen y lo devuelve tal cual (sigue animado)", async () => {
+            const res = await banner(fan, { portada: new Blob([GIF_ANIMADO], { type: "image/gif" }) });
+            assert.equal(res.status, 200, JSON.stringify(res.body));
+
+            const archivo = await api("GET", res.body.usuario.banner.imagen, { token: fan.token });
+            assert.equal(archivo.status, 200);
+            assert.equal(archivo.headers.get("content-type"), "image/gif");
+            assert.ok(Buffer.compare(archivo.body, GIF_ANIMADO) === 0, "no se convierte ni se recorta");
+            assert.ok(archivo.body.includes(Buffer.from("NETSCAPE2.0")), "conserva la repetición de la animación");
+        });
+
         it("las cuentas nuevas traen el banner por defecto", async () => {
-            assert.deepEqual(otraFan.usuario.banner, { color: "kollecta", textura: "ninguna", logo: "", imagen: "" });
+            assert.deepEqual(otraFan.usuario.banner, { color: "kollecta", textura: "ninguna", logo: "", imagen: "", animado: false });
         });
     });
 });

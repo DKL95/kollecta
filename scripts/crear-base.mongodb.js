@@ -54,7 +54,8 @@ crear("usuarios", {
           "enum": ["ninguna","puntos","rayas","cuadricula","corazones","estrellas","ondas",null]
         },
         "logo": {"bsonType":["string","null"],"maxLength":40},
-        "imagen": {"bsonType":["string","null"]}
+        "imagen": {"bsonType":["string","null"]},
+        "animado": {"bsonType":["bool","null"]}
       }
     },
     "fechaRegistro": {"bsonType":["string","null"]},

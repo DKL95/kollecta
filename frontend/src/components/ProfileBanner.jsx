@@ -12,13 +12,20 @@ export default function ProfileBanner({ banner, children, className = "" }) {
 
   return (
     <div className={`profile-cover ${className}`}>
-      <div className="banner-capas" style={{ background: COLORES_BANNER[actual.color].fondo }} aria-hidden="true">
+      <div
+        className={`banner-capas ${actual.animado && !actual.imagen ? "animado" : ""}`}
+        style={{ backgroundImage: COLORES_BANNER[actual.color].fondo }}
+        aria-hidden="true"
+      >
         {actual.imagen ? (
           <Photo src={actual.imagen} alt="" className="cover-photo" cover />
         ) : (
           <>
             {textura.imagen !== "none" && (
-              <span className="banner-textura" style={{ backgroundImage: textura.imagen, backgroundSize: textura.tamano }} />
+              <span
+                className="banner-textura"
+                style={{ backgroundImage: textura.imagen, backgroundSize: textura.tamano, "--banner-mover": textura.mover }}
+              />
             )}
             {grupo && (
               <>

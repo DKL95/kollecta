@@ -43,7 +43,7 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colecciones `productos` y `ordenes`, aparte de la colección personal) |
 | Roles usuario / moderador / administrador, denuncias, disputas, moderación y reportes | Conectado a la base de datos (`middleware/roles.js`, `/api/admin`, `/api/moderacion`, `/api/reportes`) |
 | Catálogo de grupos K-pop y solicitudes de grupos nuevos | Conectado (colección `grupos`): los 13 grupos fijos de `data/gruposBase.js` se guardan en la base la primera vez que se piden, más los que pide la comunidad. Un usuario solicita un grupo y queda pendiente; un moderador o administrador lo aprueba o rechaza (con motivo) en Moderación → Grupos, lo agrega directo y **edita cualquier grupo** (datos, logo y portada; al renombrarlo se actualizan publicaciones, merch, colecciones y seguidores) |
-| Banner del perfil | Conectado (`usuarios.banner`): color, textura, logo de un grupo o imagen propia, con vista previa |
+| Banner del perfil | Conectado (`usuarios.banner`): color, textura, logo de un grupo o imagen propia (también GIF/WebP animado), con vista previa; opción "animar" (el degradado, la textura y el logo se mueven; se respeta "reducir movimiento" del sistema) |
 
 ## Estructura de carpetas
 

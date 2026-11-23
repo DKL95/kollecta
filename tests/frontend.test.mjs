@@ -73,8 +73,17 @@ describe("Frontend: catálogo consistente", () => {
         assert.deepEqual(Object.keys(TEXTURAS_BANNER).sort(), [...Usuario.BANNER_TEXTURAS].sort());
     });
 
+    it("cada textura se desliza un mosaico completo por vuelta (la animación no da saltos)", () => {
+        for (const [id, t] of Object.entries(TEXTURAS_BANNER)) {
+            if (t.imagen === "none") continue;
+            const [ancho, alto] = t.tamano.split(" ").map((v) => Math.abs(parseFloat(v)));
+            const [x, y] = t.mover.split(" ").map((v) => Math.abs(parseFloat(v)));
+            assert.ok((x === 0 || x === ancho) && (y === 0 || y === alto) && x + y > 0, id);
+        }
+    });
+
     it("un banner vacío o con valores viejos usa el diseño por defecto", () => {
-        assert.deepEqual(normalizarBanner(undefined), { color: "kollecta", textura: "ninguna", logo: "", imagen: "" });
+        assert.deepEqual(normalizarBanner(undefined), { color: "kollecta", textura: "ninguna", logo: "", imagen: "", animado: false });
         assert.equal(normalizarBanner({ color: "arcoiris", textura: "puntos" }).color, "kollecta");
         assert.equal(normalizarBanner({ color: "arcoiris", textura: "puntos" }).textura, "puntos");
     });

@@ -11,6 +11,7 @@ export default function BannerDialog({ user, onClose, onSaved }) {
   const [color, setColor] = useState(inicial.color);
   const [textura, setTextura] = useState(inicial.textura);
   const [logo, setLogo] = useState(inicial.logo);
+  const [animado, setAnimado] = useState(inicial.animado);
   const [foto, setFoto] = useState(null);
   const [vistaFoto, setVistaFoto] = useState("");
   const [quitarImagen, setQuitarImagen] = useState(false);
@@ -63,6 +64,7 @@ export default function BannerDialog({ user, onClose, onSaved }) {
     datos.append("color", color);
     datos.append("textura", textura);
     datos.append("logo", logo);
+    datos.append("animado", String(animado));
     if (foto) datos.append("portada", foto);
     else if (quitarImagen) datos.append("quitarImagen", "true");
 
@@ -88,22 +90,33 @@ export default function BannerDialog({ user, onClose, onSaved }) {
         </div>
 
         <div className="group-dialog-body">
-          <ProfileBanner banner={{ color, textura, logo, imagen: imagenActual }} className="banner-preview" />
+          <ProfileBanner banner={{ color, textura, logo, animado, imagen: imagenActual }} className="banner-preview" />
 
           <fieldset className="banner-section">
             <legend>Imagen propia</legend>
-            <p className="report-hint">Si subes una imagen, se muestra en lugar del diseño. Se ve mejor ancha (por ejemplo 1500 × 400).</p>
+            <p className="report-hint">
+              Si subes una imagen, se muestra en lugar del diseño. Se ve mejor ancha (por ejemplo 1500 × 400). También puedes subir un GIF
+              o WebP animado; el WebP pesa menos. Máximo 5 MB.
+            </p>
             <div className="banner-image-row">
               <label className="btn btn-secondary btn-sm" htmlFor="banner-foto">
                 {imagenActual ? "Cambiar imagen" : "Subir imagen"}
               </label>
-              <input id="banner-foto" type="file" accept="image/*" onChange={elegirFoto} className="visually-hidden" />
+              <input id="banner-foto" type="file" accept="image/*,.gif,.webp" onChange={elegirFoto} className="visually-hidden" />
               {imagenActual && (
                 <button type="button" className="btn btn-ghost btn-sm" onClick={usarDiseno}>
                   Quitar imagen y usar el diseño
                 </button>
               )}
             </div>
+          </fieldset>
+
+          <fieldset className="banner-section" disabled={Boolean(imagenActual)}>
+            <legend>Movimiento</legend>
+            <label className="banner-toggle">
+              <input type="checkbox" checked={animado} onChange={(event) => setAnimado(event.target.checked)} />
+              Animar banner (el color, la textura y el logo se mueven)
+            </label>
           </fieldset>
 
           <fieldset className="banner-section" disabled={Boolean(imagenActual)}>
@@ -137,10 +150,12 @@ export default function BannerDialog({ user, onClose, onSaved }) {
                   aria-pressed={textura === id}
                 >
                   <span
-                    className="banner-texture-sample"
+                    className={`banner-texture-sample ${animado ? "animado" : ""}`}
                     style={{ background: COLORES_BANNER[color].fondo }}
                   >
-                    {opcion.imagen !== "none" && <span style={{ backgroundImage: opcion.imagen, backgroundSize: opcion.tamano }} />}
+                    {opcion.imagen !== "none" && (
+                      <span style={{ backgroundImage: opcion.imagen, backgroundSize: opcion.tamano, "--banner-mover": opcion.mover }} />
+                    )}
                   </span>
                   {opcion.etiqueta}
                 </button>

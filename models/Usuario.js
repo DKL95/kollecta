@@ -51,14 +51,16 @@ const usuarioSchema = new mongoose.Schema(
         },
 
         // Banner del perfil: degradado + textura opcional + logo de un grupo, o una imagen propia
-        // (si hay imagen, se ve la imagen). Los valores se dibujan en frontend/src/utils/banner.js.
+        // (si hay imagen, se ve la imagen; puede ser un GIF o WebP animado). animado = el degradado,
+        // la textura y el logo se mueven. Los valores se dibujan en frontend/src/utils/banner.js.
         banner: {
             type: new mongoose.Schema(
                 {
                     color: { type: String, enum: BANNER_COLORES, default: "kollecta" },
                     textura: { type: String, enum: BANNER_TEXTURAS, default: "ninguna" },
                     logo: { type: String, default: "", maxlength: 40 },
-                    imagen: { type: String, default: "" }
+                    imagen: { type: String, default: "" },
+                    animado: { type: Boolean, default: false }
                 },
                 { _id: false }
             ),

@@ -849,7 +849,7 @@ async function listarMisAmigos(req, res) {
     }
 }
 
-// PUT /api/usuarios/me/banner   multipart: color?, textura?, logo?, quitarImagen?, portada? (1 imagen)
+// PUT /api/usuarios/me/banner   multipart: color?, textura?, logo?, animado?, quitarImagen?, portada? (1 imagen, puede ser GIF/WebP animado)
 // El banner es un degradado con textura y logo opcionales, o una imagen propia.
 async function actualizarBanner(req, res) {
     const foto = req.files?.portada?.[0];
@@ -860,12 +860,13 @@ async function actualizarBanner(req, res) {
             return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
         }
 
-        const { color, textura, logo, quitarImagen } = req.body || {};
+        const { color, textura, logo, animado, quitarImagen } = req.body || {};
         const banner = {
             color: usuario.banner?.color || "kollecta",
             textura: usuario.banner?.textura || "ninguna",
             logo: usuario.banner?.logo || "",
-            imagen: usuario.banner?.imagen || ""
+            imagen: usuario.banner?.imagen || "",
+            animado: Boolean(usuario.banner?.animado)
         };
 
         if (color !== undefined) {
@@ -883,6 +884,11 @@ async function actualizarBanner(req, res) {
                 return res.status(400).json({ mensaje: "Ese grupo no está en el catálogo" });
             }
             banner.logo = nombre;
+        }
+
+        if (animado !== undefined) {
+            if (!["true", "false", true, false].includes(animado)) return res.status(400).json({ mensaje: "animado debe ser true o false" });
+            banner.animado = animado === "true" || animado === true;
         }
 
         const imagenAnterior = banner.imagen;
