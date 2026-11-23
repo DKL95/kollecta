@@ -48,6 +48,7 @@ export const ETIQUETA_ACCION = {
   crear_grupo: "Agregó un grupo",
   aprobar_grupo: "Aprobó un grupo",
   rechazar_grupo: "Rechazó un grupo",
+  editar_grupo: "Editó un grupo",
 };
 
 // Solicitudes de grupos nuevos (models/Grupo.js).

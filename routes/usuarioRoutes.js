@@ -1,6 +1,7 @@
 const express = require("express");
 
 const {
+    actualizarBanner,
     listarMisAmigos,
     buscarUsuarios,
     obtenerPerfil,
@@ -17,7 +18,7 @@ const {
 } = require("../controllers/usuarioController");
 
 const { requiereAuth } = require("../middleware/auth");
-const { upload, validarFotoPerfil } = require("../middleware/upload");
+const { upload, validarFotoPerfil, validarArchivos } = require("../middleware/upload");
 const { registrarOperacion } = require("../middleware/registrarOperacion");
 
 const router = express.Router();
@@ -64,6 +65,7 @@ router.delete("/:id/amigo", eliminarAmigo);
 
 router.get("/", buscarUsuarios);
 router.put("/me", registrarOperacion("editar perfil"), upload.single("fotoPerfil"), validarFotoPerfil, actualizarPerfil);
+router.put("/me/banner", registrarOperacion("editar banner"), upload.fields([{ name: "portada", maxCount: 1 }]), validarArchivos, actualizarBanner);
 router.get("/:username", obtenerPerfil);
 router.get("/:username/publicaciones", obtenerPublicacionesDeUsuario);
 

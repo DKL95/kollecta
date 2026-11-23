@@ -1,8 +1,9 @@
 /* ==========================================================================
-   Grupos K-pop: catálogo y solicitudes de grupos nuevos.
+   Grupos K-pop: catálogo, solicitudes de grupos nuevos y edición.
    - Cualquiera: ver el catálogo (grupos fijos + aprobados).
    - Usuario: solicita un grupo nuevo, ve sus solicitudes y cancela las pendientes.
-   - Moderador+: crea grupos ya aprobados y aprueba o rechaza las solicitudes.
+   - Moderador+: crea grupos ya aprobados, aprueba o rechaza las solicitudes y
+     edita cualquier grupo (datos, logo y portada), también los fijos.
    ========================================================================== */
 
 const fs = require("fs");
@@ -10,6 +11,10 @@ const mongoose = require("mongoose");
 
 const Grupo = require("../models/Grupo");
 const { ESTADOS_GRUPO } = Grupo;
+const Publicacion = require("../models/Publicacion");
+const Producto = require("../models/Producto");
+const Coleccion = require("../models/Coleccion");
+const Usuario = require("../models/Usuario");
 const { GRUPOS_BASE } = require("../data/gruposBase");
 const { alcanza } = require("../middleware/roles");
 const { guardarImagen, eliminarImagen } = require("../middleware/upload");
@@ -41,7 +46,46 @@ function claveDe(nombre) {
     return String(nombre || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-const CLAVES_BASE = new Set(GRUPOS_BASE.map((grupo) => claveDe(grupo.nombre)));
+// Guarda en la base los grupos fijos que falten (una vez por proceso), para que se
+// puedan editar igual que los demás. claveBase no cambia aunque se renombren.
+let gruposBaseListos = null;
+function asegurarGruposBase() {
+    if (!gruposBaseListos) {
+        gruposBaseListos = Grupo.bulkWrite(
+            GRUPOS_BASE.map((grupo, orden) => {
+                const claveBase = claveDe(grupo.nombre);
+                return {
+                    updateOne: {
+                        filter: { claveBase },
+                        update: {
+                            $setOnInsert: {
+                                nombre: grupo.nombre,
+                                clave: claveBase,
+                                fandom: grupo.fandom,
+                                agencia: grupo.agencia,
+                                integrantes: grupo.integrantes,
+                                debut: grupo.debut,
+                                imagen: grupo.imagen,
+                                portada: grupo.portada,
+                                color: grupo.color,
+                                iniciales: grupo.iniciales,
+                                base: true,
+                                claveBase,
+                                orden,
+                                estado: "aprobado"
+                            }
+                        },
+                        upsert: true
+                    }
+                };
+            })
+        ).catch((error) => {
+            gruposBaseListos = null;
+            throw error;
+        });
+    }
+    return gruposBaseListos;
+}
 
 // "Stray Kids" → "SK"; "aespa" → "AESP"
 function inicialesDe(nombre) {
@@ -82,10 +126,10 @@ function formatoPublico(grupo) {
         debut: grupo.debut,
         descripcion: grupo.descripcion,
         imagen: grupo.imagen,
-        portada: "",
+        portada: grupo.portada || "",
         color: grupo.color,
         iniciales: grupo.iniciales,
-        base: false
+        base: Boolean(grupo.base)
     };
 }
 
@@ -109,21 +153,27 @@ function responderError(res, error, mensajeGenerico) {
 }
 
 async function borrarTemporales(req) {
-    const archivos = req.files?.imagenes || [];
+    const archivos = [...(req.files?.imagenes || []), ...(req.files?.portada || [])];
     await Promise.all(archivos.map((archivo) => fs.promises.unlink(archivo.path).catch(() => {})));
 }
 
 // GET /api/grupos → catálogo: los fijos en su orden de siempre y después los aprobados, por nombre.
 async function listarGrupos(req, res) {
     try {
-        const aprobados = await Grupo.find({ estado: "aprobado" }).collation({ locale: "es" }).sort({ nombre: 1 }).lean();
-        res.json({ grupos: [...GRUPOS_BASE, ...aprobados.map(formatoPublico)] });
+        await asegurarGruposBase();
+        const aprobados = await Grupo.find({ estado: "aprobado" }).lean();
+        aprobados.sort((a, b) =>
+            a.base !== b.base ? (a.base ? -1 : 1)
+                : a.base ? a.orden - b.orden
+                    : a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+        );
+        res.json({ grupos: aprobados.map(formatoPublico) });
     } catch (error) {
         responderError(res, error, "No se pudieron cargar los grupos");
     }
 }
 
-// POST /api/grupos   multipart: nombre, fandom?, agencia?, integrantes?, debut?, descripcion?, imagenes? (1 foto)
+// POST /api/grupos   multipart: nombre, fandom?, agencia?, integrantes?, debut?, descripcion?, imagenes? (logo), portada?
 // Usuario → queda pendiente. Moderador o administrador → queda aprobado de una vez.
 async function crearGrupo(req, res) {
     try {
@@ -142,7 +192,8 @@ async function crearGrupo(req, res) {
         };
         if (datos.descripcion.length > 500) throw new ErrorGrupo(400, "La descripción puede tener como máximo 500 caracteres");
 
-        if (CLAVES_BASE.has(datos.clave) || (await Grupo.exists({ clave: datos.clave, estado: "aprobado" }))) {
+        await asegurarGruposBase();
+        if (await Grupo.exists({ clave: datos.clave, estado: "aprobado" })) {
             throw new ErrorGrupo(409, `${nombre} ya está en el catálogo de grupos`);
         }
         if (await Grupo.exists({ clave: datos.clave, estado: "pendiente" })) {
@@ -158,11 +209,14 @@ async function crearGrupo(req, res) {
         }
 
         const foto = req.files?.imagenes?.[0];
+        const fotoPortada = req.files?.portada?.[0];
         const imagen = foto ? await guardarImagen(foto, req.usuario.id) : "";
+        const portada = fotoPortada ? await guardarImagen(fotoPortada, req.usuario.id) : "";
 
         const grupo = await Grupo.create({
             ...datos,
             imagen,
+            portada,
             iniciales: inicialesDe(nombre),
             color: colorDe(datos.clave),
             solicitante: req.usuario.id,
@@ -214,7 +268,9 @@ async function listarSolicitudes(req, res) {
             return res.status(400).json({ mensaje: "Estado no válido" });
         }
 
-        const grupos = await Grupo.find(estado === "todas" ? {} : { estado })
+        // Los grupos fijos no son solicitudes de nadie.
+        const filtro = { base: { $ne: true }, ...(estado === "todas" ? {} : { estado }) };
+        const grupos = await Grupo.find(filtro)
             .sort({ fechaCreacion: estado === "pendiente" ? 1 : -1 })
             .limit(100)
             .populate("solicitante", CAMPOS_PERSONA)
@@ -285,6 +341,118 @@ async function revisarSolicitud(req, res) {
     }
 }
 
+// Cambia el nombre de un grupo en todo lo que lo usa por nombre. Las órdenes no:
+// guardan el grupo como estaba al momento de la compra.
+async function renombrarEnTodo(anterior, nuevo) {
+    await Promise.all([
+        Publicacion.updateMany({ grupo: anterior }, { $set: { grupo: nuevo } }),
+        Producto.updateMany({ grupo: anterior }, { $set: { grupo: nuevo } }),
+        Coleccion.updateMany(
+            { "articulos.grupo": anterior },
+            { $set: { "articulos.$[a].grupo": nuevo } },
+            { arrayFilters: [{ "a.grupo": anterior }] }
+        ),
+        Usuario.updateMany(
+            { gruposFavoritos: anterior },
+            { $set: { "gruposFavoritos.$[g]": nuevo } },
+            { arrayFilters: [{ g: anterior }] }
+        ),
+        Usuario.updateMany({ "banner.logo": anterior }, { $set: { "banner.logo": nuevo } })
+    ]);
+}
+
+// PUT /api/grupos/:id   (moderador+)
+// multipart: nombre?, fandom?, agencia?, integrantes?, debut?, descripcion?,
+//            imagenes? (logo), portada? (imagen ancha), quitarImagen?, quitarPortada?
+async function editarGrupo(req, res) {
+    const nuevas = [];
+    try {
+        const { id } = req.params;
+        if (!mongoose.isValidObjectId(id)) throw new ErrorGrupo(400, "El grupo no es válido");
+
+        await asegurarGruposBase();
+        const grupo = await Grupo.findById(id);
+        if (!grupo) throw new ErrorGrupo(404, "El grupo ya no existe");
+        if (grupo.estado === "rechazado") throw new ErrorGrupo(409, "No se puede editar una solicitud rechazada");
+
+        const cuerpo = req.body || {};
+        const nombreAnterior = grupo.nombre;
+        const cambios = [];
+        const poner = (campo, valor) => {
+            if (valor !== undefined && String(grupo[campo] ?? "") !== String(valor ?? "")) {
+                grupo[campo] = valor;
+                cambios.push(campo);
+            }
+        };
+
+        if (cuerpo.nombre !== undefined) {
+            const nombre = texto(cuerpo.nombre, "El nombre", 40);
+            if (!nombre) throw new ErrorGrupo(400, "El grupo necesita un nombre");
+            const clave = claveDe(nombre);
+            if (clave !== grupo.clave) {
+                const repetido = await Grupo.exists({ _id: { $ne: grupo._id }, clave, estado: { $in: ["pendiente", "aprobado"] } });
+                if (repetido) throw new ErrorGrupo(409, `Ya existe un grupo llamado ${nombre}`);
+            }
+            poner("nombre", nombre);
+            grupo.clave = clave;
+        }
+        if (cuerpo.fandom !== undefined) poner("fandom", texto(cuerpo.fandom, "El fandom", 40));
+        if (cuerpo.agencia !== undefined) poner("agencia", texto(cuerpo.agencia, "La agencia", 60));
+        if (cuerpo.integrantes !== undefined) poner("integrantes", entero(cuerpo.integrantes, "Los integrantes", 1, 50));
+        if (cuerpo.debut !== undefined) poner("debut", entero(cuerpo.debut, "El año de debut", 1990, new Date().getFullYear() + 1));
+        if (cuerpo.descripcion !== undefined) {
+            const descripcion = String(cuerpo.descripcion).trim();
+            if (descripcion.length > 500) throw new ErrorGrupo(400, "La descripción puede tener como máximo 500 caracteres");
+            poner("descripcion", descripcion);
+        }
+
+        // Fotos: una nueva reemplaza a la anterior; "quitar" la borra (queda el degradado).
+        const porBorrar = [];
+        for (const [campo, archivo, quitar] of [
+            ["imagen", req.files?.imagenes?.[0], cuerpo.quitarImagen],
+            ["portada", req.files?.portada?.[0], cuerpo.quitarPortada]
+        ]) {
+            if (archivo) {
+                const url = await guardarImagen(archivo, req.usuario.id);
+                nuevas.push(url);
+                if (grupo[campo]) porBorrar.push(grupo[campo]);
+                grupo[campo] = url;
+                cambios.push(campo);
+            } else if ((quitar === "true" || quitar === true) && grupo[campo]) {
+                porBorrar.push(grupo[campo]);
+                grupo[campo] = "";
+                cambios.push(campo);
+            }
+        }
+
+        if (!cambios.length) return res.json({ mensaje: "No hubo cambios", grupo: formatoSolicitud(grupo) });
+
+        if (cambios.includes("nombre")) grupo.iniciales = inicialesDe(grupo.nombre);
+        await grupo.save();
+        nuevas.length = 0;
+
+        if (grupo.nombre !== nombreAnterior && grupo.estado === "aprobado") {
+            await renombrarEnTodo(nombreAnterior, grupo.nombre);
+        }
+        // Las fotos fijas (/assets/...) no se borran; eliminarImagen solo borra las de la base.
+        await Promise.all(porBorrar.map((url) => eliminarImagen(url).catch(() => {})));
+
+        await registrar({
+            actor: { id: req.usuario.id, rol: req.usuario.rol },
+            accion: "editar_grupo",
+            tipoObjetivo: "grupo",
+            objetivo: grupo._id,
+            detalle: { nombre: grupo.nombre, ...(grupo.nombre !== nombreAnterior ? { antes: nombreAnterior } : {}), cambios }
+        });
+
+        res.json({ mensaje: "Grupo actualizado", grupo: formatoSolicitud(grupo) });
+    } catch (error) {
+        await borrarTemporales(req);
+        await Promise.all(nuevas.map((url) => eliminarImagen(url).catch(() => {})));
+        responderError(res, error, "No se pudo editar el grupo");
+    }
+}
+
 // DELETE /api/grupos/solicitudes/:id → quien la envió la cancela mientras sigue pendiente.
 async function cancelarSolicitud(req, res) {
     try {
@@ -313,5 +481,7 @@ module.exports = {
     listarSolicitudes,
     revisarSolicitud,
     cancelarSolicitud,
+    editarGrupo,
+    asegurarGruposBase,
     MAX_PENDIENTES
 };

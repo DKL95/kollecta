@@ -160,4 +160,96 @@ describe("Grupos: catálogo y solicitudes", () => {
         const delAdmin = await solicitar(admin, { nombre: "MEOVV" });
         assert.equal(delAdmin.body.grupo.estado, "aprobado");
     });
+    describe("editar grupos", () => {
+        const editar = (usuario, id, form) => api("PUT", `/api/grupos/${id}`, { token: usuario.token, form });
+        const buscar = async (nombre) => (await api("GET", "/api/grupos")).body.grupos.find((g) => g.nombre === nombre);
+
+        it("solo la moderación edita", async () => {
+            const qwer = await buscar("QWER");
+            assert.equal((await editar(fan, qwer._id, { fandom: "X" })).status, 403);
+            assert.equal((await api("PUT", `/api/grupos/${qwer._id}`, { form: { fandom: "X" } })).status, 401);
+        });
+
+        it("cambia datos, logo y portada de un grupo fijo, y puede quitar la portada", async () => {
+            const bts = await buscar("BTS");
+            assert.ok(bts._id, "los grupos fijos también tienen _id para editarse");
+
+            const res = await editar(moderador, bts._id, {
+                agencia: "BIGHIT MUSIC",
+                integrantes: "7",
+                imagenes: imagenPng(),
+                portada: imagenPng()
+            });
+            assert.equal(res.status, 200, JSON.stringify(res.body));
+            assert.equal(res.body.grupo.agencia, "BIGHIT MUSIC");
+            assert.match(res.body.grupo.imagen, /^\/api\/imagenes\//);
+            assert.match(res.body.grupo.portada, /^\/api\/imagenes\//);
+
+            const enCatalogo = await buscar("BTS");
+            assert.equal(enCatalogo.imagen, res.body.grupo.imagen);
+            assert.ok(enCatalogo.base);
+            assert.ok(await Moderacion.exists({ accion: "editar_grupo", objetivo: bts._id }));
+
+            const quitada = await editar(moderador, bts._id, { quitarPortada: "true" });
+            assert.equal(quitada.body.grupo.portada, "");
+        });
+
+        it("renombrar actualiza publicaciones, productos y a quienes lo siguen", async () => {
+            const qwer = await buscar("QWER");
+            await api("PUT", "/api/usuarios/me", { token: fan.token, json: { gruposFavoritos: ["QWER", "TWICE"] } });
+            const pub = await api("POST", "/api/publicaciones", { token: fan.token, form: { texto: "Hola", grupo: "QWER" } });
+            assert.equal(pub.status, 201, JSON.stringify(pub.body));
+
+            assert.equal((await editar(moderador, qwer._id, { nombre: "twice" })).status, 409);
+            const res = await editar(moderador, qwer._id, { nombre: "QWER Band" });
+            assert.equal(res.status, 200, JSON.stringify(res.body));
+            assert.equal(res.body.grupo.iniciales, "QB");
+
+            const yo = await api("GET", "/api/auth/me", { token: fan.token });
+            assert.deepEqual(yo.body.usuario.gruposFavoritos, ["QWER Band", "TWICE"]);
+            const publicaciones = await api("GET", `/api/publicaciones?grupo=${encodeURIComponent("QWER Band")}`, { token: fan.token });
+            assert.equal(publicaciones.body.publicaciones.length, 1);
+            assert.ok(!(await nombresCatalogo()).includes("QWER"));
+        });
+
+        it("no deja nombres vacíos ni editar rechazadas", async () => {
+            const meovv = await buscar("MEOVV");
+            assert.equal((await editar(admin, meovv._id, { nombre: "  " })).status, 400);
+
+            const rechazada = (await api("GET", "/api/grupos/solicitudes?estado=rechazado", { token: admin.token })).body.solicitudes[0];
+            assert.equal((await editar(admin, rechazada._id, { fandom: "X" })).status, 409);
+        });
+    });
+
+    describe("banner del perfil", () => {
+        const banner = (usuario, form) => api("PUT", "/api/usuarios/me/banner", { token: usuario.token, form });
+
+        it("guarda color, textura y logo de un grupo del catálogo", async () => {
+            const res = await banner(fan, { color: "oceano", textura: "estrellas", logo: "TWICE" });
+            assert.equal(res.status, 200, JSON.stringify(res.body));
+            assert.deepEqual(res.body.usuario.banner, { color: "oceano", textura: "estrellas", logo: "TWICE", imagen: "" });
+
+            const perfil = await api("GET", `/api/usuarios/${fan.usuario.username}`, { token: otraFan.token });
+            assert.equal(perfil.body.usuario.banner.textura, "estrellas");
+        });
+
+        it("rechaza opciones que no existen", async () => {
+            assert.equal((await banner(fan, { color: "arcoiris" })).status, 400);
+            assert.equal((await banner(fan, { textura: "lunares" })).status, 400);
+            assert.equal((await banner(fan, { logo: "Grupo Que No Existe" })).status, 400);
+        });
+
+        it("sube una imagen propia y la puede quitar", async () => {
+            const conImagen = await banner(fan, { portada: imagenPng() });
+            assert.match(conImagen.body.usuario.banner.imagen, /^\/api\/imagenes\//);
+            assert.equal(conImagen.body.usuario.banner.textura, "estrellas", "lo demás se conserva");
+
+            const sinImagen = await banner(fan, { quitarImagen: "true" });
+            assert.equal(sinImagen.body.usuario.banner.imagen, "");
+        });
+
+        it("las cuentas nuevas traen el banner por defecto", async () => {
+            assert.deepEqual(otraFan.usuario.banner, { color: "kollecta", textura: "ninguna", logo: "", imagen: "" });
+        });
+    });
 });

@@ -42,7 +42,8 @@ const upload = multer({
 
     fileFilter: function (req, file, cb) {
         // La foto de perfil (registro y edición de perfil) también es una imagen.
-        if (file.fieldname === "imagenes" || file.fieldname === "fotoPerfil") {
+        // "portada": la imagen ancha de un grupo o del banner de un perfil.
+        if (file.fieldname === "imagenes" || file.fieldname === "fotoPerfil" || file.fieldname === "portada") {
             if (!file.mimetype.startsWith("image/")) {
                 return cb(new Error("Solo se permiten imágenes"));
             }
@@ -66,7 +67,7 @@ const upload = multer({
 async function validarArchivos(req, res, next) {
     const archivos = req.files || {};
 
-    const imagenes = archivos.imagenes || [];
+    const imagenes = [...(archivos.imagenes || []), ...(archivos.portada || [])];
     const videos = archivos.videos || [];
 
     const todos = [...imagenes, ...videos];

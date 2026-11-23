@@ -15,7 +15,8 @@ const ACCIONES_MODERACION = [
     "resolver_disputa",
     "crear_grupo",
     "aprobar_grupo",
-    "rechazar_grupo"
+    "rechazar_grupo",
+    "editar_grupo"
 ];
 
 const moderacionSchema = new mongoose.Schema(

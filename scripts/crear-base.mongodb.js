@@ -42,6 +42,21 @@ crear("usuarios", {
     "fotoPerfil": {"bsonType":["string","null"]},
     "descripcion": {"bsonType":["string","null"]},
     "gruposFavoritos": {"bsonType":"array"},
+    "banner": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "color": {
+          "bsonType": ["string","null"],
+          "enum": ["kollecta","atardecer","oceano","menta","noche","dorado","cereza",null]
+        },
+        "textura": {
+          "bsonType": ["string","null"],
+          "enum": ["ninguna","puntos","rayas","cuadricula","corazones","estrellas","ondas",null]
+        },
+        "logo": {"bsonType":["string","null"],"maxLength":40},
+        "imagen": {"bsonType":["string","null"]}
+      }
+    },
     "fechaRegistro": {"bsonType":["string","null"]},
     "activo": {"bsonType":["bool","null"]},
     "motivoBaneo": {"bsonType":["string","null"]},
@@ -516,7 +531,8 @@ crear("moderaciones", {
         "resolver_disputa",
         "crear_grupo",
         "aprobar_grupo",
-        "rechazar_grupo"
+        "rechazar_grupo",
+        "editar_grupo"
       ]
     },
     "tipoObjetivo": {"bsonType":"string"},
@@ -547,10 +563,14 @@ crear("grupos", {
     "debut": {"bsonType":["int","long","double","decimal","null"],"minimum":1990,"maximum":2100},
     "descripcion": {"bsonType":["string","null"],"maxLength":500},
     "imagen": {"bsonType":["string","null"]},
+    "portada": {"bsonType":["string","null"]},
     "color": {"bsonType":["string","null"]},
     "iniciales": {"bsonType":["string","null"],"maxLength":6},
+    "base": {"bsonType":["bool","null"]},
+    "claveBase": {"bsonType":["string","null"]},
+    "orden": {"bsonType":["int","long","double","decimal","null"]},
     "estado": {"bsonType":["string","null"],"enum":["pendiente","aprobado","rechazado",null]},
-    "solicitante": {"bsonType":"objectId","description":"→ Usuario"},
+    "solicitante": {"bsonType":["objectId","null"],"description":"→ Usuario"},
     "revisadoPor": {"bsonType":["objectId","null"],"description":"→ Usuario"},
     "fechaRevision": {"bsonType":["date","null"]},
     "motivoRechazo": {"bsonType":["string","null"],"maxLength":300},
@@ -558,10 +578,11 @@ crear("grupos", {
     "fechaCreacion": {"bsonType":["date","null"]},
     "fechaActualizacion": {"bsonType":["date","null"]}
   },
-  "required": ["nombre","clave","solicitante"]
+  "required": ["nombre","clave"]
 });
 db.grupos.createIndex({"clave":1,"estado":1});
 db.grupos.createIndex({"estado":1,"fechaCreacion":-1});
 db.grupos.createIndex({"solicitante":1,"fechaCreacion":-1});
+db.grupos.createIndex({"claveBase":1});
 
 print("Listo: " + db.getCollectionNames().length + " colecciones en " + nombreBase);
