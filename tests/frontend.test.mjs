@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 
 import { formatMoney, getInitials, timeAgo } from "../frontend/src/utils/format.js";
 import { categoryClass, categoryIcon, CATEGORY_ICON } from "../frontend/src/utils/categories.js";
-import { CATEGORIES, GROUPS } from "../frontend/src/data/catalogo.js";
+import { CATEGORIES } from "../frontend/src/data/catalogo.js";
+import { adaptarGrupo } from "../frontend/src/utils/grupos.js";
 import { adaptarProducto, modalidad } from "../frontend/src/utils/coleccion.js";
 import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 
@@ -53,10 +54,26 @@ describe("Frontend: catálogo consistente", () => {
         }
     });
 
-    it("las rutas de imagen son absolutas (empiezan con /) para funcionar en rutas anidadas", () => {
-        for (const item of GROUPS) {
-            assert.ok(item.img.startsWith("/assets/img/"), item.img);
+    it("las rutas de imagen de los grupos fijos son absolutas (empiezan con /) para funcionar en rutas anidadas", async () => {
+        const { createRequire } = await import("node:module");
+        const require = createRequire(import.meta.url);
+        const { GRUPOS_BASE } = require("../data/gruposBase.js");
+        for (const item of GRUPOS_BASE.map(adaptarGrupo)) {
+            assert.ok(item.img.startsWith("/assets/img/groups/"), item.img);
+            assert.ok(item.cover.startsWith("/assets/img/covers/"), item.cover);
         }
+    });
+
+    it("adapta un grupo aprobado de la API al formato de las tarjetas", () => {
+        const grupo = adaptarGrupo({
+            _id: "g1", nombre: "QWER", fandom: "Bawi", agencia: "", integrantes: null, debut: 2023,
+            imagen: "/api/imagenes/x", portada: "", color: "linear-gradient(red,blue)", iniciales: "QWER", base: false
+        });
+        assert.equal(grupo.id, "g1");
+        assert.equal(grupo.name, "QWER");
+        assert.equal(grupo.img, "/api/imagenes/x");
+        assert.equal(grupo.members, null);
+        assert.equal(grupo.base, false);
     });
 });
 

@@ -7,7 +7,7 @@ import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
-import { GROUPS, GROUP_NAMES } from "../data/catalogo";
+import useGrupos from "../hooks/useGrupos";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
 export default function HomePage() {
@@ -16,6 +16,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { isFollowing, toggleFollow } = useFollowedGroups();
+  const { grupos: GROUPS, nombres: GROUP_NAMES } = useGrupos();
   const [amigos, setAmigos] = useState([]);
   const [cargandoAmigos, setCargandoAmigos] = useState(true);
 

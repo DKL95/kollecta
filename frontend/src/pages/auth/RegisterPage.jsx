@@ -3,15 +3,16 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import PasswordInput from "../../components/PasswordInput";
 import { useAuth } from "../../context/AuthContext";
-import { GROUP_NAMES } from "../../data/catalogo";
+import useGrupos from "../../hooks/useGrupos";
 import AuthVisual from "./AuthVisual";
 
-const INITIAL_FORM = { name: "", username: "", email: "", password: "", descripcion: "", bias: GROUP_NAMES[0] };
+const INITIAL_FORM = { name: "", username: "", email: "", password: "", descripcion: "", bias: "" };
 
 export default function RegisterPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState(INITIAL_FORM);
+  const { nombres: GROUP_NAMES } = useGrupos();
   const [photo, setPhoto] = useState(null);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
@@ -101,6 +102,7 @@ export default function RegisterPage() {
           <div className="field">
             <label htmlFor="bias">Grupo favorito (bias)</label>
             <select id="bias" name="bias" value={form.bias} onChange={updateField}>
+              <option value="">Elige tu grupo favorito</option>
               {GROUP_NAMES.map((name) => (
                 <option key={name}>{name}</option>
               ))}

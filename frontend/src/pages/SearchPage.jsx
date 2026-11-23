@@ -5,7 +5,7 @@ import { UserAvatar } from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import GroupCard from "../components/GroupCard";
 import ProductCard from "../components/ProductCard";
-import { GROUPS } from "../data/catalogo";
+import useGrupos from "../hooks/useGrupos";
 import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
@@ -22,6 +22,7 @@ export default function SearchPage() {
   const [people, setPeople] = useState([]);
   const [products, setProducts] = useState([]);
   const { isFollowing, toggleFollow } = useFollowedGroups();
+  const { grupos: GROUPS } = useGrupos();
 
   useEffect(() => {
     apiRequest(`/usuarios?q=${encodeURIComponent(query)}`)
@@ -35,7 +36,7 @@ export default function SearchPage() {
       .catch(() => setProducts([]));
   }, [query]);
 
-  const groups = GROUPS.filter((group) => matches(group.name, query) || matches(group.fandom, query));
+  const groups = GROUPS.filter((group) => matches(group.name, query) || matches(group.fandom || "", query));
   const show = (tab) => activeTab === "Todo" || activeTab === tab;
 
   return (

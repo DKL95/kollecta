@@ -42,7 +42,7 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Colección, mensajes (directos y grupales), notificaciones | Conectado a la base de datos |
 | Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colecciones `productos` y `ordenes`, aparte de la colección personal) |
 | Roles usuario / moderador / administrador, denuncias, disputas, moderación y reportes | Conectado a la base de datos (`middleware/roles.js`, `/api/admin`, `/api/moderacion`, `/api/reportes`) |
-| Catálogo de grupos K-pop (nombres, colores, fotos) | Lista fija en el frontend (`frontend/src/data/catalogo.js`); lo que cada usuario sigue sí se guarda en la base |
+| Catálogo de grupos K-pop y solicitudes de grupos nuevos | Conectado: 13 grupos fijos (`data/gruposBase.js`) + los que pide la comunidad (colección `grupos`). Un usuario solicita un grupo y queda pendiente; un moderador o administrador lo aprueba o rechaza (con motivo) en Moderación → Grupos. Moderadores y administradores lo agregan directo, sin revisión |
 
 ## Estructura de carpetas
 
@@ -50,10 +50,11 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 WEB2/
 ├── server.js                 Punto de entrada: conecta a MongoDB, Socket.IO (chat en tiempo real) y abre el puerto
 ├── app.js                    Configuración de Express (rutas de la API, errores, frontend compilado); las pruebas la usan sin abrir puerto
+├── data/gruposBase.js        Los 13 grupos fijos de la app (GET /api/grupos les suma los aprobados)
 ├── config/
 │   ├── db.js                 Conexión a MongoDB con Mongoose
 │   └── logger.js             Bitácora con winston (logs/app.log y logs/error.log)
-├── models/                   Esquemas de Mongoose: una colección por archivo (14) + subesquemas (gif.js, oculto.js)
+├── models/                   Esquemas de Mongoose: una colección por archivo (15) + subesquemas (gif.js, oculto.js)
 ├── controllers/              Lógica de cada endpoint (validaciones, consultas, respuestas JSON)
 ├── routes/                   Rutas de la API: método + URL + middlewares → función del controlador
 ├── middleware/
@@ -83,10 +84,10 @@ WEB2/
 │       ├── styles.css        Sistema de diseño compartido (claro/oscuro, adaptable a teléfono)
 │       ├── api/              Cliente de la API (fetch + token) y conexión de Socket.IO
 │       ├── context/          Sesión del usuario (AuthContext)
-│       ├── hooks/            Hooks reutilizables (contadores, grupos seguidos, instalar app)
+│       ├── hooks/            Hooks reutilizables (catálogo de grupos, contadores, grupos seguidos, instalar app)
 │       ├── components/       Componentes compartidos (tarjetas, diálogos, selectores de emoji/GIF, layout)
 │       ├── pages/            Una página por pantalla
-│       ├── data/catalogo.js  Catálogo fijo de grupos K-pop
+│       ├── data/catalogo.js  Categorías de merch
 │       └── utils/            Formato de dinero/fechas, categorías, roles, emojis
 ├── docs/                     PDF técnico, manual de usuario con capturas y rúbrica del curso
 ├── INTEGRANTES.txt           Nombres, matrículas y enlace al repositorio
@@ -118,11 +119,11 @@ WEB2/
 | Mi colección | `/coleccion` | Vitrina personal de merch coleccionado |
 | Mi perfil | `/perfil` | Perfil propio: datos, editar perfil, publicaciones, grupos que sigue |
 | Perfil de otro usuario | `/perfil/:username` | Perfil público de cualquier usuario |
-| Grupos | `/grupos` | Explorar y seguir grupos de K-pop |
+| Grupos | `/grupos` | Explorar y seguir grupos de K-pop; solicitar uno nuevo y ver mis solicitudes (`?vista=solicitudes`) |
 | Detalle de grupo | `/grupos/:groupName` | Info del grupo, merch disponible y publicaciones de la comunidad |
 | Detalle de publicación | `/publicaciones/:id` | Una publicación con sus comentarios y respuestas (se abre desde el feed o una notificación) |
 | Reportes | `/reportes` | 12 reportes estadísticos; cada rol ve los que le corresponden |
-| Moderación | `/moderacion` | Solo moderadores y administradores: denuncias, disputas, sanciones, usuarios y bitácora |
+| Moderación | `/moderacion` | Solo moderadores y administradores: denuncias, disputas, solicitudes de grupos, sanciones, usuarios y bitácora |
 | Página no encontrada | cualquier otra ruta | Aviso con enlace de regreso al inicio |
 
 `/` redirige a `/inicio`. Todas las rutas excepto `/login` y `/registro` requieren sesión iniciada.
@@ -141,6 +142,7 @@ Todos bajo `/api`, en JSON. **Todos exigen token** (`Authorization: Bearer <toke
 | Órdenes | `/ordenes` | crear, ver, cambiar estado, retirar, calificar, disputas |
 | Mensajes | `/mensajes` | conversaciones directas y grupales; enviar, **editar y borrar** mensajes propios |
 | Notificaciones | `/notificaciones` | listar, marcar leídas, **borrar** |
+| Grupos | `/grupos` | catálogo; solicitar, ver y cancelar mis solicitudes; aprobar o rechazar (moderador+) |
 | Denuncias y moderación | `/denuncias`, `/moderacion`, `/admin` | denunciar, atender, sancionar, bitácora, roles y baneos |
 | Reportes | `/reportes` | 12 reportes que cruzan varias colecciones |
 | Archivos | `/imagenes`, `/videos` | imágenes guardadas en MongoDB; videos en GridFS con URL temporal |
@@ -236,7 +238,7 @@ Para agregar el registro a una ruta nueva: `router.post("/", registrarOperacion(
 
 ### Script de creación de la base (mongosh)
 
-`scripts/crear-base.mongodb.js` es el equivalente del script SQL de creación de tablas: crea las 14 colecciones con su validador `$jsonSchema` (tipos, campos obligatorios, enums y límites) y sus índices, incluidos los únicos.
+`scripts/crear-base.mongodb.js` es el equivalente del script SQL de creación de tablas: crea las 15 colecciones con su validador `$jsonSchema` (tipos, campos obligatorios, enums y límites) y sus índices, incluidos los únicos.
 
 ```bash
 mongosh "<MONGODB_URI>" scripts/crear-base.mongodb.js          # base "kpop"

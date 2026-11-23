@@ -27,7 +27,8 @@ const DESCRIPCIONES = {
     productos: "Anuncios del marketplace. vendedor → usuarios; articuloOrigen → colecciones.articulos.",
     ordenes: "Compras e intercambios. comprador/vendedor → usuarios, producto → productos, conversacion → conversaciones.",
     denuncias: "Denuncias de contenido o cuentas para moderación. reportante/usuarioDenunciado/moderador → usuarios.",
-    moderaciones: "Bitácora de acciones de moderación. moderador/usuarioAfectado → usuarios, denuncia → denuncias."
+    moderaciones: "Bitácora de acciones de moderación. moderador/usuarioAfectado → usuarios, denuncia → denuncias.",
+    grupos: "Grupos K-pop que agrega la comunidad (pendiente → aprobado | rechazado). solicitante/revisadoPor → usuarios."
 };
 
 const ORDEN = Object.keys(DESCRIPCIONES);

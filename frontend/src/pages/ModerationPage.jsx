@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
-import { UserAvatar } from "../components/Avatar";
+import Avatar, { UserAvatar } from "../components/Avatar";
 import DisputePanel from "../components/DisputePanel";
 import EmptyState from "../components/EmptyState";
 import Icon from "../components/Icon";
@@ -9,9 +9,11 @@ import ModActionDialog from "../components/ModActionDialog";
 import RoleBadge from "../components/RoleBadge";
 import { useAuth } from "../context/AuthContext";
 import { DENUNCIAS_ACTUALIZADAS } from "../hooks/useDenunciasPendientes";
+import { refrescarGrupos } from "../hooks/useGrupos";
 import { formatMoney, timeAgo } from "../utils/format";
 import { etiquetaEstado } from "../utils/ordenes";
 import {
+  ESTADO_SOLICITUD_GRUPO,
   ETIQUETA_ACCION,
   ETIQUETA_MOTIVO,
   ETIQUETA_ROL,
@@ -647,9 +649,181 @@ function Bitacora({ user }) {
   );
 }
 
+/* --------------------------------------------------------------------------
+   Pestaña: solicitudes de grupos nuevos
+   -------------------------------------------------------------------------- */
+const FILTROS_GRUPO = [
+  { valor: "pendiente", etiqueta: "Pendientes" },
+  { valor: "aprobado", etiqueta: "Aprobadas" },
+  { valor: "rechazado", etiqueta: "Rechazadas" },
+  { valor: "todas", etiqueta: "Todas" },
+];
+
+function SolicitudGrupo({ solicitud, onRevisada }) {
+  const [rechazando, setRechazando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
+  const estado = ESTADO_SOLICITUD_GRUPO[solicitud.estado];
+  const datos = [
+    solicitud.fandom && `Fandom: ${solicitud.fandom}`,
+    solicitud.agencia,
+    solicitud.integrantes && `${solicitud.integrantes} integrantes`,
+    solicitud.debut && `debut ${solicitud.debut}`,
+  ].filter(Boolean);
+  const personas = [
+    ["Lo pidió", solicitud.solicitante],
+    ["Lo revisó", solicitud.estado === "pendiente" ? null : solicitud.revisadoPor],
+  ].filter(([, persona]) => persona);
+
+  async function revisar(decision) {
+    if (decision === "rechazar" && !motivo.trim()) {
+      setError("Escribe el motivo: se lo enviamos a quien lo pidió.");
+      return;
+    }
+    setEnviando(true);
+    setError("");
+    try {
+      await apiRequest(`/grupos/solicitudes/${solicitud._id}`, { method: "PATCH", body: { decision, motivo: motivo.trim() } });
+      if (decision === "aprobar") await refrescarGrupos().catch(() => {});
+      onRevisada();
+    } catch (err) {
+      setError(err.message);
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <article className="card mod-card group-request-card">
+      <header className="mod-card-head">
+        <span className="pill purple">Grupo nuevo</span>
+        <span className={`pill ${estado.clase}`}>{estado.etiqueta}</span>
+        <span className="mod-card-time" title={new Date(solicitud.fechaCreacion).toLocaleString("es-MX")}>
+          {timeAgo(solicitud.fechaCreacion)}
+        </span>
+      </header>
+
+      <div className="group-request-info">
+        <Avatar initials={solicitud.iniciales} src={solicitud.imagen} alt={solicitud.nombre} background={solicitud.color} size={56} fontSize={15} />
+        <div>
+          <strong>{solicitud.nombre}</strong>
+          <div className="mod-hint">{datos.join(" · ") || "Sin más datos"}</div>
+          {solicitud.descripcion && <p>{solicitud.descripcion}</p>}
+          {solicitud.estado === "rechazado" && solicitud.motivoRechazo && <p>Motivo del rechazo: {solicitud.motivoRechazo}</p>}
+        </div>
+      </div>
+
+      <div className="mod-people">
+        {personas.map(([etiqueta, persona]) => (
+          <Link key={etiqueta} to={`/perfil/${persona.username}`} className="mod-person">
+            <UserAvatar user={persona} size={28} fontSize={11} />
+            <span>
+              <small>{etiqueta}</small>@{persona.username} <RoleBadge rol={persona.rol} />
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      {solicitud.estado === "pendiente" && (
+        <div className="group-request-actions">
+          {rechazando ? (
+            <>
+              <textarea
+                maxLength={300}
+                value={motivo}
+                onChange={(event) => setMotivo(event.target.value)}
+                placeholder="¿Por qué se rechaza? Ej. ya existe con otro nombre, no es un grupo K-pop…"
+                aria-label="Motivo del rechazo"
+                autoFocus
+              />
+              <button type="button" className="btn btn-danger btn-sm" disabled={enviando} onClick={() => revisar("rechazar")}>
+                Confirmar rechazo
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={enviando} onClick={() => setRechazando(false)}>
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="btn btn-primary btn-sm" disabled={enviando} onClick={() => revisar("aprobar")}>
+                <Icon name="checkCircle" size={14} /> Aprobar
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={enviando} onClick={() => setRechazando(true)}>
+                Rechazar
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {error && <p className="form-error">{error}</p>}
+    </article>
+  );
+}
+
+function SolicitudesGrupos() {
+  const [estado, setEstado] = useState("pendiente");
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    setError("");
+    try {
+      const data = await apiRequest(`/grupos/solicitudes?estado=${estado}`);
+      setSolicitudes(data.solicitudes);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  }, [estado]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  return (
+    <>
+      <div className="filter-row">
+        {FILTROS_GRUPO.map((f) => (
+          <button key={f.valor} className={`chip ${estado === f.valor ? "active" : ""}`} onClick={() => setEstado(f.valor)}>
+            {f.etiqueta}
+          </button>
+        ))}
+        <span className="mod-hint">Al aprobar, el grupo entra al catálogo. Al rechazar, quien lo pidió recibe el motivo.</span>
+      </div>
+
+      {error && <p className="form-error">{error}</p>}
+
+      {cargando ? (
+        <EmptyState icon="star">Cargando solicitudes…</EmptyState>
+      ) : solicitudes.length === 0 ? (
+        <EmptyState icon="checkCircle">
+          {estado === "pendiente" ? "No hay solicitudes de grupos pendientes." : "No hay solicitudes con este filtro."}
+        </EmptyState>
+      ) : (
+        <div className="mod-list">
+          {solicitudes.map((s) => (
+            <SolicitudGrupo
+              key={s._id}
+              solicitud={s}
+              onRevisada={() => {
+                avisarContador();
+                cargar();
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 const PESTANAS = [
   { id: "denuncias", etiqueta: "Denuncias" },
   { id: "disputas", etiqueta: "Disputas" },
+  { id: "grupos", etiqueta: "Grupos" },
   { id: "usuarios", etiqueta: "Usuarios" },
   { id: "bitacora", etiqueta: "Bitácora" },
 ];
@@ -667,7 +841,7 @@ export default function ModerationPage() {
         <div>
           <h2>Moderación</h2>
           <div className="sub">
-            Eres {ETIQUETA_ROL[user.rol].toLowerCase()}. Revisa denuncias y disputas de órdenes, oculta contenido y aplica sanciones. Todo queda en la
+            Eres {ETIQUETA_ROL[user.rol].toLowerCase()}. Revisa denuncias, disputas de órdenes y solicitudes de grupos nuevos, oculta contenido y aplica sanciones. Todo queda en la
             bitácora.
           </div>
         </div>
@@ -689,6 +863,7 @@ export default function ModerationPage() {
 
       {pestana === "denuncias" && <ColaDenuncias user={user} />}
       {pestana === "disputas" && <Disputas user={user} />}
+      {pestana === "grupos" && <SolicitudesGrupos />}
       {pestana === "usuarios" && <Usuarios user={user} />}
       {pestana === "bitacora" && <Bitacora user={user} />}
     </main>

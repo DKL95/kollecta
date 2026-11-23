@@ -7,7 +7,7 @@ import Icon from "../components/Icon";
 import Photo from "../components/Photo";
 import PostCard from "../components/PostCard";
 import ProductCard from "../components/ProductCard";
-import { GROUPS } from "../data/catalogo";
+import useGrupos from "../hooks/useGrupos";
 import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
 
@@ -15,26 +15,29 @@ const TABS = ["Merch disponible", "Publicaciones de la comunidad"];
 
 export default function GroupDetailPage() {
   const { groupName } = useParams();
-  const group = GROUPS.find((item) => item.name === groupName);
+  const { grupos, cargando } = useGrupos();
+  const group = grupos.find((item) => item.name === groupName);
   const { isFollowing, toggleFollow } = useFollowedGroups();
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [posts, setPosts] = useState([]);
   const [products, setProducts] = useState([]);
 
+  const nombre = group?.name;
+
   useEffect(() => {
-    if (!group) return;
-    apiRequest(`/publicaciones?grupo=${encodeURIComponent(group.name)}`)
+    if (!nombre) return;
+    apiRequest(`/publicaciones?grupo=${encodeURIComponent(nombre)}`)
       .then((data) => setPosts(data.publicaciones))
       .catch(() => setPosts([]));
-    apiRequest(`/productos?grupo=${encodeURIComponent(group.name)}`)
+    apiRequest(`/productos?grupo=${encodeURIComponent(nombre)}`)
       .then((data) => setProducts(data.productos.map(adaptarProducto)))
       .catch(() => setProducts([]));
-  }, [group]);
+  }, [nombre]);
 
   if (!group) {
     return (
       <main className="page">
-        <EmptyState icon="star">No encontramos el grupo "{groupName}".</EmptyState>
+        <EmptyState icon="star">{cargando ? "Cargando grupo…" : <>No encontramos el grupo "{groupName}".</>}</EmptyState>
       </main>
     );
   }
@@ -56,7 +59,7 @@ export default function GroupDetailPage() {
       </Link>
 
       <div className="profile-cover" style={{ background: group.color, position: "relative" }}>
-        <Photo src={group.img.replace("/groups/", "/covers/")} alt={group.name} className="cover-photo" cover />
+        <Photo src={group.cover} alt={group.name} className="cover-photo" cover />
         <Avatar initials={group.initials} src={group.img} alt={group.name} background="rgba(255,255,255,0.25)" className="cover-avatar" />
       </div>
 
@@ -64,8 +67,9 @@ export default function GroupDetailPage() {
         <div>
           <h2>{group.name}</h2>
           <div className="handle">
-            {group.agency} · Fandom: {group.fandom}
+            {[group.agency, group.fandom && `Fandom: ${group.fandom}`].filter(Boolean).join(" · ")}
           </div>
+          {group.description && <p className="group-description">{group.description}</p>}
         </div>
         <button className={following ? "btn btn-secondary" : "btn btn-primary"} onClick={() => toggleFollow(group.name)}>
           <Icon name={following ? "checkCircle" : "plus"} size={16} /> {following ? "Siguiendo" : "Seguir grupo"}
@@ -73,8 +77,8 @@ export default function GroupDetailPage() {
       </div>
 
       <div className="profile-stats">
-        <div className="stat"><b>{group.members}</b><span>Integrantes</span></div>
-        <div className="stat"><b>{group.debut}</b><span>Año de debut</span></div>
+        <div className="stat"><b>{group.members ?? "—"}</b><span>Integrantes</span></div>
+        <div className="stat"><b>{group.debut ?? "—"}</b><span>Año de debut</span></div>
         <div className="stat"><b>{posts.length}</b><span>Publicaciones en KollectA</span></div>
         <div className="stat"><b>{products.length}</b><span>Artículos en marketplace</span></div>
       </div>

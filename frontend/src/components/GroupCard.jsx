@@ -10,7 +10,7 @@ export default function GroupCard({ group, following, onToggleFollow }) {
         <h4>{group.name}</h4>
       </Link>
       <div className="meta">
-        {group.fandom} · debut {group.debut}
+        {[group.fandom, group.debut && `debut ${group.debut}`].filter(Boolean).join(" · ") || "Nuevo en KollectA"}
       </div>
       <button className={`btn ${following ? "btn-secondary" : "btn-primary"} btn-sm follow-btn`} onClick={onToggleFollow}>
         <Icon name={following ? "checkCircle" : "plus"} size={14} /> {following ? "Siguiendo" : "Seguir"}
