@@ -42,7 +42,8 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 | Colección, mensajes (directos y grupales), notificaciones | Conectado a la base de datos |
 | Marketplace y compra-venta / intercambio (fase 1: el pago se acuerda entre las personas) | Conectado a la base de datos (colecciones `productos` y `ordenes`, aparte de la colección personal) |
 | Roles usuario / moderador / administrador, denuncias, disputas, moderación y reportes | Conectado a la base de datos (`middleware/roles.js`, `/api/admin`, `/api/moderacion`, `/api/reportes`) |
-| Catálogo de grupos K-pop y solicitudes de grupos nuevos | Conectado: 13 grupos fijos (`data/gruposBase.js`) + los que pide la comunidad (colección `grupos`). Un usuario solicita un grupo y queda pendiente; un moderador o administrador lo aprueba o rechaza (con motivo) en Moderación → Grupos. Moderadores y administradores lo agregan directo, sin revisión |
+| Catálogo de grupos K-pop y solicitudes de grupos nuevos | Conectado (colección `grupos`): los 13 grupos fijos de `data/gruposBase.js` se guardan en la base la primera vez que se piden, más los que pide la comunidad. Un usuario solicita un grupo y queda pendiente; un moderador o administrador lo aprueba o rechaza (con motivo) en Moderación → Grupos, lo agrega directo y **edita cualquier grupo** (datos, logo y portada; al renombrarlo se actualizan publicaciones, merch, colecciones y seguidores) |
+| Banner del perfil | Conectado (`usuarios.banner`): color, textura, logo de un grupo o imagen propia (también GIF/WebP animado), con vista previa; opción "animar" (el degradado, la textura y el logo se mueven; se respeta "reducir movimiento" del sistema) |
 
 ## Estructura de carpetas
 
@@ -50,7 +51,7 @@ KollectA combina dos cosas que la comunidad K-pop ya hace todo el tiempo por sep
 WEB2/
 ├── server.js                 Punto de entrada: conecta a MongoDB, Socket.IO (chat en tiempo real) y abre el puerto
 ├── app.js                    Configuración de Express (rutas de la API, errores, frontend compilado); las pruebas la usan sin abrir puerto
-├── data/gruposBase.js        Los 13 grupos fijos de la app (GET /api/grupos les suma los aprobados)
+├── data/gruposBase.js        Los 13 grupos fijos de la app (se guardan en la colección grupos para poder editarlos)
 ├── config/
 │   ├── db.js                 Conexión a MongoDB con Mongoose
 │   └── logger.js             Bitácora con winston (logs/app.log y logs/error.log)
@@ -117,10 +118,10 @@ WEB2/
 | Vender / Intercambiar | `/vender` | Publicar un producto en el marketplace; "Añadir artículo de la colección" copia los datos y fotos de una pieza (la colección no cambia) |
 | Agregar a mi colección | `/coleccion/agregar` | Guardar una pieza en la colección; queda fuera de la venta |
 | Mi colección | `/coleccion` | Vitrina personal de merch coleccionado |
-| Mi perfil | `/perfil` | Perfil propio: datos, editar perfil, publicaciones, grupos que sigue |
+| Mi perfil | `/perfil` | Perfil propio: datos, editar perfil, personalizar banner, publicaciones, grupos que sigue (con logo) |
 | Perfil de otro usuario | `/perfil/:username` | Perfil público de cualquier usuario |
 | Grupos | `/grupos` | Explorar y seguir grupos de K-pop; solicitar uno nuevo y ver mis solicitudes (`?vista=solicitudes`) |
-| Detalle de grupo | `/grupos/:groupName` | Info del grupo, merch disponible y publicaciones de la comunidad |
+| Detalle de grupo | `/grupos/:groupName` | Info del grupo, merch disponible y publicaciones de la comunidad; moderación: editar grupo |
 | Detalle de publicación | `/publicaciones/:id` | Una publicación con sus comentarios y respuestas (se abre desde el feed o una notificación) |
 | Reportes | `/reportes` | 12 reportes estadísticos; cada rol ve los que le corresponden |
 | Moderación | `/moderacion` | Solo moderadores y administradores: denuncias, disputas, solicitudes de grupos, sanciones, usuarios y bitácora |
@@ -142,7 +143,7 @@ Todos bajo `/api`, en JSON. **Todos exigen token** (`Authorization: Bearer <toke
 | Órdenes | `/ordenes` | crear, ver, cambiar estado, retirar, calificar, disputas |
 | Mensajes | `/mensajes` | conversaciones directas y grupales; enviar, **editar y borrar** mensajes propios |
 | Notificaciones | `/notificaciones` | listar, marcar leídas, **borrar** |
-| Grupos | `/grupos` | catálogo; solicitar, ver y cancelar mis solicitudes; aprobar o rechazar (moderador+) |
+| Grupos | `/grupos` | catálogo; solicitar, ver y cancelar mis solicitudes; aprobar, rechazar y editar (moderador+) |
 | Denuncias y moderación | `/denuncias`, `/moderacion`, `/admin` | denunciar, atender, sancionar, bitácora, roles y baneos |
 | Reportes | `/reportes` | 12 reportes que cruzan varias colecciones |
 | Archivos | `/imagenes`, `/videos` | imágenes guardadas en MongoDB; videos en GridFS con URL temporal |

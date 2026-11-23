@@ -322,10 +322,10 @@ const DESCRIPCION_PANTALLA = {
     "/vender": "Formulario para publicar un producto (o copiar una pieza de la colección).",
     "/coleccion/agregar": "Agregar una pieza a la colección sin ponerla a la venta.",
     "/coleccion": "Vitrina personal de merch.",
-    "/perfil": "Perfil propio: datos, edición, publicaciones, colección y reseñas.",
+    "/perfil": "Perfil propio: datos, edición, banner personalizable, publicaciones, colección, reseñas y grupos que sigue con sus logos.",
     "/perfil/:username": "Perfil público de otra persona, con su reputación como vendedor.",
     "/grupos": "Catálogo de grupos de K-pop para seguir; solicitar un grupo nuevo (moderador+: agregarlo directo) y ver mis solicitudes.",
-    "/grupos/:groupName": "Información del grupo, su merch y las publicaciones de la comunidad.",
+    "/grupos/:groupName": "Información del grupo, su merch y las publicaciones de la comunidad; moderador+ lo edita (datos, logo y portada).",
     "/reportes": "Reportes con consultas entre colecciones; cambian según el rol.",
     "/moderacion": "Denuncias, disputas, solicitudes de grupos, usuarios y bitácora (moderador y administrador).",
     "*": "Página no encontrada."
@@ -413,7 +413,7 @@ ${indices ? `<p class="indices"><strong>Índices adicionales:</strong></p><ul cl
 }
 
 const MATRIZ_CRUD = [
-    ["usuarios", "POST /auth/register", "GET /usuarios, /usuarios/:username", "PUT /usuarios/me; PATCH /admin/usuarios/:id/rol", "Baja lógica: PATCH /admin/usuarios/:id/estado (activo: false)"],
+    ["usuarios", "POST /auth/register", "GET /usuarios, /usuarios/:username", "PUT /usuarios/me, /usuarios/me/banner; PATCH /admin/usuarios/:id/rol", "Baja lógica: PATCH /admin/usuarios/:id/estado (activo: false)"],
     ["publicaciones", "POST /publicaciones", "GET /publicaciones, /:id", "PUT /publicaciones/:id", "DELETE /publicaciones/:id"],
     ["comentarios", "POST …/comentarios", "GET …/comentarios", "PUT …/comentarios/:id", "DELETE …/comentarios/:id"],
     ["respuestas", "POST …/respuestas", "GET …/comentarios (anidadas)", "PUT …/respuestas/:id", "DELETE …/respuestas/:id"],
@@ -427,7 +427,7 @@ const MATRIZ_CRUD = [
     ["ordenes", "POST /ordenes", "GET /ordenes, /:id", "PATCH /ordenes/:id/estado, …/disputa", "DELETE /ordenes/:id (retirar solicitud)"],
     ["denuncias", "POST /denuncias", "GET /denuncias, /mias", "PATCH /denuncias/:id", "Se conservan como historial"],
     ["moderaciones", "La crea cada acción de moderación", "GET /moderacion/bitacora", "— (bitácora inmutable)", "— (bitácora inmutable)"],
-    ["grupos", "POST /grupos", "GET /grupos, /grupos/solicitudes, …/mias", "PATCH /grupos/solicitudes/:id (aprobar o rechazar)", "DELETE /grupos/solicitudes/:id (cancelar pendiente)"]
+    ["grupos", "POST /grupos", "GET /grupos, /grupos/solicitudes, …/mias", "PUT /grupos/:id; PATCH /grupos/solicitudes/:id (aprobar o rechazar)", "DELETE /grupos/solicitudes/:id (cancelar pendiente)"]
 ];
 
 function construirHtml() {

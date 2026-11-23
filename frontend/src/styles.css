@@ -5005,3 +5005,153 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
   .groups-toolbar .tabs { border-bottom: 1px solid var(--border); }
   .groups-toolbar > .btn { margin-bottom: 0; }
 }
+
+/* ==========================================================================
+   Banner del perfil personalizable, edición de grupos y grupos que sigue
+   ========================================================================== */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.banner-capas { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+.banner-textura,
+.banner-logos { position: absolute; inset: 0; }
+.banner-logos {
+  background-size: 72px 72px;
+  background-repeat: repeat;
+  opacity: 0.12;
+  mix-blend-mode: luminosity;
+}
+.banner-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.banner-logo .banner-logo-avatar {
+  width: 110px;
+  height: 110px;
+  font-size: 28px;
+  border: 4px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+}
+.banner-logo-name {
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.banner-edit-btn { position: absolute; top: 14px; right: 14px; z-index: 1; backdrop-filter: blur(6px); }
+
+.banner-dialog { max-width: 560px; }
+.profile-cover.banner-preview { position: sticky; top: -18px; z-index: 2; height: 130px; margin-bottom: 0; flex-shrink: 0; box-shadow: 0 10px 18px -12px rgba(0, 0, 0, 0.6); }
+.banner-preview .banner-logo .banner-logo-avatar { width: 64px; height: 64px; font-size: 17px; border-width: 3px; }
+.banner-preview .banner-logo-name { font-size: 11px; }
+.banner-section { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.banner-section legend { margin-bottom: 8px; padding: 0; color: var(--text-dim); font-size: 12.5px; font-weight: 700; }
+.banner-section:disabled { opacity: 0.45; }
+.banner-image-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.banner-image-row label.btn { cursor: pointer; }
+.banner-image-row input:focus-visible + .btn,
+.banner-image-row label.btn:focus-within { outline: 2px solid var(--purple); }
+.banner-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.banner-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  cursor: pointer;
+}
+.banner-swatch.active { border-color: var(--text); box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.45); }
+.banner-textures { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.banner-texture {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.banner-texture.active { border-color: var(--pink); color: var(--text); }
+.banner-texture-sample { position: relative; display: block; height: 36px; border-radius: 6px; overflow: hidden; }
+.banner-texture-sample > span { position: absolute; inset: 0; }
+
+.group-head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.group-photo-row { display: flex; gap: 14px; align-items: flex-start; }
+.group-photo-row .avatar { flex-shrink: 0; }
+.group-photo-row .field { flex: 1; min-width: 0; }
+.group-photo-remove { align-self: flex-start; }
+.group-cover-preview { position: relative; height: 90px; border-radius: var(--radius-sm); overflow: hidden; }
+
+.followed-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.followed-groups .empty-state { grid-column: 1 / -1; }
+.followed-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 12px;
+  text-align: center;
+  color: var(--text);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.followed-group:hover { transform: translateY(-3px); border-color: var(--border-strong); }
+.followed-group .avatar { margin-bottom: 6px; }
+.followed-group-name { font-size: 14px; font-weight: 800; }
+.followed-group-meta { font-size: 12px; color: var(--text-faint); }
+
+@media (max-width: 560px) {
+  .banner-logo .banner-logo-avatar { width: 68px; height: 68px; font-size: 18px; border-width: 3px; }
+  .banner-logo-name { display: none; }
+  .banner-edit-btn { top: 8px; right: 8px; }
+  .followed-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Banner animado: el degradado va y viene, la textura y los logos se deslizan (un mosaico
+   por vuelta, sin cortes) y el logo flota. Una imagen GIF/WebP animada se mueve sola. */
+@keyframes banner-degradado {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@keyframes banner-deslizar {
+  from { background-position: 0 0; }
+  to { background-position: var(--banner-mover, 0 0); }
+}
+@keyframes banner-flotar {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
+}
+.banner-capas.animado { background-size: 220% 220%; animation: banner-degradado 12s ease-in-out infinite alternate; }
+.banner-capas.animado .banner-textura { animation: banner-deslizar 5s linear infinite; }
+.banner-capas.animado .banner-logos { --banner-mover: 72px -72px; animation: banner-deslizar 9s linear infinite; }
+.banner-capas.animado .banner-logo { animation: banner-flotar 3.6s ease-in-out infinite; }
+.banner-texture-sample.animado > span { animation: banner-deslizar 5s linear infinite; }
+.banner-toggle { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 700; color: var(--text); cursor: pointer; }
+.banner-toggle input { width: 18px; height: 18px; accent-color: var(--pink); }
+@media (prefers-reduced-motion: reduce) {
+  .banner-capas.animado,
+  .banner-capas.animado .banner-textura,
+  .banner-capas.animado .banner-logos,
+  .banner-capas.animado .banner-logo,
+  .banner-texture-sample.animado > span { animation: none; }
+}

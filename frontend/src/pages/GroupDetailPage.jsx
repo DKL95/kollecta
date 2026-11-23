@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import Avatar from "../components/Avatar";
+import GroupRequestDialog from "../components/GroupRequestDialog";
 import EmptyState from "../components/EmptyState";
 import Icon from "../components/Icon";
 import Photo from "../components/Photo";
@@ -10,6 +11,8 @@ import ProductCard from "../components/ProductCard";
 import useGrupos from "../hooks/useGrupos";
 import { adaptarProducto } from "../utils/coleccion";
 import useFollowedGroups from "../hooks/useFollowedGroups";
+import { useAuth } from "../context/AuthContext";
+import { esModerador } from "../utils/roles";
 
 const TABS = ["Merch disponible", "Publicaciones de la comunidad"];
 
@@ -21,6 +24,9 @@ export default function GroupDetailPage() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [posts, setPosts] = useState([]);
   const [products, setProducts] = useState([]);
+  const [editando, setEditando] = useState(false);
+  const { user, saveUser } = useAuth();
+  const navigate = useNavigate();
 
   const nombre = group?.name;
 
@@ -52,6 +58,18 @@ export default function GroupDetailPage() {
     setPosts((current) => current.filter((post) => post.id !== postId));
   }
 
+  // Si se renombró, la URL y los grupos que sigue la sesión cambian de nombre.
+  async function alGuardar(actualizado) {
+    if (actualizado.nombre === group.name) return;
+    navigate(`/grupos/${encodeURIComponent(actualizado.nombre)}`, { replace: true });
+    try {
+      const data = await apiRequest("/auth/me");
+      saveUser(data.usuario);
+    } catch {
+      // se actualizará al volver a entrar
+    }
+  }
+
   return (
     <main className="page">
       <Link to="/grupos" className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }}>
@@ -71,10 +89,19 @@ export default function GroupDetailPage() {
           </div>
           {group.description && <p className="group-description">{group.description}</p>}
         </div>
-        <button className={following ? "btn btn-secondary" : "btn btn-primary"} onClick={() => toggleFollow(group.name)}>
-          <Icon name={following ? "checkCircle" : "plus"} size={16} /> {following ? "Siguiendo" : "Seguir grupo"}
-        </button>
+        <div className="group-head-actions">
+          {esModerador(user) && (
+            <button type="button" className="btn btn-ghost" onClick={() => setEditando(true)}>
+              <Icon name="pencil" size={16} /> Editar grupo
+            </button>
+          )}
+          <button className={following ? "btn btn-secondary" : "btn btn-primary"} onClick={() => toggleFollow(group.name)}>
+            <Icon name={following ? "checkCircle" : "plus"} size={16} /> {following ? "Siguiendo" : "Seguir grupo"}
+          </button>
+        </div>
       </div>
+
+      {editando && <GroupRequestDialog grupo={group} onClose={() => setEditando(false)} onSaved={alGuardar} />}
 
       <div className="profile-stats">
         <div className="stat"><b>{group.members ?? "—"}</b><span>Integrantes</span></div>

@@ -41,6 +41,8 @@ module.exports = [
                 "multipart: nombre?, descripcion?, gruposFavoritos?, fotoPerfil?", "{ mensaje, usuario }"),
             E("GET", "/me/amigos", "token", "Lista de amigos de la sesión.", "—", "{ amigos }"),
             E("GET", "/:username", "token", "Perfil público de un usuario.", "—", "{ usuario }"),
+            E("PUT", "/me/banner", "token", "Personaliza el banner del perfil: color, textura, logo de un grupo, animación o imagen propia (también animada).",
+                "multipart: color?, textura?, logo?, animado?, quitarImagen?, portada? (imagen; GIF/WebP animado se permite)", "{ mensaje, usuario }"),
             E("GET", "/:username/publicaciones", "token", "Publicaciones de un usuario.", "—", "{ publicaciones }"),
             E("GET", "/:username/amistad", "token", "Estado de amistad con ese usuario (ninguna, enviada, recibida, amigos).", "—", "{ estado: self|none|friends|…, solicitudId? }"),
             E("POST", "/:username/solicitud", "token", "Envía una solicitud de amistad.", "—", "201 { mensaje, solicitud }"),
@@ -211,13 +213,16 @@ module.exports = [
         endpoints: [
             E("GET", "/", "publico", "Catálogo de grupos: los fijos de la app más los aprobados.", "—", "{ grupos }"),
             E("POST", "/", "token", "Solicita un grupo nuevo (queda pendiente). Moderador+ lo crea ya aprobado.",
-                "multipart: nombre, fandom?, agencia?, integrantes?, debut?, descripcion?, imagenes? (1 foto)",
+                "multipart: nombre, fandom?, agencia?, integrantes?, debut?, descripcion?, imagenes? (logo), portada?",
                 "201 { mensaje, grupo }"),
             E("GET", "/solicitudes/mias", "token", "Mis solicitudes de grupo y su estado.", "—", "{ solicitudes }"),
             E("DELETE", "/solicitudes/:id", "token", "Cancela una solicitud propia que sigue pendiente.", "—", "{ mensaje }"),
             E("GET", "/solicitudes", "moderador", "Cola de solicitudes de grupo.", "query: estado=pendiente|aprobado|rechazado|todas", "{ solicitudes }"),
             E("PATCH", "/solicitudes/:id", "moderador", "Aprueba o rechaza una solicitud y avisa a quien la envió.",
-                "{ decision: aprobar|rechazar, motivo? (obligatorio al rechazar) }", "{ mensaje, grupo }")
+                "{ decision: aprobar|rechazar, motivo? (obligatorio al rechazar) }", "{ mensaje, grupo }"),
+            E("PUT", "/:id", "moderador", "Edita un grupo (también los fijos): datos, logo y portada. Al renombrarlo actualiza publicaciones, productos, colecciones y seguidores.",
+                "multipart: nombre?, fandom?, agencia?, integrantes?, debut?, descripcion?, imagenes? (logo), portada?, quitarImagen?, quitarPortada?",
+                "{ mensaje, grupo }")
         ]
     },
     {

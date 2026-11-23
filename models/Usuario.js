@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
 
+// Opciones del banner del perfil (deben coincidir con frontend/src/utils/banner.js).
+const BANNER_COLORES = ["kollecta", "atardecer", "oceano", "menta", "noche", "dorado", "cereza"];
+const BANNER_TEXTURAS = ["ninguna", "puntos", "rayas", "cuadricula", "corazones", "estrellas", "ondas"];
+
 const usuarioSchema = new mongoose.Schema(
     {
         nombre: {
@@ -44,6 +48,23 @@ const usuarioSchema = new mongoose.Schema(
         gruposFavoritos: {
             type: [String],
             default: []
+        },
+
+        // Banner del perfil: degradado + textura opcional + logo de un grupo, o una imagen propia
+        // (si hay imagen, se ve la imagen; puede ser un GIF o WebP animado). animado = el degradado,
+        // la textura y el logo se mueven. Los valores se dibujan en frontend/src/utils/banner.js.
+        banner: {
+            type: new mongoose.Schema(
+                {
+                    color: { type: String, enum: BANNER_COLORES, default: "kollecta" },
+                    textura: { type: String, enum: BANNER_TEXTURAS, default: "ninguna" },
+                    logo: { type: String, default: "", maxlength: 40 },
+                    imagen: { type: String, default: "" },
+                    animado: { type: Boolean, default: false }
+                },
+                { _id: false }
+            ),
+            default: () => ({})
         },
 
         fechaRegistro: {
@@ -94,8 +115,11 @@ usuarioSchema.methods.aPublico = function () {
         fotoPerfil: this.fotoPerfil,
         descripcion: this.descripcion,
         gruposFavoritos: this.gruposFavoritos,
+        banner: this.banner || {},
         fechaRegistro: this.fechaRegistro
     };
 };
 
 module.exports = mongoose.model("Usuario", usuarioSchema);
+module.exports.BANNER_COLORES = BANNER_COLORES;
+module.exports.BANNER_TEXTURAS = BANNER_TEXTURAS;

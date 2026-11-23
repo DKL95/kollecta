@@ -5,6 +5,7 @@ import { formatMoney, getInitials, timeAgo } from "../frontend/src/utils/format.
 import { categoryClass, categoryIcon, CATEGORY_ICON } from "../frontend/src/utils/categories.js";
 import { CATEGORIES } from "../frontend/src/data/catalogo.js";
 import { adaptarGrupo } from "../frontend/src/utils/grupos.js";
+import { COLORES_BANNER, TEXTURAS_BANNER, normalizarBanner } from "../frontend/src/utils/banner.js";
 import { adaptarProducto, modalidad } from "../frontend/src/utils/coleccion.js";
 import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 
@@ -62,6 +63,29 @@ describe("Frontend: catálogo consistente", () => {
             assert.ok(item.img.startsWith("/assets/img/groups/"), item.img);
             assert.ok(item.cover.startsWith("/assets/img/covers/"), item.cover);
         }
+    });
+
+    it("los colores y texturas del banner son los mismos que acepta el backend", async () => {
+        const { createRequire } = await import("node:module");
+        const require = createRequire(import.meta.url);
+        const Usuario = require("../models/Usuario.js");
+        assert.deepEqual(Object.keys(COLORES_BANNER).sort(), [...Usuario.BANNER_COLORES].sort());
+        assert.deepEqual(Object.keys(TEXTURAS_BANNER).sort(), [...Usuario.BANNER_TEXTURAS].sort());
+    });
+
+    it("cada textura se desliza un mosaico completo por vuelta (la animación no da saltos)", () => {
+        for (const [id, t] of Object.entries(TEXTURAS_BANNER)) {
+            if (t.imagen === "none") continue;
+            const [ancho, alto] = t.tamano.split(" ").map((v) => Math.abs(parseFloat(v)));
+            const [x, y] = t.mover.split(" ").map((v) => Math.abs(parseFloat(v)));
+            assert.ok((x === 0 || x === ancho) && (y === 0 || y === alto) && x + y > 0, id);
+        }
+    });
+
+    it("un banner vacío o con valores viejos usa el diseño por defecto", () => {
+        assert.deepEqual(normalizarBanner(undefined), { color: "kollecta", textura: "ninguna", logo: "", imagen: "", animado: false });
+        assert.equal(normalizarBanner({ color: "arcoiris", textura: "puntos" }).color, "kollecta");
+        assert.equal(normalizarBanner({ color: "arcoiris", textura: "puntos" }).textura, "puntos");
     });
 
     it("adapta un grupo aprobado de la API al formato de las tarjetas", () => {

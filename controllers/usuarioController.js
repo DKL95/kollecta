@@ -13,6 +13,9 @@ const {
     eliminarImagen
 } = require("../middleware/upload");
 const SolicitudAmistad = require("../models/SolicitudAmistad");
+const Grupo = require("../models/Grupo");
+const { asegurarGruposBase } = require("./grupoController");
+const fs = require("fs");
 const { crearNotificacion } = require("./notificacionController");
 const logger = require("../config/logger");
 
@@ -846,7 +849,69 @@ async function listarMisAmigos(req, res) {
     }
 }
 
+// PUT /api/usuarios/me/banner   multipart: color?, textura?, logo?, animado?, quitarImagen?, portada? (1 imagen, puede ser GIF/WebP animado)
+// El banner es un degradado con textura y logo opcionales, o una imagen propia.
+async function actualizarBanner(req, res) {
+    const foto = req.files?.portada?.[0];
+
+    try {
+        const usuario = await Usuario.findById(req.usuario.id);
+        if (!usuario) {
+            return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
+        }
+
+        const { color, textura, logo, animado, quitarImagen } = req.body || {};
+        const banner = {
+            color: usuario.banner?.color || "kollecta",
+            textura: usuario.banner?.textura || "ninguna",
+            logo: usuario.banner?.logo || "",
+            imagen: usuario.banner?.imagen || "",
+            animado: Boolean(usuario.banner?.animado)
+        };
+
+        if (color !== undefined) {
+            if (!Usuario.BANNER_COLORES.includes(color)) return res.status(400).json({ mensaje: "Ese color no está disponible" });
+            banner.color = color;
+        }
+        if (textura !== undefined) {
+            if (!Usuario.BANNER_TEXTURAS.includes(textura)) return res.status(400).json({ mensaje: "Esa textura no está disponible" });
+            banner.textura = textura;
+        }
+        if (logo !== undefined) {
+            const nombre = String(logo).trim();
+            if (nombre) await asegurarGruposBase();
+            if (nombre && !(await Grupo.exists({ nombre, estado: "aprobado" }))) {
+                return res.status(400).json({ mensaje: "Ese grupo no está en el catálogo" });
+            }
+            banner.logo = nombre;
+        }
+
+        if (animado !== undefined) {
+            if (!["true", "false", true, false].includes(animado)) return res.status(400).json({ mensaje: "animado debe ser true o false" });
+            banner.animado = animado === "true" || animado === true;
+        }
+
+        const imagenAnterior = banner.imagen;
+        if (foto) {
+            banner.imagen = await guardarImagen(foto, usuario._id);
+        } else if (quitarImagen === "true" || quitarImagen === true) {
+            banner.imagen = "";
+        }
+
+        usuario.banner = banner;
+        await usuario.save();
+        if (imagenAnterior && imagenAnterior !== banner.imagen) await eliminarImagen(imagenAnterior).catch(() => {});
+
+        return res.json({ mensaje: "Banner actualizado", usuario: usuario.aPublico() });
+    } catch (error) {
+        if (foto?.path) await fs.promises.unlink(foto.path).catch(() => {});
+        logger.error("Error al actualizar el banner:", error);
+        return res.status(500).json({ mensaje: "Error al actualizar el banner" });
+    }
+}
+
 module.exports = {
+    actualizarBanner,
     listarMisAmigos,
     buscarUsuarios,
     obtenerPerfil,

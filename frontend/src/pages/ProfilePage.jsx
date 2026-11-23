@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
-import { UserAvatar } from "../components/Avatar";
+import Avatar, { UserAvatar } from "../components/Avatar";
+import BannerDialog from "../components/BannerDialog";
+import ProfileBanner from "../components/ProfileBanner";
+import useGrupos from "../hooks/useGrupos";
 import CollectionItem from "../components/CollectionItem";
 import EmptyState from "../components/EmptyState";
 import SellerReviews from "../components/SellerReviews";
@@ -38,6 +41,8 @@ export default function ProfilePage() {
   const [friendError, setFriendError] = useState("");
   const [denunciando, setDenunciando] = useState(false);
   const [sancion, setSancion] = useState(null); // "suspender" | "banear"
+  const [editandoBanner, setEditandoBanner] = useState(false);
+  const { grupos } = useGrupos();
   // Reputación como vendedor (null = cargando)
   const [reputacion, setReputacion] = useState(null);
 
@@ -293,12 +298,25 @@ export default function ProfilePage() {
 
   return (
     <main className="page">
-      <div
-        className="profile-cover"
-        style={{ background: "var(--gradient-brand)" }}
-      >
+      <ProfileBanner banner={shown.banner}>
         <UserAvatar user={shown} className="cover-avatar" />
-      </div>
+        {isOwnProfile && (
+          <button type="button" className="btn btn-secondary btn-sm banner-edit-btn" onClick={() => setEditandoBanner(true)}>
+            <Icon name="pencil" size={14} /> Personalizar banner
+          </button>
+        )}
+      </ProfileBanner>
+
+      {editandoBanner && (
+        <BannerDialog
+          user={shown}
+          onClose={() => setEditandoBanner(false)}
+          onSaved={(usuario) => {
+            saveUser(usuario);
+            setEditandoBanner(false);
+          }}
+        />
+      )}
 
       <div className="profile-head">
         <div>
@@ -620,22 +638,30 @@ export default function ProfilePage() {
       )}
 
       {activeTab === "Grupos que sigo" && (
-        <div className="badges-row">
+        <div className="followed-groups">
           {favoriteGroups.length === 0 && (
             <EmptyState icon="star">
               Todavía no sigue a ningún grupo.
             </EmptyState>
           )}
 
-          {favoriteGroups.map((groupName) => (
-            <Link
-              key={groupName}
-              to={`/grupos/${encodeURIComponent(groupName)}`}
-              className="pill pink"
-            >
-              {groupName}
-            </Link>
-          ))}
+          {favoriteGroups.map((groupName) => {
+            const grupo = grupos.find((g) => g.name === groupName);
+            return (
+              <Link key={groupName} to={`/grupos/${encodeURIComponent(groupName)}`} className="card followed-group">
+                <Avatar
+                  initials={grupo?.initials || groupName.slice(0, 3).toUpperCase()}
+                  src={grupo?.img}
+                  alt={groupName}
+                  background={grupo?.color || "var(--gradient-brand)"}
+                  size={64}
+                  fontSize={16}
+                />
+                <span className="followed-group-name">{groupName}</span>
+                {grupo?.fandom && <span className="followed-group-meta">{grupo.fandom}</span>}
+              </Link>
+            );
+          })}
         </div>
       )}
     </main>
