@@ -167,59 +167,61 @@ export default function MessagesPage() {
   const conversacionPedida = useRef(searchParams.get("c"));
   const usuarioPedido = useRef(searchParams.get("u"));
 
-  const cargarConversaciones = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  
+  const cargarConversaciones = useCallback(async ({ silencioso = false } = {}) => {
+    // Solo mostrar la pantalla de carga cuando realmente sea necesario.
+    if (!silencioso) {
+      setLoading(true);
+      setError("");
+    }
 
     try {
       const data = await apiRequest("/mensajes/conversaciones");
       const conversaciones = Array.isArray(data) ? data : [];
 
+      // Actualizar los datos sin desmontar la lista.
       setThreads(conversaciones);
 
-      setActiveId((actual) => {
-        const pedida = conversacionPedida.current;
-        if (pedida && conversaciones.some((thread) => thread._id === pedida)) {
-          conversacionPedida.current = null;
-          setMobileView("chat");
-          return pedida;
-        }
+      // Mantener el comportamiento de enlaces directos.
+      const pedida = conversacionPedida.current;
 
-        if (
-          actual &&
-          conversaciones.some((thread) => thread._id === actual)
-        ) {
-          return actual;
-        }
+      if (pedida && conversaciones.some((thread) => thread._id === pedida)) {
+        conversacionPedida.current = null;
+        setMobileView("chat");
+        setActiveId(pedida);
+      }
 
-        return conversaciones.length > 0
-          ? conversaciones[0]._id
-          : null;
-      });
     } catch (err) {
-      setError(
-        err.message || "No se pudieron cargar las conversaciones"
-      );
+      if (!silencioso) {
+        setError(err.message || "No se pudieron cargar las conversaciones");
+      }
     } finally {
-      setLoading(false);
+      if (!silencioso) {
+        setLoading(false);
+      }
     }
   }, []);
+
 
   useEffect(() => {
     cargarConversaciones();
   }, [cargarConversaciones]);
 
-  // Recargar la lista cuando nos agregan a un grupo, lo renombran o nos sacan.
+  // Recargar la lista cuando nos agregan a un grupo,
+  // lo renombran o nos sacan.
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
-    socket.on("conversaciones:actualizar", cargarConversaciones);
-    // Llegó un mensaje a cualquier chat o leí alguno: se actualizan los pendientes de la lista.
-    socket.on("mensajes:contador-actualizar", cargarConversaciones);
+    function actualizarListaSilenciosamente() {
+      cargarConversaciones({ silencioso: true });
+    }
+
+    socket.on("conversaciones:actualizar", actualizarListaSilenciosamente);
+    socket.on("mensajes:contador-actualizar", actualizarListaSilenciosamente);
 
     return () => {
-      socket.off("conversaciones:actualizar", cargarConversaciones);
-      socket.off("mensajes:contador-actualizar", cargarConversaciones);
+      socket.off("conversaciones:actualizar", actualizarListaSilenciosamente);
+      socket.off("mensajes:contador-actualizar", actualizarListaSilenciosamente);
     };
   }, [cargarConversaciones]);
 
@@ -424,7 +426,7 @@ export default function MessagesPage() {
         return [...anteriores, mensaje];
     });
 
-    cargarConversaciones();
+    cargarConversaciones({ silencioso: true });
 }
 
   // Escuchar los mensajes nuevos en tiempo real.
@@ -853,6 +855,11 @@ export default function MessagesPage() {
                 type="button"
                 className="chat-mobile-back"
                 onClick={() => {
+                  // Al volver a la lista, cerrar realmente el chat.
+                  // Si activeId permanece, el efecto sigue cargando el historial
+                  // y puede marcar mensajes como leídos aunque no se vea el chat.
+                  setActiveId(null);
+                  setMessages([]);
                   setMobileView("list");
                   setChatMenuOpen(false);
                 }}
