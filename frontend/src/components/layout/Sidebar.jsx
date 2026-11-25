@@ -1,68 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { apiRequest } from "../../api/client";
 import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
 import { NAV_SECTIONS } from "./navItems";
-import { socket } from "../../api/socket";
 import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 import useDenunciasPendientes from "../../hooks/useDenunciasPendientes";
 import RoleBadge from "../RoleBadge";
 import { alcanza } from "../../utils/roles";
 import { InstallButton } from "../InstallApp";
 
-export default function Sidebar() {
+export default function Sidebar({ mensajesNoLeidos = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const notificacionesNoLeidas = useNotificacionesNoLeidas();
   const denunciasPendientes = useDenunciasPendientes();
-  const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
-
-  // Cargar el contador real de mensajes sin leer.
-  const cargarMensajesNoLeidos = useCallback(async () => {
-    if (!user) {
-      setMensajesNoLeidos(0);
-      return;
-    }
-
-    try {
-      const data = await apiRequest("/mensajes/no-leidos");
-      setMensajesNoLeidos(data.noLeidos || 0);
-    } catch (error) {
-      console.error("Error al cargar mensajes sin leer:", error);
-    }
-    // Solo se vuelve a pedir si cambia la persona, no cada vez que se refresca su perfil.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id || user?._id]);
-
-  // Escuchar los mensajes nuevos y actualizar el contador.
-  useEffect(() => {
-    cargarMensajesNoLeidos();
-
-    window.addEventListener(
-      "mensajes-actualizados",
-      cargarMensajesNoLeidos
-    );
-
-    socket.on(
-      "mensajes:contador-actualizar",
-      cargarMensajesNoLeidos
-    );
-
-    return () => {
-      window.removeEventListener(
-        "mensajes-actualizados",
-        cargarMensajesNoLeidos
-      );
-
-      socket.off(
-        "mensajes:contador-actualizar",
-        cargarMensajesNoLeidos
-      );
-    };
-  }, [cargarMensajesNoLeidos]);
 
   function handleLogout() {
     logout();

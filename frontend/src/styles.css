@@ -5155,3 +5155,32 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
   .banner-capas.animado .banner-logo,
   .banner-texture-sample.animado > span { animation: none; }
 }
+
+
+/* Contador de mensajes pendientes en la navegación inferior */
+.bottom-nav-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav-count {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-elevated);
+  border-radius: 999px;
+  background: #ec4899;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-sizing: border-box;
+}

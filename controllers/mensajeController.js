@@ -221,13 +221,42 @@ async function eliminarConversacion(req, res) {
     }
 }
 
+// Cuenta los mensajes pendientes del usuario, tanto en conversaciones directas
+// como en grupos. Se comparte entre el endpoint y los eventos de Socket.IO.
+async function contarMensajesNoLeidos(usuarioId) {
+    const conversaciones = await Conversacion.find({
+        participantes: usuarioId,
+        ocultasPor: { $ne: usuarioId }
+    }).select("_id tipo");
+
+    const idsDirectas = conversaciones
+        .filter((conversacion) => conversacion.tipo !== "grupo")
+        .map((conversacion) => conversacion._id);
+
+    const idsGrupos = conversaciones
+        .filter((conversacion) => conversacion.tipo === "grupo")
+        .map((conversacion) => conversacion._id);
+
+    const [directos, grupos] = await Promise.all([
+        Mensaje.countDocuments({
+            conversacion: { $in: idsDirectas },
+            remitente: { $ne: usuarioId },
+            leido: false
+        }),
+        Mensaje.countDocuments({
+            conversacion: { $in: idsGrupos },
+            remitente: { $ne: usuarioId },
+            leidoPor: { $ne: usuarioId }
+        })
+    ]);
+
+    return directos + grupos;
+}
+
 // Marca como leídos los mensajes que recibió el usuario en esa conversación y avisa
 // a cada remitente (palomitas). En grupos, cada quien lleva su propia lectura.
 async function marcarLeidos(req, conversacion, usuarioId) {
     const io = req.app.get("io");
-
-    // Mis contadores (menú y lista de chats) se actualizan en todos mis dispositivos.
-    if (io) io.to(`usuario:${usuarioId}`).emit("mensajes:contador-actualizar");
 
     if (conversacion.tipo === "grupo") {
         await marcarLeidosEnGrupo(conversacion, usuarioId, io);
@@ -275,6 +304,11 @@ async function marcarLeidos(req, conversacion, usuarioId) {
                 );
             }
         }
+    }
+
+    // Emitir DESPUÉS de actualizar MongoDB para que el cliente consulte el total real.
+    if (io) {
+        io.to(`usuario:${usuarioId}`).emit("mensajes:contador-actualizar");
     }
 }
 
@@ -343,41 +377,10 @@ async function obtenerMensajes(req, res) {
 // Obtener la cantidad de mensajes sin leer del usuario autenticado
 async function obtenerMensajesNoLeidos(req, res) {
     try {
-        const usuarioId = req.usuario.id;
-
-        const conversaciones = await Conversacion.find({
-            participantes: usuarioId,
-            ocultasPor: { $ne: usuarioId }
-        }).select("_id tipo");
-
-        const idsDirectas = conversaciones
-            .filter((conversacion) => conversacion.tipo !== "grupo")
-            .map((conversacion) => conversacion._id);
-
-        const idsGrupos = conversaciones
-            .filter((conversacion) => conversacion.tipo === "grupo")
-            .map((conversacion) => conversacion._id);
-
-        // En chats directos basta "leido"; en grupos cada quien lleva su lectura.
-        const [directos, grupos] = await Promise.all([
-            Mensaje.countDocuments({
-                conversacion: { $in: idsDirectas },
-                remitente: { $ne: usuarioId },
-                leido: false
-            }),
-            Mensaje.countDocuments({
-                conversacion: { $in: idsGrupos },
-                remitente: { $ne: usuarioId },
-                leidoPor: { $ne: usuarioId }
-            })
-        ]);
-
-        const total = directos + grupos;
-
-        res.json({ noLeidos: total });
+        const noLeidos = await contarMensajesNoLeidos(req.usuario.id);
+        res.json({ noLeidos });
     } catch (error) {
         logger.error("Error al contar mensajes sin leer:", error);
-
         res.status(500).json({
             mensaje: "Error al obtener los mensajes sin leer"
         });
@@ -484,7 +487,7 @@ async function enviarMensaje(req, res) {
                 mensaje
             );
 
-            // Avisar al destinatario para que actualice su contador.
+            // Avisar a cada destinatario para que consulte su total actualizado.
             for (const participanteId of conversacion.participantes) {
                 if (String(participanteId) !== String(usuarioId)) {
                     io.to(`usuario:${participanteId}`).emit(
