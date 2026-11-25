@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { socket } from "../api/socket";
 
 // La barra lateral y la superior muestran el mismo contador. Si las dos lo piden
 // al mismo tiempo, comparten una sola petición a /api/notificaciones.
@@ -35,10 +36,69 @@ export default function useNotificacionesNoLeidas() {
   }, [usuarioId]);
 
   useEffect(() => {
+    if (!usuarioId) {
+      setNoLeidas(0);
+      if (socket.connected) socket.disconnect();
+      return undefined;
+    }
+
+    function alRecibirNotificacion(payload = {}) {
+      if (typeof payload.noLeidas === "number") {
+        setNoLeidas(payload.noLeidas);
+      } else {
+        cargar();
+      }
+
+      // La página de notificaciones escucha este evento para insertar la tarjeta.
+      if (payload.notificacion) {
+        window.dispatchEvent(
+          new CustomEvent("notificacion:nueva", {
+            detail: payload.notificacion
+          })
+        );
+      }
+    }
+
+    function alActualizarContador(payload = {}) {
+      if (typeof payload.noLeidas === "number") {
+        setNoLeidas(payload.noLeidas);
+      } else {
+        cargar();
+      }
+    }
+
+    function reenviarEvento(evento, payload) {
+      window.dispatchEvent(new CustomEvent(evento, { detail: payload }));
+    }
+
+    const alActualizarNotificacion = (payload) =>
+      reenviarEvento("notificacion:actualizada", payload);
+    const alMarcarTodasLeidas = () =>
+      reenviarEvento("notificaciones:leidas-todas");
+    const alEliminarNotificacion = (payload) =>
+      reenviarEvento("notificacion:eliminada", payload);
+
     cargar();
     window.addEventListener("notificaciones-actualizadas", cargar);
-    return () => window.removeEventListener("notificaciones-actualizadas", cargar);
-  }, [cargar]);
+    socket.on("notificacion:nueva", alRecibirNotificacion);
+    socket.on("notificaciones:contador-actualizar", alActualizarContador);
+    socket.on("notificacion:actualizada", alActualizarNotificacion);
+    socket.on("notificaciones:leidas-todas", alMarcarTodasLeidas);
+    socket.on("notificacion:eliminada", alEliminarNotificacion);
+
+    // Sidebar vive durante la navegación autenticada: mantiene el socket activo
+    // aunque el usuario no esté dentro de la pantalla de mensajes.
+    if (!socket.connected) socket.connect();
+
+    return () => {
+      window.removeEventListener("notificaciones-actualizadas", cargar);
+      socket.off("notificacion:nueva", alRecibirNotificacion);
+      socket.off("notificaciones:contador-actualizar", alActualizarContador);
+      socket.off("notificacion:actualizada", alActualizarNotificacion);
+      socket.off("notificaciones:leidas-todas", alMarcarTodasLeidas);
+      socket.off("notificacion:eliminada", alEliminarNotificacion);
+    };
+  }, [cargar, usuarioId]);
 
   return noLeidas;
 }

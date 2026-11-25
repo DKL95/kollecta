@@ -127,14 +127,15 @@ async function mensajeAutomatico(req, conversacionId, remitenteId, texto) {
     }
 }
 
-async function notificar(destinatario, emisor, mensaje, ordenId) {
+async function notificar(req, destinatario, emisor, mensaje, ordenId) {
     try {
         await crearNotificacion({
             destinatario,
             emisor,
             tipo: "orden",
             mensaje,
-            enlace: `/ordenes/${ordenId}`
+            enlace: `/ordenes/${ordenId}`,
+            io: req.app.get("io")
         });
     } catch (error) {
         logger.error("No se pudo crear la notificación de la orden:", error);
@@ -277,6 +278,7 @@ async function crearOrden(req, res) {
         );
 
         await notificar(
+            req,
             vendedorId,
             compradorId,
             tipo === "compra"
@@ -573,7 +575,7 @@ async function cambiarEstado(req, res) {
                 otra.estado = "rechazada";
                 otra.historial.push({ estado: "rechazada", por: usuarioId, nota: "El artículo se apartó para otra persona" });
                 await otra.save();
-                await notificar(otra.comprador, usuarioId, `apartó "${otra.articulo.titulo}" para otra persona`, otra._id);
+                await notificar(req, otra.comprador, usuarioId, `apartó "${otra.articulo.titulo}" para otra persona`, otra._id);
                 await mensajeAutomatico(req, otra.conversacion, usuarioId, `❌ "${otra.articulo.titulo}" se apartó para otra persona.`);
             }
         }
@@ -581,7 +583,7 @@ async function cambiarEstado(req, res) {
         const otraPersona = miRol === "comprador" ? orden.vendedor : orden.comprador;
         const texto = TEXTO_CAMBIO[estado](orden);
         await mensajeAutomatico(req, orden.conversacion, usuarioId, nota.trim() ? `${texto}\n${nota.trim()}` : texto);
-        await notificar(otraPersona, usuarioId, NOTIFICACION_CAMBIO[estado](orden), orden._id);
+        await notificar(req, otraPersona, usuarioId, NOTIFICACION_CAMBIO[estado](orden), orden._id);
 
         await poblarOrden(orden);
 
@@ -617,7 +619,7 @@ async function cancelarOrden(req, res) {
         await orden.save();
 
         await mensajeAutomatico(req, orden.conversacion, req.usuario.id, TEXTO_CAMBIO.cancelada(orden));
-        await notificar(orden.vendedor, req.usuario.id, NOTIFICACION_CAMBIO.cancelada(orden), orden._id);
+        await notificar(req, orden.vendedor, req.usuario.id, NOTIFICACION_CAMBIO.cancelada(orden), orden._id);
 
         return res.json({ mensaje: "Solicitud retirada" });
     } catch (error) {
@@ -667,7 +669,7 @@ async function calificarOrden(req, res) {
         orden.calificacion = { estrellas, comentario, fecha: new Date() };
         await orden.save();
 
-        await notificar(orden.vendedor, req.usuario.id, `te calificó con ${estrellas} ★ por "${orden.articulo.titulo}"`, orden._id);
+        await notificar(req, orden.vendedor, req.usuario.id, `te calificó con ${estrellas} ★ por "${orden.articulo.titulo}"`, orden._id);
 
         await poblarOrden(orden);
         return res.json({ mensaje: "¡Gracias por calificar!", orden: respuestaOrden(orden, req.usuario.id) });
@@ -754,7 +756,7 @@ async function rechazarPendientesDe(req, productoId, vendedorId, motivo) {
         orden.historial.push({ estado: "rechazada", por: vendedorId, nota: motivo });
         await orden.save();
         await mensajeAutomatico(req, orden.conversacion, vendedorId, `❌ "${orden.articulo.titulo}" ya no está disponible: ${motivo.toLowerCase()}.`);
-        await notificar(orden.comprador, vendedorId, `retiró "${orden.articulo.titulo}"; tu solicitud se cerró`, orden._id);
+        await notificar(req, orden.comprador, vendedorId, `retiró "${orden.articulo.titulo}"; tu solicitud se cerró`, orden._id);
     }
 
     return pendientes.length;
@@ -822,7 +824,7 @@ async function abrirDisputa(req, res) {
             usuarioId,
             `⚠️ Abrí una disputa por "${orden.articulo.titulo}": ${TEXTO_MOTIVO_DISPUTA[motivo]}. Moderación revisará la operación.`
         );
-        await notificar(otraPersona, usuarioId, `abrió una disputa por "${orden.articulo.titulo}"`, orden._id);
+        await notificar(req, otraPersona, usuarioId, `abrió una disputa por "${orden.articulo.titulo}"`, orden._id);
 
         await orden.populate([
             { path: "comprador", select: CAMPOS_USUARIO_MOD },

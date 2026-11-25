@@ -2,6 +2,21 @@ const mongoose = require("mongoose");
 const Notificacion = require("../models/Notificacion");
 const logger = require("../config/logger");
 
+// Mantiene sincronizado el contador en todas las pestañas/dispositivos conectados.
+async function emitirContadorNotificaciones(io, destinatario) {
+    if (!io || !destinatario) return;
+
+    const noLeidas = await Notificacion.countDocuments({
+        destinatario,
+        leida: false
+    });
+
+    io.to(`usuario:${destinatario}`).emit(
+        "notificaciones:contador-actualizar",
+        { noLeidas }
+    );
+}
+
 // Obtener las notificaciones del usuario autenticado.
 async function listarNotificaciones(req, res) {
     try {
@@ -53,6 +68,14 @@ async function marcarNotificacionLeida(req, res) {
             });
         }
 
+        const io = req.app.get("io");
+        if (io) {
+            io.to(`usuario:${req.usuario.id}`).emit("notificacion:actualizada", {
+                notificacion
+            });
+        }
+        await emitirContadorNotificaciones(io, req.usuario.id);
+
         return res.json({ notificacion });
     } catch (error) {
         logger.error("Error al marcar notificación:", error);
@@ -73,6 +96,12 @@ async function marcarTodasLeidas(req, res) {
             },
             { leida: true }
         );
+
+        const io = req.app.get("io");
+        if (io) {
+            io.to(`usuario:${req.usuario.id}`).emit("notificaciones:leidas-todas");
+        }
+        await emitirContadorNotificaciones(io, req.usuario.id);
 
         return res.json({
             mensaje: "Notificaciones marcadas como leídas"
@@ -102,6 +131,14 @@ async function eliminarNotificacion(req, res) {
             return res.status(404).json({ mensaje: "Notificación no encontrada" });
         }
 
+        const io = req.app.get("io");
+        if (io) {
+            io.to(`usuario:${req.usuario.id}`).emit("notificacion:eliminada", {
+                id: String(notificacion._id)
+            });
+        }
+        await emitirContadorNotificaciones(io, req.usuario.id);
+
         return res.json({ mensaje: "Notificación eliminada" });
     } catch (error) {
         logger.error("Error al borrar notificación:", error);
@@ -109,23 +146,20 @@ async function eliminarNotificacion(req, res) {
     }
 }
 
-// Crear una notificación desde otros controladores.
+// Crear y persistir una notificación; después emitirla al usuario conectado.
 async function crearNotificacion({
     destinatario,
     emisor = null,
     tipo,
     mensaje,
-    enlace = ""
+    enlace = "",
+    io = null
 }) {
     if (!destinatario) {
         throw new Error("El destinatario de la notificación es obligatorio");
     }
 
-    // No notificar a un usuario sobre su propia actividad.
-    if (
-        emisor &&
-        destinatario.toString() === emisor.toString()
-    ) {
+    if (emisor && destinatario.toString() === emisor.toString()) {
         return null;
     }
 
@@ -144,13 +178,29 @@ async function crearNotificacion({
         throw new Error("El tipo de notificación no es válido");
     }
 
-    return Notificacion.create({
+    const notificacion = await Notificacion.create({
         destinatario,
         emisor,
         tipo,
         mensaje,
         enlace
     });
+
+    await notificacion.populate("emisor", "username nombre fotoPerfil");
+
+    if (io) {
+        const noLeidas = await Notificacion.countDocuments({
+            destinatario,
+            leida: false
+        });
+
+        io.to(`usuario:${destinatario}`).emit("notificacion:nueva", {
+            notificacion,
+            noLeidas
+        });
+    }
+
+    return notificacion;
 }
 
 module.exports = {
@@ -158,5 +208,6 @@ module.exports = {
     marcarNotificacionLeida,
     marcarTodasLeidas,
     eliminarNotificacion,
-    crearNotificacion
+    crearNotificacion,
+    emitirContadorNotificaciones
 };

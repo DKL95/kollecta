@@ -39,7 +39,19 @@ export default function NotificationsPage() {
     try {
       setError("");
       const data = await apiRequest("/notificaciones");
-      setNotifications(data.notificaciones || []);
+      const recibidas = data.notificaciones || [];
+      setNotifications((actuales) => {
+        const idsRecibidos = new Set(
+          recibidas.map((n) => String(n._id))
+        );
+        const llegadasEnTiempoReal = actuales.filter(
+          (n) => !idsRecibidos.has(String(n._id))
+        );
+
+        return [...llegadasEnTiempoReal, ...recibidas]
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 50);
+      });
     } catch (err) {
       setError(err.message || "No se pudieron cargar las notificaciones");
     } finally {
@@ -50,6 +62,60 @@ export default function NotificationsPage() {
   useEffect(() => {
     cargarNotificaciones();
   }, [cargarNotificaciones]);
+
+  // Insertar notificaciones nuevas sin recargar la página.
+  useEffect(() => {
+    function alRecibirNotificacion(event) {
+      const nueva = event.detail;
+      if (!nueva?._id) return;
+
+      setNotifications((actuales) => {
+        if (actuales.some((n) => String(n._id) === String(nueva._id))) {
+          return actuales;
+        }
+        return [nueva, ...actuales].slice(0, 50);
+      });
+    }
+
+    function alActualizarNotificacion(event) {
+      const actualizada = event.detail?.notificacion;
+      if (!actualizada?._id) return;
+
+      setNotifications((actuales) =>
+        actuales.map((n) =>
+          String(n._id) === String(actualizada._id)
+            ? { ...n, ...actualizada }
+            : n
+        )
+      );
+    }
+
+    function alMarcarTodasLeidas() {
+      setNotifications((actuales) =>
+        actuales.map((n) => ({ ...n, leida: true }))
+      );
+    }
+
+    function alEliminarNotificacion(event) {
+      const id = event.detail?.id;
+      if (!id) return;
+      setNotifications((actuales) =>
+        actuales.filter((n) => String(n._id) !== String(id))
+      );
+    }
+
+    window.addEventListener("notificacion:nueva", alRecibirNotificacion);
+    window.addEventListener("notificacion:actualizada", alActualizarNotificacion);
+    window.addEventListener("notificaciones:leidas-todas", alMarcarTodasLeidas);
+    window.addEventListener("notificacion:eliminada", alEliminarNotificacion);
+
+    return () => {
+      window.removeEventListener("notificacion:nueva", alRecibirNotificacion);
+      window.removeEventListener("notificacion:actualizada", alActualizarNotificacion);
+      window.removeEventListener("notificaciones:leidas-todas", alMarcarTodasLeidas);
+      window.removeEventListener("notificacion:eliminada", alEliminarNotificacion);
+    };
+  }, []);
 
   async function marcarComoLeida(id) {
     try {

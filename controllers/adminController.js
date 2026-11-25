@@ -95,7 +95,7 @@ async function cambiarRol(req, res) {
             detalle: { antes: rolAnterior, despues: rol }
         });
 
-        await avisar(usuario._id, `Tu rol en KollectA ahora es: ${rol}`);
+        await avisar(usuario._id, `Tu rol en KollectA ahora es: ${rol}`, "", req.app.get("io"));
 
         res.json({ mensaje: `@${usuario.username} ahora es ${rol}`, usuario: usuario.aPublico() });
     } catch (error) {
@@ -120,7 +120,8 @@ async function cambiarEstado(req, res) {
             actor: { id: req.usuario.id, rol: req.usuario.rol },
             usuarioId: id,
             activo,
-            motivo
+            motivo,
+            io: req.app.get("io")
         });
 
         res.json({ mensaje: activo ? `@${usuario.username} fue reactivado` : `@${usuario.username} fue baneado` });

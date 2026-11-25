@@ -346,7 +346,8 @@ async function enviarSolicitud(req, res) {
                 emisor: solicitante._id,
                 tipo: "solicitud_amistad",
                 mensaje: `@${solicitante.username} te envió una solicitud de amistad`,
-                enlace: `/perfil/${solicitante.username}`
+                enlace: `/perfil/${solicitante.username}`,
+                io: req.app.get("io")
             });
         } catch (errorNotificacion) {
             logger.error(

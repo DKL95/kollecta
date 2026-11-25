@@ -17,7 +17,7 @@ const fs = require("fs");
 const Comentario = require("../models/Comentario");
 const Respuesta = require("../models/Respuesta");
 
-const Notificacion = require("../models/Notificacion");
+const { crearNotificacion } = require("./notificacionController");
 const Usuario = require("../models/Usuario");
 
 const CAMPOS_AUTOR = "nombre username fotoPerfil rol activo";
@@ -47,7 +47,7 @@ function filtroVisible(idUsuarioActual, campoAutor = "autor") {
 }
 
 // Detectar menciones y crear sus notificaciones.
-async function notificarMenciones(texto, emisorId, enlace, contexto) {
+async function notificarMenciones(texto, emisorId, enlace, contexto, io) {
     try {
         logger.debug("🔎 Texto recibido:", texto);
         logger.debug("👤 ID del emisor:", String(emisorId));
@@ -106,12 +106,13 @@ async function notificarMenciones(texto, emisorId, enlace, contexto) {
                 continue;
             }
 
-            const notificacion = await Notificacion.create({
+            const notificacion = await crearNotificacion({
                 destinatario: usuario._id,
                 emisor: emisorId,
                 tipo: "mencion",
                 mensaje: `Te mencionaron en ${contexto}.`,
-                enlace
+                enlace,
+                io
             });
 
             logger.debug(
@@ -379,7 +380,8 @@ async function crearPublicacion(req, res) {
             texto,
             req.usuario.id,
             `/publicaciones/${nuevaPublicacion._id}`,
-            "una publicación"
+            "una publicación",
+            req.app.get("io")
         );
 
         const publicacionFormateada = await formatearPublicacion(
@@ -826,12 +828,13 @@ async function alternarLike(req, res) {
         // Notificar solo cuando alguien da like a otra persona.
         if (!yaTieneLike && idUsuario !== idAutor) {
             try {
-                await Notificacion.create({
+                await crearNotificacion({
                     destinatario: publicacion.autor._id,
                     emisor: req.usuario.id,
                     tipo: "like",
                     mensaje: "Le dio me gusta a tu publicación.",
-                    enlace: `/publicaciones/${publicacion._id}`
+                    enlace: `/publicaciones/${publicacion._id}`,
+                    io: req.app.get("io")
                 });
             } catch (error) {
                 logger.error(
@@ -910,12 +913,13 @@ async function agregarComentario(req, res) {
                         ? `${texto.slice(0, 100)}...`
                         : texto;
 
-                await Notificacion.create({
+                await crearNotificacion({
                     destinatario: publicacion.autor._id,
                     emisor: req.usuario.id,
                     tipo: "comentario",
                     mensaje: `comentó tu publicación: "${textoNotificacion}"`,
-                    enlace: `/publicaciones/${publicacion._id}`
+                    enlace: `/publicaciones/${publicacion._id}`,
+                    io: req.app.get("io")
                 });
             } catch (error) {
                 // Un error de notificación no debe impedir publicar.
@@ -931,7 +935,8 @@ async function agregarComentario(req, res) {
             texto,
             req.usuario.id,
             `/publicaciones/${publicacion._id}`,
-            "un comentario"
+            "un comentario",
+            req.app.get("io")
         );
 
         return res.status(201).json({
@@ -1175,12 +1180,13 @@ async function alternarLikeComentario(req, res) {
             String(comentario.autor) !== idUsuario
         ) {
             try {
-                await Notificacion.create({
+                await crearNotificacion({
                     destinatario: comentario.autor,
                     emisor: req.usuario.id,
                     tipo: "like",
                     mensaje: "Le dio me gusta a tu comentario.",
-                    enlace: `/publicaciones/${id}`
+                    enlace: `/publicaciones/${id}`,
+                    io: req.app.get("io")
                 });
             } catch (errorNotificacion) {
                 // Un error en la notificación no debe impedir el like.
@@ -1301,7 +1307,8 @@ async function agregarRespuesta(req, res) {
             texto,
             req.usuario.id,
             `/publicaciones/${publicacion._id}`,
-            "una respuesta"
+            "una respuesta",
+            req.app.get("io")
         );
 
         const formatearAutor = (autor) => {
@@ -1392,12 +1399,13 @@ async function alternarLikeRespuesta(req, res) {
             String(respuesta.autor) !== idUsuario
         ) {
             try {
-                await Notificacion.create({
+                await crearNotificacion({
                     destinatario: respuesta.autor,
                     emisor: req.usuario.id,
                     tipo: "like",
                     mensaje: "Le dio me gusta a tu respuesta.",
-                    enlace: `/publicaciones/${id}`
+                    enlace: `/publicaciones/${id}`,
+                    io: req.app.get("io")
                 });
             } catch (errorNotificacion) {
                 // La notificación no debe impedir que funcione el like.

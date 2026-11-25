@@ -278,7 +278,8 @@ async function actualizarDenuncia(req, res) {
                     id: denuncia.objetivo,
                     ocultar: true,
                     motivo: nota || denuncia.motivo,
-                    denuncia: denuncia._id
+                    denuncia: denuncia._id,
+                    io: req.app.get("io")
                 });
             } else if (accion === "suspender") {
                 await suspender({
@@ -286,7 +287,8 @@ async function actualizarDenuncia(req, res) {
                     usuarioId: denuncia.usuarioDenunciado,
                     dias: req.body?.dias,
                     motivo: nota || denuncia.motivo,
-                    denuncia: denuncia._id
+                    denuncia: denuncia._id,
+                    io: req.app.get("io")
                 });
             } else if (accion === "banear") {
                 await cambiarActivo({
@@ -294,7 +296,8 @@ async function actualizarDenuncia(req, res) {
                     usuarioId: denuncia.usuarioDenunciado,
                     activo: false,
                     motivo: nota || denuncia.motivo,
-                    denuncia: denuncia._id
+                    denuncia: denuncia._id,
+                    io: req.app.get("io")
                 });
             }
         } else if (!nota) {
@@ -354,7 +357,7 @@ async function cambiarVisibilidadContenido(req, res) {
             return res.status(400).json({ mensaje: "Escribe el motivo para ocultarlo" });
         }
 
-        await cambiarVisibilidad({ actor: actorDe(req), tipo: req.params.tipo, id: req.params.id, ocultar, motivo });
+        await cambiarVisibilidad({ actor: actorDe(req), tipo: req.params.tipo, id: req.params.id, ocultar, motivo, io: req.app.get("io") });
         res.json({ mensaje: ocultar ? "Contenido ocultado" : "El contenido vuelve a estar visible" });
     } catch (error) {
         responderError(res, error, "No se pudo cambiar la visibilidad");
@@ -371,7 +374,8 @@ async function suspenderUsuario(req, res) {
             actor: actorDe(req),
             usuarioId: req.params.id,
             dias: req.body?.dias,
-            motivo: req.body?.motivo
+            motivo: req.body?.motivo,
+            io: req.app.get("io")
         });
         res.json({ mensaje: `@${usuario.username} quedó suspendido`, hasta });
     } catch (error) {
@@ -388,7 +392,8 @@ async function quitarSuspension(req, res) {
         const usuario = await levantarSuspension({
             actor: actorDe(req),
             usuarioId: req.params.id,
-            motivo: req.body?.motivo
+            motivo: req.body?.motivo,
+            io: req.app.get("io")
         });
         res.json({ mensaje: `Se levantó la suspensión de @${usuario.username}` });
     } catch (error) {

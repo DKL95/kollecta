@@ -120,16 +120,16 @@ async function registrar({
 }
 
 // Notificación sin emisor: la moderación es anónima para quien la recibe.
-async function avisar(destinatario, mensaje, enlace = "") {
+async function avisar(destinatario, mensaje, enlace = "", io = null) {
     try {
-        await crearNotificacion({ destinatario, tipo: "moderacion", mensaje, enlace });
+        await crearNotificacion({ destinatario, tipo: "moderacion", mensaje, enlace, io });
     } catch (error) {
         logger.error("No se pudo notificar la acción de moderación:", error);
     }
 }
 
 // Oculta (o vuelve a mostrar) una publicación, comentario o producto.
-async function cambiarVisibilidad({ actor, tipo, id, ocultar, motivo = "", denuncia = null }) {
+async function cambiarVisibilidad({ actor, tipo, id, ocultar, motivo = "", denuncia = null, io = null }) {
     const config = OCULTABLES[tipo];
     if (!config) throw new ErrorModeracion(400, "Ese tipo de contenido no se puede ocultar");
     if (!mongoose.isValidObjectId(id)) throw new ErrorModeracion(400, "El contenido no es válido");
@@ -165,7 +165,8 @@ async function cambiarVisibilidad({ actor, tipo, id, ocultar, motivo = "", denun
         await avisar(
             autorId,
             `Tu ${config.nombre} fue ocultado por moderación${motivo ? `: ${recortar(motivo, 120)}` : ""}`,
-            enlace
+            enlace,
+            io
         );
     }
 
@@ -203,7 +204,7 @@ async function suspender({ actor, usuarioId, dias, motivo = "", denuncia = null 
     return { usuario: objetivo, hasta };
 }
 
-async function levantarSuspension({ actor, usuarioId, motivo = "" }) {
+async function levantarSuspension({ actor, usuarioId, motivo = "", io = null }) {
     const objetivo = await verificarJerarquia(actor, usuarioId);
     await Usuario.updateOne({ _id: objetivo._id }, { suspendidoHasta: null, motivoSuspension: "" });
 
@@ -216,12 +217,12 @@ async function levantarSuspension({ actor, usuarioId, motivo = "" }) {
         motivo
     });
 
-    await avisar(objetivo._id, "Tu suspensión fue levantada. Ya puedes volver a usar KollectA.");
+    await avisar(objetivo._id, "Tu suspensión fue levantada. Ya puedes volver a usar KollectA.", "", io);
     return objetivo;
 }
 
 // Baneo permanente o reactivación (solo administradores).
-async function cambiarActivo({ actor, usuarioId, activo, motivo = "", denuncia = null }) {
+async function cambiarActivo({ actor, usuarioId, activo, motivo = "", denuncia = null, io = null }) {
     if (actor.rol !== "administrador") {
         throw new ErrorModeracion(403, "Solo un administrador puede banear o reactivar cuentas");
     }
@@ -247,7 +248,7 @@ async function cambiarActivo({ actor, usuarioId, activo, motivo = "", denuncia =
         denuncia
     });
 
-    if (activo) await avisar(objetivo._id, "Tu cuenta fue reactivada");
+    if (activo) await avisar(objetivo._id, "Tu cuenta fue reactivada", "", io);
     return objetivo;
 }
 
