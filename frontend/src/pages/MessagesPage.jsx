@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Avatar, { UserAvatar } from "../components/Avatar";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../api/client";
@@ -9,6 +9,7 @@ import Icon from "../components/Icon";
 import EmojiPicker from "../components/EmojiPicker";
 import GifPicker from "../components/GifPicker";
 import GifView from "../components/GifView";
+import { etiquetaDia, fechaCortaChat, fechaHoraCompleta, horaCorta, mismoDia } from "../utils/format";
 
 function esGrupo(conversacion) {
   return conversacion?.tipo === "grupo";
@@ -58,19 +59,6 @@ function obtenerOtroParticipante(conversacion, usuarioActual) {
       (participante) => String(participante._id) !== String(miId)
     ) || null
   );
-}
-
-function formatearHora(fecha) {
-  if (!fecha) return "";
-
-  const fechaMensaje = new Date(fecha);
-
-  if (Number.isNaN(fechaMensaje.getTime())) return "";
-
-  return fechaMensaje.toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export default function MessagesPage() {
@@ -224,6 +212,20 @@ export default function MessagesPage() {
       socket.off("mensajes:contador-actualizar", actualizarListaSilenciosamente);
     };
   }, [cargarConversaciones]);
+
+  // Si el chat abierto desaparece de la lista (me sacaron del grupo o lo
+  // borraron desde otro lado), cerrarlo en vez de dejarlo seleccionado.
+  useEffect(() => {
+    if (loading || !activeId) return;
+    if (threads.some((thread) => thread._id === activeId)) return;
+
+    setActiveId(null);
+    setMessages([]);
+    setGroupDialog(null);
+    setChatMenuOpen(false);
+    setMobileView("list");
+    setError("Ya no formas parte de esa conversación.");
+  }, [threads, activeId, loading]);
 
   // Al crear o editar un grupo desde el diálogo.
   async function alGuardarGrupo(grupo, { cerrar = true } = {}) {
@@ -814,7 +816,7 @@ export default function MessagesPage() {
                     </span>
 
                     <span className="t">
-                      {formatearHora(
+                      {fechaCortaChat(
                         ultimoMensaje?.createdAt ||
                           thread.fechaActividad
                       )}
@@ -1010,7 +1012,7 @@ export default function MessagesPage() {
                           >
                             <span className="message-history-result-meta">
                               {esMio ? "Tú" : obtenerNombre(message.remitente)}
-                              <span>{formatearHora(message.createdAt)}</span>
+                              <span>{etiquetaDia(message.createdAt)} · {horaCorta(message.createdAt)}</span>
                             </span>
                             <span>{message.texto}</span>
                           </button>
@@ -1034,7 +1036,9 @@ export default function MessagesPage() {
                   No hay mensajes todavía. ¡Escribe el primero!
                 </p>
               ) : (
-                messages.map((message) => {
+                messages.map((message, indice) => {
+                  const anterior = messages[indice - 1];
+                  const nuevoDia = !anterior || !mismoDia(anterior.createdAt, message.createdAt);
                   const miId = user?._id || user?.id;
 
                   const remitenteId =
@@ -1044,9 +1048,14 @@ export default function MessagesPage() {
                     String(remitenteId) === String(miId);
 
                   return (
+                    <Fragment key={message._id}>
+                    {nuevoDia && (
+                      <div className="chat-day-separator" role="separator">
+                        <span>{etiquetaDia(message.createdAt)}</span>
+                      </div>
+                    )}
                     <div
                       id={`message-${message._id}`}
-                      key={message._id}
                       className={`msg-row ${esMio ? "mine" : ""}`}
                     >
                       {esMio ? (
@@ -1097,6 +1106,10 @@ export default function MessagesPage() {
                         <GifView gif={message.gif} size="sm" />
                         {message.editadoEn && <span className="msg-edited">(editado)</span>}
 
+                        <time className="msg-time" dateTime={message.createdAt} title={fechaHoraCompleta(message.createdAt)}>
+                          {horaCorta(message.createdAt)}
+                        </time>
+
                         {esMio && (
                           <span className="msg-status" title={message.leido ? "Leído" : message.entregado ? "Entregado" : "Enviado"}>
                             {message.leido || message.entregado ? "✓✓" : "✓"}
@@ -1122,6 +1135,7 @@ export default function MessagesPage() {
                         )}
                     </div>  
                     </div>
+                    </Fragment>
                   );
                 })
               )}

@@ -21,6 +21,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import SearchPage from "./pages/SearchPage";
 import SellPage from "./pages/SellPage";
+import SettingsPage from "./pages/SettingsPage";
 
 // Todas las pantallas de la app y su ruta. `handle` define el título de la barra superior.
 const router = createBrowserRouter([
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
       { path: "/coleccion/agregar", element: <SellPage soloColeccion />, handle: { title: "Agregar a mi colección", subtitle: "Guarda una pieza sin ponerla a la venta" } },
       { path: "/coleccion", element: <CollectionPage />, handle: { title: "Mi colección", subtitle: "Tu vitrina personal de merch" } },
       { path: "/perfil", element: <ProfilePage />, handle: { title: "Mi perfil" } },
+      { path: "/ajustes", element: <SettingsPage />, handle: { title: "Ajustes", subtitle: "Tu cuenta, preferencias y sesión" } },
       { path: "/perfil/:username", element: <ProfilePage />, handle: { title: "Perfil" } },
       { path: "/grupos", element: <GroupsPage />, handle: { title: "Grupos", subtitle: "Sigue a tus grupos favoritos y no te pierdas su merch" } },
       { path: "/grupos/:groupName", element: <GroupDetailPage />, handle: { title: "Detalle de grupo" } },

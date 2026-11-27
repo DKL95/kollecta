@@ -943,6 +943,10 @@ button.tab.active { border-bottom-color: var(--pink); }
 .msg-row.mine .bubble { background: var(--gradient-brand); color: #100a1e; font-weight: 600; border: none; }
 .bubble.offer { display: flex; align-items: center; gap: 10px; }
 .msg-status { display: inline-block; margin-left: 8px; font-size: 12px; white-space: nowrap; }
+.msg-time { display: inline-block; margin-left: 8px; font-size: 10.5px; font-weight: 500; opacity: 0.65; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.msg-time + .msg-status { margin-left: 4px; }
+.chat-day-separator { align-self: center; display: flex; margin: 6px 0 2px; position: sticky; top: 0; z-index: 1; }
+.chat-day-separator span { padding: 4px 12px; font-size: 11.5px; font-weight: 700; color: var(--text-dim); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
 .msg-edited { margin-left: 6px; font-size: 11px; font-weight: 500; opacity: 0.7; }
 .msg-actions { display: flex; gap: 10px; margin-top: 4px; justify-content: flex-end; opacity: 0; transition: opacity 0.15s; }
 .msg-row:hover .msg-actions, .msg-actions:focus-within { opacity: 1; }
@@ -5184,3 +5188,30 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
   line-height: 1;
   box-sizing: border-box;
 }
+
+
+/* Ajustes (estilo lista, como Instagram) */
+.settings-page { max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.settings-user { display: flex; align-items: center; gap: 14px; padding: 16px; background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text); text-decoration: none; }
+.settings-user:hover { border-color: var(--border-strong); }
+.settings-section { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+.settings-section h3 { margin: 0; padding: 14px 16px 6px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+.settings-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; padding: 10px 16px; font: inherit; text-align: left; color: var(--text); text-decoration: none; background: none; border: none; border-top: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+.settings-section h3 + .settings-row, .settings-section > .settings-row:first-child { border-top: none; }
+.settings-row:hover { background: var(--card-hover); }
+.settings-row:focus-visible, .settings-user:focus-visible { outline: 2px solid var(--pink); outline-offset: -2px; }
+.settings-row.static { cursor: default; }
+.settings-row.static:hover { background: none; }
+.settings-ic { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); color: var(--text-dim); }
+.settings-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.settings-title { font-size: 14.5px; font-weight: 700; }
+.settings-detail { font-size: 12.5px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-chevron { display: inline-flex; color: var(--text-faint); }
+.settings-row.danger { color: var(--red); }
+.settings-row.danger .settings-ic { color: var(--red); background: rgba(255, 92, 114, 0.1); }
+.settings-switch { position: relative; flex: none; width: 42px; height: 24px; border-radius: 999px; background: rgba(255, 255, 255, 0.15); transition: background 0.2s; }
+.settings-switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.settings-switch.on { background: var(--pink); }
+.settings-switch.on span { transform: translateX(18px); }
+.profile-settings-btn { padding-left: 12px; padding-right: 12px; }
+@media (prefers-reduced-motion: reduce) { .settings-switch, .settings-switch span { transition: none; } }
