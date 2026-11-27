@@ -91,7 +91,7 @@ function describirColecciones() {
     const { DESCRIPCIONES } = require("../generarCrearBase");
     const modelos = cargarModelos();
     const porNombreModelo = {};
-    // Solo las 15 colecciones de models/ (ArchivoVideo describe videos.files de GridFS, que crea el driver).
+    // Solo las colecciones de models/ (ArchivoVideo describe videos.files de GridFS, que crea el driver).
     const colecciones = Object.values(modelos).filter((modelo) => DESCRIPCIONES[modelo.collection.collectionName]).map((modelo) => {
         const nombre = modelo.collection.collectionName;
         porNombreModelo[modelo.modelName] = nombre;
@@ -122,9 +122,10 @@ const POSICIONES = {
     solicitudes_amistad: [0, 1], imagenes: [3, 1],
     colecciones: [0, 2], usuarios: [1.5, 2], conversaciones: [3, 2],
     denuncias: [0, 3], mensajes: [3, 3],
-    moderaciones: [0, 4], productos: [1, 4], ordenes: [2, 4], grupos: [3, 4]
+    moderaciones: [0, 4], productos: [1, 4], ordenes: [2, 4], grupos: [3, 4],
+    progreso_tareas: [1, 5], marcadores: [2, 5]
 };
-const FILAS_ER = 5;
+const FILAS_ER = 6;
 
 function diagramaER(colecciones) {
     const ANCHO = 206, COL = 244, MARGEN = 14, LINEA = 15, CABEZA = 26;
@@ -328,6 +329,13 @@ const DESCRIPCION_PANTALLA = {
     "/grupos/:groupName": "Información del grupo, su merch y las publicaciones de la comunidad; moderador+ lo edita (datos, logo y portada).",
     "/reportes": "Reportes con consultas entre colecciones; cambian según el rol.",
     "/moderacion": "Denuncias, disputas, solicitudes de grupos, usuarios y bitácora (moderador y administrador).",
+    "/ajustes": "Ajustes estilo Instagram: cuenta, preferencias, diversión, reportes y cerrar sesión (también en celular).",
+    "/avatar": "Editor del avatar personalizable y creador de stickers con el avatar.",
+    "/tareas": "Tareas diarias, semanales y logros; al reclamarlas se abre un sobre de estampitas.",
+    "/estampitas": "Álbum propio de estampitas coleccionables por series, con repetidas y series completas.",
+    "/estampitas/:username": "Álbum de estampitas de otra persona (solo lectura).",
+    "/juegos": "Lista de minijuegos con tu récord.",
+    "/juegos/:juego": "Un minijuego (Lightstick Snake, K-Style Boutique o Memorama) con su ranking.",
     "*": "Página no encontrada."
 };
 

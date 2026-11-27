@@ -6,6 +6,7 @@ const Usuario = require("../models/Usuario");
 const logger = require("../config/logger");
 const { normalizarGif, ErrorGif } = require("../services/gifs");
 const { construirSticker, ErrorAvatar } = require("../services/avatar");
+const { registrarEvento } = require("../services/tareas");
 
 // Datos que se muestran de un mensaje y del mensaje al que responde (la cita).
 const POBLAR_MENSAJE = [
@@ -510,6 +511,8 @@ async function enviarMensaje(req, res) {
             }
         }
 
+        await registrarEvento(usuarioId, "mensaje");
+        if (sticker) await registrarEvento(usuarioId, "sticker");
         res.status(201).json(mensaje);
     } catch (error) {
         logger.error("Error al enviar mensaje:", error);

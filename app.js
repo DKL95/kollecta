@@ -19,6 +19,9 @@ const moderacionRoutes = require("./routes/moderacionRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
 const gifRoutes = require("./routes/gifRoutes");
 const grupoRoutes = require("./routes/grupoRoutes");
+const tareaRoutes = require("./routes/tareaRoutes");
+const estampitaRoutes = require("./routes/estampitaRoutes");
+const juegoRoutes = require("./routes/juegoRoutes");
 const logger = require("./config/logger");
 const { requiereAuthMedios } = require("./middleware/auth");
 
@@ -51,6 +54,9 @@ app.use("/api/moderacion", moderacionRoutes);
 app.use("/api/reportes", reporteRoutes);
 app.use("/api/gifs", gifRoutes);
 app.use("/api/grupos", grupoRoutes);
+app.use("/api/tareas", tareaRoutes);
+app.use("/api/estampitas", estampitaRoutes);
+app.use("/api/juegos", juegoRoutes);
 
 
 app.use("/api", (req, res) => {

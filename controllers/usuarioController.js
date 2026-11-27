@@ -20,6 +20,7 @@ const { crearNotificacion } = require("./notificacionController");
 const logger = require("../config/logger");
 const { ErrorAvatar, normalizarAvatar, normalizarPose } = require("../services/avatar");
 const { MAX_STICKERS_PROPIOS } = require("../models/avatar");
+const { registrarEvento } = require("../services/tareas");
 
 // GET /api/usuarios
 // Buscar usuarios y priorizar amigos para el autocompletado de menciones.
@@ -927,6 +928,7 @@ async function actualizarAvatar(req, res) {
         if (!usuario) {
             return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
         }
+        await registrarEvento(req.usuario.id, "avatar");
         return res.json({ mensaje: "Avatar guardado", usuario: usuario.aPublico() });
     } catch (error) {
         if (error instanceof ErrorAvatar) return res.status(400).json({ mensaje: error.message });
@@ -952,6 +954,7 @@ async function crearSticker(req, res) {
 
         usuario.stickers.push(pose);
         await usuario.save();
+        await registrarEvento(req.usuario.id, "sticker_creado");
 
         return res.status(201).json({
             mensaje: "Sticker guardado",

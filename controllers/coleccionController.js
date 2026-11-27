@@ -5,6 +5,7 @@ const Coleccion = require("../models/Coleccion");
 const Usuario = require("../models/Usuario");
 const { guardarImagen } = require("../middleware/upload");
 const logger = require("../config/logger");
+const { registrarEvento } = require("../services/tareas");
 
 // Eliminar archivos temporales si ocurre un error durante la publicación.
 async function limpiarArchivosTemporales(req) {
@@ -218,6 +219,7 @@ async function agregarArticulo(req, res) {
 
         await coleccion.save();
 
+        await registrarEvento(req.usuario.id, "coleccion");
         res.status(201).json({
             mensaje: "Artículo añadido a tu colección",
             coleccion,

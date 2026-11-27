@@ -9,6 +9,8 @@ import { COLORES_BANNER, TEXTURAS_BANNER, normalizarBanner } from "../frontend/s
 import { adaptarProducto, modalidad } from "../frontend/src/utils/coleccion.js";
 import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 import * as avatarFront from "../frontend/src/utils/avatar.js";
+import { ESTAMPITAS as ESTAMPITAS_FRONT, SERIES as SERIES_FRONT, RAREZAS as RAREZAS_FRONT, numeroDe } from "../frontend/src/utils/estampitas.js";
+import { JUEGOS as JUEGOS_FRONT, formatearPuntaje } from "../frontend/src/utils/juegos.js";
 
 describe("Frontend: utilidades de formato", () => {
     it("formatMoney usa formato de México", () => {
@@ -182,5 +184,43 @@ describe("Frontend: avatar y stickers", () => {
     it("mezclar combina colores hex", () => {
         assert.equal(avatarFront.mezclar("#000000", "#ffffff", 0.5), "#808080");
         assert.equal(avatarFront.mezclar("#ff0000", "#0000ff", 0), "#ff0000");
+    });
+});
+
+describe("Frontend: estampitas y minijuegos", () => {
+    const requerir = async (ruta) => {
+        const { createRequire } = await import("node:module");
+        return createRequire(import.meta.url)(ruta);
+    };
+
+    it("las estampitas (id, serie y rareza) son las mismas que en el backend", async () => {
+        const back = await requerir("../models/estampitas.js");
+        assert.deepEqual(
+            ESTAMPITAS_FRONT.map(({ id, serie, rareza }) => ({ id, serie, rareza })),
+            back.ESTAMPITAS
+        );
+        assert.deepEqual(Object.keys(SERIES_FRONT), back.SERIES);
+        assert.deepEqual(Object.keys(RAREZAS_FRONT), back.ORDEN_RAREZAS);
+    });
+
+    it("cada estampita tiene nombre, descripción y número", () => {
+        ESTAMPITAS_FRONT.forEach((e, i) => {
+            assert.ok(e.nombre && e.descripcion, e.id);
+            assert.equal(numeroDe(e.id), i + 1);
+        });
+    });
+
+    it("cada estampita tiene su dibujo", async () => {
+        const fuente = (await import("node:fs")).readFileSync(new URL("../frontend/src/components/EstampitaArte.jsx", import.meta.url), "utf8");
+        for (const e of ESTAMPITAS_FRONT) assert.ok(fuente.includes(`  ${e.id}:`), `falta el dibujo de ${e.id}`);
+    });
+
+    it("los juegos son los mismos que acepta el backend", async () => {
+        const Marcador = await requerir("../models/Marcador.js");
+        const { LIMITES } = await requerir("../controllers/juegoController.js");
+        assert.deepEqual(Object.keys(JUEGOS_FRONT).sort(), [...Marcador.JUEGOS].sort());
+        assert.deepEqual(Object.keys(LIMITES).sort(), [...Marcador.JUEGOS].sort());
+        assert.equal(formatearPuntaje("tiendita", 1500), "$1,500");
+        assert.equal(formatearPuntaje("snake", 12), "12 pts");
     });
 });

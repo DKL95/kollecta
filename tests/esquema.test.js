@@ -31,13 +31,13 @@ describe("Script de creación de la base (mongosh)", () => {
         assert.equal(leer(), antes, "Corre: npm run generar-base");
     });
 
-    it("crea las 15 colecciones con validador e índices únicos, y se puede correr dos veces", async () => {
+    it("crea las 17 colecciones con validador e índices únicos, y se puede correr dos veces", async () => {
         await db.dropDatabase();
         const salida = await aplicarEsquema();
-        assert.match(salida.at(-1), /Listo: 15 colecciones/);
+        assert.match(salida.at(-1), /Listo: 17 colecciones/);
 
         const colecciones = await db.listCollections().toArray();
-        assert.equal(colecciones.length, 15);
+        assert.equal(colecciones.length, 17);
         assert.ok(colecciones.every((c) => c.options.validator?.$jsonSchema), "cada colección lleva $jsonSchema");
 
         const indices = await db.collection("usuarios").indexes();

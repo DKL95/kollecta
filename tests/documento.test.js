@@ -11,10 +11,10 @@ describe("Documento técnico", () => {
         assert.ok(total > 50);
     });
 
-    it("arma el HTML con las 15 colecciones, el diagrama y el manual", () => {
+    it("arma el HTML con las 17 colecciones, el diagrama y el manual", () => {
         const html = construirHtml();
         assert.match(html, /<svg[^>]+class="er"/);
-        assert.match(html, /<b>15<\/b><span>colecciones/);
+        assert.match(html, /<b>17<\/b><span>colecciones/);
         assert.match(html, /src="manual\/img\/01-login\.jpg"/);
         assert.doesNotMatch(html, /## Contenido/);
     });
