@@ -18,6 +18,8 @@ const { asegurarGruposBase } = require("./grupoController");
 const fs = require("fs");
 const { crearNotificacion } = require("./notificacionController");
 const logger = require("../config/logger");
+const { ErrorAvatar, normalizarAvatar, normalizarPose } = require("../services/avatar");
+const { MAX_STICKERS_PROPIOS } = require("../models/avatar");
 
 // GET /api/usuarios
 // Buscar usuarios y priorizar amigos para el autocompletado de menciones.
@@ -77,6 +79,7 @@ async function buscarUsuarios(req, res) {
             usuarios: usuariosConDatos.map(({ usuario, esAmigo }) => ({
                 ...usuario.aPublico(),
                 email: undefined,
+                stickers: undefined,
                 esAmigo
             }))
         });
@@ -116,6 +119,7 @@ async function obtenerPerfil(req, res) {
             usuario: {
                 ...usuario.aPublico(),
                 email: undefined,
+                stickers: undefined,
                 totalPublicaciones,
                 totalAmigos: usuario.amigos.length,
                 // Estado de sanciones: solo para la moderación
@@ -911,7 +915,79 @@ async function actualizarBanner(req, res) {
     }
 }
 
+// PUT /api/usuarios/me/avatar  { avatar: { piel, ojos, ... } }
+async function actualizarAvatar(req, res) {
+    try {
+        const avatar = normalizarAvatar(req.body?.avatar);
+        const usuario = await Usuario.findByIdAndUpdate(
+            req.usuario.id,
+            { avatar },
+            { new: true, runValidators: true }
+        );
+        if (!usuario) {
+            return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
+        }
+        return res.json({ mensaje: "Avatar guardado", usuario: usuario.aPublico() });
+    } catch (error) {
+        if (error instanceof ErrorAvatar) return res.status(400).json({ mensaje: error.message });
+        logger.error("Error al guardar el avatar:", error);
+        return res.status(500).json({ mensaje: "Error al guardar el avatar" });
+    }
+}
+
+// POST /api/usuarios/me/stickers  { expresion, gesto, texto }
+async function crearSticker(req, res) {
+    try {
+        const pose = normalizarPose(req.body);
+        const usuario = await Usuario.findById(req.usuario.id);
+        if (!usuario) {
+            return res.status(401).json({ mensaje: "Tu sesión ya no es válida, inicia sesión de nuevo" });
+        }
+        if (!usuario.avatar) {
+            return res.status(400).json({ mensaje: "Primero crea tu avatar para hacer stickers" });
+        }
+        if (usuario.stickers.length >= MAX_STICKERS_PROPIOS) {
+            return res.status(400).json({ mensaje: `Puedes guardar hasta ${MAX_STICKERS_PROPIOS} stickers; borra alguno para hacer otro` });
+        }
+
+        usuario.stickers.push(pose);
+        await usuario.save();
+
+        return res.status(201).json({
+            mensaje: "Sticker guardado",
+            sticker: usuario.stickers[usuario.stickers.length - 1],
+            usuario: usuario.aPublico()
+        });
+    } catch (error) {
+        if (error instanceof ErrorAvatar) return res.status(400).json({ mensaje: error.message });
+        logger.error("Error al guardar el sticker:", error);
+        return res.status(500).json({ mensaje: "Error al guardar el sticker" });
+    }
+}
+
+// DELETE /api/usuarios/me/stickers/:id
+async function eliminarSticker(req, res) {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ mensaje: "El sticker no es válido" });
+        }
+        const usuario = await Usuario.findOneAndUpdate(
+            { _id: req.usuario.id, "stickers._id": req.params.id },
+            { $pull: { stickers: { _id: req.params.id } } },
+            { new: true }
+        );
+        if (!usuario) return res.status(404).json({ mensaje: "Ese sticker no existe" });
+        return res.json({ mensaje: "Sticker borrado", usuario: usuario.aPublico() });
+    } catch (error) {
+        logger.error("Error al borrar el sticker:", error);
+        return res.status(500).json({ mensaje: "Error al borrar el sticker" });
+    }
+}
+
 module.exports = {
+    actualizarAvatar,
+    crearSticker,
+    eliminarSticker,
     actualizarBanner,
     listarMisAmigos,
     buscarUsuarios,

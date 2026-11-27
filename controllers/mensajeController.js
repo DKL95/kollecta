@@ -5,13 +5,14 @@ const Mensaje = require("../models/Mensaje");
 const Usuario = require("../models/Usuario");
 const logger = require("../config/logger");
 const { normalizarGif, ErrorGif } = require("../services/gifs");
+const { construirSticker, ErrorAvatar } = require("../services/avatar");
 
 // Datos que se muestran de un mensaje y del mensaje al que responde (la cita).
 const POBLAR_MENSAJE = [
     { path: "remitente", select: "nombre username fotoPerfil" },
     {
         path: "respondeA",
-        select: "texto gif remitente",
+        select: "texto gif sticker remitente",
         populate: { path: "remitente", select: "nombre username" }
     }
 ];
@@ -411,7 +412,18 @@ async function enviarMensaje(req, res) {
             });
         }
 
-        if (!texto && !gif) {
+        let sticker = null;
+        if (req.body?.sticker) {
+            try {
+                const remitente = await Usuario.findById(usuarioId).select("avatar");
+                sticker = construirSticker(req.body.sticker, remitente);
+            } catch (error) {
+                if (!(error instanceof ErrorAvatar)) throw error;
+                return res.status(400).json({ mensaje: error.message });
+            }
+        }
+
+        if (!texto && !gif && !sticker) {
             return res.status(400).json({
                 mensaje: "Escribe un mensaje antes de enviarlo"
             });
@@ -459,6 +471,7 @@ async function enviarMensaje(req, res) {
             remitente: usuarioId,
             texto,
             gif,
+            sticker,
             respondeA,
             entregado: false,
             entregadoEn: null,
@@ -545,7 +558,7 @@ async function editarMensaje(req, res) {
         if (!encontrado) return;
         const { conversacion, mensaje } = encontrado;
 
-        if (!texto && !mensaje.gif) {
+        if (!texto && !mensaje.gif && !mensaje.sticker) {
             return res.status(400).json({ mensaje: "El mensaje no puede quedar vacío" });
         }
 

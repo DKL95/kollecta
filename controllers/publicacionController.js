@@ -24,6 +24,7 @@ const CAMPOS_AUTOR = "nombre username fotoPerfil rol activo";
 const { alcanza } = require("../middleware/roles");
 const logger = require("../config/logger");
 const { normalizarGif, ErrorGif } = require("../services/gifs");
+const { construirSticker, ErrorAvatar } = require("../services/avatar");
 
 // Lee el GIF del cuerpo; responde 400 si no es válido (regresa undefined en ese caso).
 function leerGif(req, res) {
@@ -161,6 +162,7 @@ async function formatearPublicacion(publicacion, idUsuarioActual) {
         imagen: imagenes[0] || "",
         videos: publicacion.videos || [],
         gif: publicacion.gif || null,
+        sticker: publicacion.sticker || null,
         fechaCreacion: publicacion.fechaCreacion,
 
         autor: {
@@ -302,7 +304,19 @@ async function crearPublicacion(req, res) {
             return res.status(400).json({ mensaje: error.message });
         }
 
-        if (!texto && !gif) {
+        let sticker = null;
+        if (cuerpo.sticker) {
+            try {
+                const autor = await Usuario.findById(req.usuario.id).select("avatar");
+                sticker = construirSticker(cuerpo.sticker, autor);
+            } catch (error) {
+                if (!(error instanceof ErrorAvatar)) throw error;
+                await limpiarTemporales();
+                return res.status(400).json({ mensaje: error.message });
+            }
+        }
+
+        if (!texto && !gif && !sticker) {
             await limpiarTemporales();
 
             return res.status(400).json({
@@ -370,7 +384,8 @@ async function crearPublicacion(req, res) {
             grupo: cuerpo.grupo || "",
             imagenes: imagenesGuardadas,
             videos: videosGuardados,
-            gif
+            gif,
+            sticker
         });
 
         await nuevaPublicacion.populate("autor", CAMPOS_AUTOR);
@@ -521,7 +536,7 @@ async function actualizarPublicacion(req, res) {
         }
 
         if (texto !== undefined) {
-            if (typeof texto !== "string" || (!texto.trim() && !publicacion.gif)) {
+            if (typeof texto !== "string" || (!texto.trim() && !publicacion.gif && !publicacion.sticker)) {
                 await limpiarTemporales();
 
                 return res.status(400).json({

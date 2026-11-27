@@ -63,6 +63,7 @@ export default function SettingsPage() {
 
       <section className="settings-section" aria-labelledby="ajustes-cuenta">
         <h3 id="ajustes-cuenta">Tu cuenta</h3>
+        <Opcion icono="user" titulo="Mi avatar y stickers" detalle="Arma tu avatar y crea stickers con él" to="/avatar" />
         <Opcion icono="pencil" titulo="Editar perfil" detalle="Nombre, foto, descripción y grupos" to="/perfil" state={{ editar: true }} />
         <Opcion icono="folder" titulo="Mi colección" to="/coleccion" />
         <Opcion icono="package" titulo="Mis órdenes" detalle="Compras, ventas e intercambios" to="/ordenes" />

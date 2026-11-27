@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { avatarSchema, stickerPropioSchema } = require("./avatar");
 
 // Opciones del banner del perfil (deben coincidir con frontend/src/utils/banner.js).
 const BANNER_COLORES = ["kollecta", "atardecer", "oceano", "menta", "noche", "dorado", "cereza"];
@@ -67,6 +68,18 @@ const usuarioSchema = new mongoose.Schema(
             default: () => ({})
         },
 
+        // Avatar personalizable (null = todavía no lo crea). Ver models/avatar.js
+        avatar: {
+            type: avatarSchema,
+            default: null
+        },
+
+        // "Mis stickers": poses guardadas para mandar con el avatar (máx. 30)
+        stickers: {
+            type: [stickerPropioSchema],
+            default: []
+        },
+
         fechaRegistro: {
             type: String,
             default: () => new Date().toISOString()
@@ -116,6 +129,8 @@ usuarioSchema.methods.aPublico = function () {
         descripcion: this.descripcion,
         gruposFavoritos: this.gruposFavoritos,
         banner: this.banner || {},
+        avatar: this.avatar || null,
+        stickers: this.stickers || [],
         fechaRegistro: this.fechaRegistro
     };
 };

@@ -58,6 +58,66 @@ crear("usuarios", {
         "animado": {"bsonType":["bool","null"]}
       }
     },
+    "avatar": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "piel": {
+          "bsonType": ["string","null"],
+          "enum": ["porcelana","clara","miel","canela","morena","caoba","ebano","lila",null]
+        },
+        "ojos": {
+          "bsonType": ["string","null"],
+          "enum": ["redondos","brillantes","almendrados","pestanas","dormilones",null]
+        },
+        "colorOjos": {"bsonType":["string","null"],"enum":["cafe","negro","miel","verde","azul","violeta","rosa",null]},
+        "cejas": {"bsonType":["string","null"],"enum":["suaves","rectas","arqueadas","gruesas",null]},
+        "boca": {"bsonType":["string","null"],"enum":["sonrisa","gatuna","abierta","tranquila","lengua",null]},
+        "cabello": {
+          "bsonType": ["string","null"],
+          "enum": ["corto","cortina","flequillo","largo","coletas","chongo","ondulado","bob","rapado",null]
+        },
+        "colorCabello": {
+          "bsonType": ["string","null"],
+          "enum": ["negro","castano","rubio","rosa","lila","azul","rojo","platino","menta","naranja",null]
+        },
+        "ropa": {
+          "bsonType": ["string","null"],
+          "enum": ["camiseta","sudadera","mezclilla","uniforme","sueter","escenario",null]
+        },
+        "colorRopa": {
+          "bsonType": ["string","null"],
+          "enum": ["rosa","morado","azul","menta","amarillo","negro","blanco","rojo",null]
+        },
+        "accesorio": {
+          "bsonType": ["string","null"],
+          "enum": ["ninguno","lentes","gorra","gato","mono","audifonos","pescador","estrellas","corona",null]
+        },
+        "mejillas": {"bsonType":["string","null"],"enum":["ninguno","rubor","lunar","curita","pecas","brillos",null]},
+        "fondo": {
+          "bsonType": ["string","null"],
+          "enum": ["kollecta","atardecer","oceano","menta","noche","dorado","cereza",null]
+        }
+      }
+    },
+    "stickers": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": ["object","null"],
+        "properties": {
+          "expresion": {
+            "bsonType": ["string","null"],
+            "enum": ["normal","feliz","amor","risa","guino","sorpresa","llorar","enojo","dormir","pena",null]
+          },
+          "gesto": {
+            "bsonType": ["string","null"],
+            "enum": ["ninguno","saludo","corazon","fighting","paz","mejillas",null]
+          },
+          "texto": {"bsonType":["string","null"],"maxLength":20},
+          "creadoEn": {"bsonType":["date","null"]},
+          "_id": {"bsonType":["objectId","null"]}
+        }
+      }
+    },
     "fechaRegistro": {"bsonType":["string","null"]},
     "activo": {"bsonType":["bool","null"]},
     "motivoBaneo": {"bsonType":["string","null"]},
@@ -92,6 +152,62 @@ crear("publicaciones", {
         "titulo": {"bsonType":["string","null"],"maxLength":200}
       },
       "required": ["url"]
+    },
+    "sticker": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "avatar": {
+          "bsonType": "object",
+          "properties": {
+            "piel": {
+              "bsonType": ["string","null"],
+              "enum": ["porcelana","clara","miel","canela","morena","caoba","ebano","lila",null]
+            },
+            "ojos": {
+              "bsonType": ["string","null"],
+              "enum": ["redondos","brillantes","almendrados","pestanas","dormilones",null]
+            },
+            "colorOjos": {"bsonType":["string","null"],"enum":["cafe","negro","miel","verde","azul","violeta","rosa",null]},
+            "cejas": {"bsonType":["string","null"],"enum":["suaves","rectas","arqueadas","gruesas",null]},
+            "boca": {"bsonType":["string","null"],"enum":["sonrisa","gatuna","abierta","tranquila","lengua",null]},
+            "cabello": {
+              "bsonType": ["string","null"],
+              "enum": ["corto","cortina","flequillo","largo","coletas","chongo","ondulado","bob","rapado",null]
+            },
+            "colorCabello": {
+              "bsonType": ["string","null"],
+              "enum": ["negro","castano","rubio","rosa","lila","azul","rojo","platino","menta","naranja",null]
+            },
+            "ropa": {
+              "bsonType": ["string","null"],
+              "enum": ["camiseta","sudadera","mezclilla","uniforme","sueter","escenario",null]
+            },
+            "colorRopa": {
+              "bsonType": ["string","null"],
+              "enum": ["rosa","morado","azul","menta","amarillo","negro","blanco","rojo",null]
+            },
+            "accesorio": {
+              "bsonType": ["string","null"],
+              "enum": ["ninguno","lentes","gorra","gato","mono","audifonos","pescador","estrellas","corona",null]
+            },
+            "mejillas": {"bsonType":["string","null"],"enum":["ninguno","rubor","lunar","curita","pecas","brillos",null]},
+            "fondo": {
+              "bsonType": ["string","null"],
+              "enum": ["kollecta","atardecer","oceano","menta","noche","dorado","cereza",null]
+            }
+          }
+        },
+        "expresion": {
+          "bsonType": ["string","null"],
+          "enum": ["normal","feliz","amor","risa","guino","sorpresa","llorar","enojo","dormir","pena",null]
+        },
+        "gesto": {
+          "bsonType": ["string","null"],
+          "enum": ["ninguno","saludo","corazon","fighting","paz","mejillas",null]
+        },
+        "texto": {"bsonType":["string","null"],"maxLength":20}
+      },
+      "required": ["avatar"]
     },
     "oculto": {
       "bsonType": ["object","null"],
@@ -233,6 +349,62 @@ crear("mensajes", {
         "titulo": {"bsonType":["string","null"],"maxLength":200}
       },
       "required": ["url"]
+    },
+    "sticker": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "avatar": {
+          "bsonType": "object",
+          "properties": {
+            "piel": {
+              "bsonType": ["string","null"],
+              "enum": ["porcelana","clara","miel","canela","morena","caoba","ebano","lila",null]
+            },
+            "ojos": {
+              "bsonType": ["string","null"],
+              "enum": ["redondos","brillantes","almendrados","pestanas","dormilones",null]
+            },
+            "colorOjos": {"bsonType":["string","null"],"enum":["cafe","negro","miel","verde","azul","violeta","rosa",null]},
+            "cejas": {"bsonType":["string","null"],"enum":["suaves","rectas","arqueadas","gruesas",null]},
+            "boca": {"bsonType":["string","null"],"enum":["sonrisa","gatuna","abierta","tranquila","lengua",null]},
+            "cabello": {
+              "bsonType": ["string","null"],
+              "enum": ["corto","cortina","flequillo","largo","coletas","chongo","ondulado","bob","rapado",null]
+            },
+            "colorCabello": {
+              "bsonType": ["string","null"],
+              "enum": ["negro","castano","rubio","rosa","lila","azul","rojo","platino","menta","naranja",null]
+            },
+            "ropa": {
+              "bsonType": ["string","null"],
+              "enum": ["camiseta","sudadera","mezclilla","uniforme","sueter","escenario",null]
+            },
+            "colorRopa": {
+              "bsonType": ["string","null"],
+              "enum": ["rosa","morado","azul","menta","amarillo","negro","blanco","rojo",null]
+            },
+            "accesorio": {
+              "bsonType": ["string","null"],
+              "enum": ["ninguno","lentes","gorra","gato","mono","audifonos","pescador","estrellas","corona",null]
+            },
+            "mejillas": {"bsonType":["string","null"],"enum":["ninguno","rubor","lunar","curita","pecas","brillos",null]},
+            "fondo": {
+              "bsonType": ["string","null"],
+              "enum": ["kollecta","atardecer","oceano","menta","noche","dorado","cereza",null]
+            }
+          }
+        },
+        "expresion": {
+          "bsonType": ["string","null"],
+          "enum": ["normal","feliz","amor","risa","guino","sorpresa","llorar","enojo","dormir","pena",null]
+        },
+        "gesto": {
+          "bsonType": ["string","null"],
+          "enum": ["ninguno","saludo","corazon","fighting","paz","mejillas",null]
+        },
+        "texto": {"bsonType":["string","null"],"maxLength":20}
+      },
+      "required": ["avatar"]
     },
     "respondeA": {"bsonType":["objectId","null"],"description":"→ Mensaje"},
     "editadoEn": {"bsonType":["date","null"]},
