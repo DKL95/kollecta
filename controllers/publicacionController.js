@@ -25,6 +25,7 @@ const { alcanza } = require("../middleware/roles");
 const logger = require("../config/logger");
 const { normalizarGif, ErrorGif } = require("../services/gifs");
 const { construirSticker, ErrorAvatar } = require("../services/avatar");
+const { registrarEvento } = require("../services/tareas");
 
 // Lee el GIF del cuerpo; responde 400 si no es válido (regresa undefined en ese caso).
 function leerGif(req, res) {
@@ -404,6 +405,7 @@ async function crearPublicacion(req, res) {
             req.usuario.id
         );
 
+        await registrarEvento(req.usuario.id, "publicar");
         return res.status(201).json({
             mensaje: "Publicación creada",
             publicacion: publicacionFormateada
@@ -832,6 +834,7 @@ async function alternarLike(req, res) {
             (id) => String(id) === idUsuario
         );
 
+        if (!yaTieneLike) await registrarEvento(req.usuario.id, "like");
         if (yaTieneLike) {
             publicacion.likes.pull(req.usuario.id);
         } else {
@@ -954,6 +957,7 @@ async function agregarComentario(req, res) {
             req.app.get("io")
         );
 
+        await registrarEvento(req.usuario.id, "comentar");
         return res.status(201).json({
             mensaje: "Comentario publicado",
 
@@ -1180,6 +1184,7 @@ async function alternarLikeComentario(req, res) {
         );
 
         // Agregar o quitar el like.
+        if (!yaTieneLike) await registrarEvento(req.usuario.id, "like");
         if (yaTieneLike) {
             comentario.likes.pull(req.usuario.id);
         } else {
@@ -1337,6 +1342,7 @@ async function agregarRespuesta(req, res) {
             };
         };
 
+        await registrarEvento(req.usuario.id, "comentar");
         return res.status(201).json({
             mensaje: "Respuesta publicada",
 
@@ -1398,6 +1404,7 @@ async function alternarLikeRespuesta(req, res) {
         );
 
         // Agregar o quitar el like.
+        if (!yaTieneLike) await registrarEvento(req.usuario.id, "like");
         if (yaTieneLike) {
             respuesta.likes.pull(req.usuario.id);
         } else {

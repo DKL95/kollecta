@@ -212,6 +212,36 @@ module.exports = [
         ]
     },
     {
+        grupo: "Tareas",
+        base: "/api/tareas",
+        archivo: "tareaRoutes.js",
+        endpoints: [
+            E("GET", "/", "token", "Tareas diarias, semanales y logros con mi avance (abrirla cuenta para la diaria de visita).", "—",
+                "{ tareas: [{ id, tipo, titulo, descripcion, meta, progreso, completada, reclamada, recompensa }], porReclamar, reinicioEn }"),
+            E("POST", "/:id/reclamar", "token", "Reclama una tarea terminada: sortea su sobre en el servidor y lo agrega al álbum.", "—",
+                "{ mensaje, estampitas: [{ id, nueva }], seriesNuevas } · 400 sin terminar · 409 ya reclamada")
+        ]
+    },
+    {
+        grupo: "Estampitas",
+        base: "/api/estampitas",
+        archivo: "estampitaRoutes.js",
+        endpoints: [
+            E("GET", "/", "token", "Mi álbum de estampitas.", "—", "{ album: [{ id, cantidad }], distintas, total, repetidas, seriesCompletas }"),
+            E("GET", "/:username", "token", "Álbum de otra persona (solo lectura).", "—", "{ username, album, distintas, total, repetidas, seriesCompletas }")
+        ]
+    },
+    {
+        grupo: "Minijuegos",
+        base: "/api/juegos",
+        archivo: "juegoRoutes.js",
+        endpoints: [
+            E("POST", "/:juego/partidas", "token", "Guarda una partida (snake, tiendita o memorama): actualiza el récord y avanza las tareas. Rechaza puntajes imposibles y partidas seguidas en menos de 3 s.",
+                "{ puntos (entero) }", "201 { mensaje, puntos, mejor, nuevoRecord, partidas } · 400 · 429"),
+            E("GET", "/:juego/ranking", "token", "Los 10 mejores puntajes del juego y mi lugar.", "—", "{ ranking: [{ usuario, mejor }], mio: { mejor, partidas, lugar } }")
+        ]
+    },
+    {
         grupo: "Grupos K-pop",
         base: "/api/grupos",
         archivo: "grupoRoutes.js",

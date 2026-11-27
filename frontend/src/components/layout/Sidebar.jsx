@@ -5,6 +5,7 @@ import Icon from "../Icon";
 import { NAV_SECTIONS } from "./navItems";
 import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 import useDenunciasPendientes from "../../hooks/useDenunciasPendientes";
+import useTareasPendientes from "../../hooks/useTareasPendientes";
 import RoleBadge from "../RoleBadge";
 import { alcanza } from "../../utils/roles";
 import { InstallButton } from "../InstallApp";
@@ -15,6 +16,7 @@ export default function Sidebar({ mensajesNoLeidos = 0 }) {
 
   const notificacionesNoLeidas = useNotificacionesNoLeidas();
   const denunciasPendientes = useDenunciasPendientes();
+  const tareasPendientes = useTareasPendientes();
 
   function handleLogout() {
     logout();
@@ -61,6 +63,12 @@ export default function Sidebar({ mensajesNoLeidos = 0 }) {
                 denunciasPendientes > 0 && (
                   <span className="count" title={`${denunciasPendientes} denuncias pendientes`}>
                     {denunciasPendientes > 9 ? "9+" : denunciasPendientes}
+                  </span>
+                )
+              ) : item.to === "/tareas" ? (
+                tareasPendientes > 0 && (
+                  <span className="count" title={`${tareasPendientes} tareas por reclamar`}>
+                    {tareasPendientes > 9 ? "9+" : tareasPendientes}
                   </span>
                 )
               ) : item.to === "/mensajes" ? (

@@ -100,6 +100,13 @@ export default function SettingsPage() {
         )}
       </section>
 
+      <section className="settings-section" aria-labelledby="ajustes-diversion">
+        <h3 id="ajustes-diversion">Diversión</h3>
+        <Opcion icono="target" titulo="Tareas" detalle="Completa tareas y gana sobres de estampitas" to="/tareas" />
+        <Opcion icono="card" titulo="Álbum de estampitas" to="/estampitas" />
+        <Opcion icono="gamepad" titulo="Minijuegos" detalle="Lightstick Snake, K-Style Boutique y Memorama" to="/juegos" />
+      </section>
+
       <section className="settings-section" aria-labelledby="ajustes-mas">
         <h3 id="ajustes-mas">Más</h3>
         <Opcion icono="chart" titulo="Reportes" detalle="Estadísticas según tu rol" to="/reportes" />

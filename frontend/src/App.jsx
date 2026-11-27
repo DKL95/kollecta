@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider } from "./context/AuthContext";
@@ -22,7 +23,11 @@ import ProfilePage from "./pages/ProfilePage";
 import SearchPage from "./pages/SearchPage";
 import SellPage from "./pages/SellPage";
 import SettingsPage from "./pages/SettingsPage";
-import AvatarPage from "./pages/AvatarPage";
+// Pantallas pesadas (dibujos y juegos): se descargan solo cuando se abren.
+const AvatarPage = lazy(() => import("./pages/AvatarPage"));
+const TareasPage = lazy(() => import("./pages/TareasPage"));
+const AlbumPage = lazy(() => import("./pages/AlbumPage"));
+const JuegosPage = lazy(() => import("./pages/JuegosPage"));
 
 // Todas las pantallas de la app y su ruta. `handle` define el título de la barra superior.
 const router = createBrowserRouter([
@@ -46,6 +51,11 @@ const router = createBrowserRouter([
       { path: "/coleccion/agregar", element: <SellPage soloColeccion />, handle: { title: "Agregar a mi colección", subtitle: "Guarda una pieza sin ponerla a la venta" } },
       { path: "/coleccion", element: <CollectionPage />, handle: { title: "Mi colección", subtitle: "Tu vitrina personal de merch" } },
       { path: "/perfil", element: <ProfilePage />, handle: { title: "Mi perfil" } },
+      { path: "/tareas", element: <TareasPage />, handle: { title: "Tareas", subtitle: "Completa tareas y gana estampitas" } },
+      { path: "/estampitas", element: <AlbumPage />, handle: { title: "Álbum", subtitle: "Tus estampitas coleccionables" } },
+      { path: "/estampitas/:username", element: <AlbumPage />, handle: { title: "Álbum", subtitle: "Estampitas coleccionables" } },
+      { path: "/juegos", element: <JuegosPage />, handle: { title: "Minijuegos", subtitle: "Juega y rompe tu récord" } },
+      { path: "/juegos/:juego", element: <JuegosPage />, handle: { title: "Minijuegos", subtitle: "Juega y rompe tu récord" } },
       { path: "/avatar", element: <AvatarPage />, handle: { title: "Mi avatar", subtitle: "Arma tu avatar y tus stickers" } },
       { path: "/ajustes", element: <SettingsPage />, handle: { title: "Ajustes", subtitle: "Tu cuenta, preferencias y sesión" } },
       { path: "/perfil/:username", element: <ProfilePage />, handle: { title: "Perfil" } },

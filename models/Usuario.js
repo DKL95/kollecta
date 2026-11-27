@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { avatarSchema, stickerPropioSchema } = require("./avatar");
+const { IDS_ESTAMPITAS } = require("./estampitas");
 
 // Opciones del banner del perfil (deben coincidir con frontend/src/utils/banner.js).
 const BANNER_COLORES = ["kollecta", "atardecer", "oceano", "menta", "noche", "dorado", "cereza"];
@@ -77,6 +78,18 @@ const usuarioSchema = new mongoose.Schema(
         // "Mis stickers": poses guardadas para mandar con el avatar (máx. 30)
         stickers: {
             type: [stickerPropioSchema],
+            default: []
+        },
+
+        // Álbum de estampitas: cuántas tiene de cada una (ver models/estampitas.js)
+        estampitas: {
+            type: [new mongoose.Schema(
+                {
+                    id: { type: String, enum: IDS_ESTAMPITAS, required: true },
+                    cantidad: { type: Number, default: 1, min: 1 }
+                },
+                { _id: false }
+            )],
             default: []
         },
 

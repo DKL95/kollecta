@@ -28,7 +28,9 @@ const DESCRIPCIONES = {
     ordenes: "Compras e intercambios. comprador/vendedor → usuarios, producto → productos, conversacion → conversaciones.",
     denuncias: "Denuncias de contenido o cuentas para moderación. reportante/usuarioDenunciado/moderador → usuarios.",
     moderaciones: "Bitácora de acciones de moderación. moderador/usuarioAfectado → usuarios, denuncia → denuncias.",
-    grupos: "Grupos K-pop que agrega la comunidad (pendiente → aprobado | rechazado). solicitante/revisadoPor → usuarios."
+    grupos: "Grupos K-pop que agrega la comunidad (pendiente → aprobado | rechazado). solicitante/revisadoPor → usuarios.",
+    progreso_tareas: "Avance de cada usuario en las tareas diarias, semanales y logros (TTL: las diarias/semanales caducan). usuario → usuarios.",
+    marcadores: "Mejor puntaje y partidas de cada usuario en cada minijuego (ranking). usuario → usuarios."
 };
 
 const ORDEN = Object.keys(DESCRIPCIONES);

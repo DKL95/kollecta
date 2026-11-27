@@ -1,7 +1,7 @@
 /* ==========================================================================
    KollectA — creación de la base de datos (equivalente al script SQL de tablas).
 
-   Crea las 15 colecciones con su validador $jsonSchema (tipos, campos
+   Crea las 17 colecciones con su validador $jsonSchema (tipos, campos
    obligatorios, enums y límites) y sus índices, incluidos los únicos.
 
    Uso:   mongosh "<MONGODB_URI>" scripts/crear-base.mongodb.js
@@ -116,6 +116,57 @@ crear("usuarios", {
           "creadoEn": {"bsonType":["date","null"]},
           "_id": {"bsonType":["objectId","null"]}
         }
+      }
+    },
+    "estampitas": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": ["object","null"],
+        "properties": {
+          "id": {
+            "bsonType": "string",
+            "enum": [
+              "ls_estrella",
+              "ls_corazon",
+              "ls_luna",
+              "ls_diamante",
+              "ls_corona",
+              "ls_arcoiris",
+              "al_debut",
+              "al_verano",
+              "al_invierno",
+              "al_retro",
+              "al_holo",
+              "al_firmado",
+              "es_micro",
+              "es_inear",
+              "es_reflector",
+              "es_confeti",
+              "es_setlist",
+              "es_trofeo",
+              "fa_photocard",
+              "fa_boleto",
+              "fa_pancarta",
+              "fa_binder",
+              "fa_megafono",
+              "fa_firma",
+              "sn_tteokbokki",
+              "sn_ramyeon",
+              "sn_bungeoppang",
+              "sn_kimbap",
+              "sn_bingsu",
+              "sn_pollo",
+              "se_torre",
+              "se_hanok",
+              "se_rio",
+              "se_metro",
+              "se_palacio",
+              "se_cerezos"
+            ]
+          },
+          "cantidad": {"bsonType":["int","long","double","decimal","null"],"minimum":1}
+        },
+        "required": ["id"]
       }
     },
     "fechaRegistro": {"bsonType":["string","null"]},
@@ -757,5 +808,47 @@ db.grupos.createIndex({"clave":1,"estado":1});
 db.grupos.createIndex({"estado":1,"fechaCreacion":-1});
 db.grupos.createIndex({"solicitante":1,"fechaCreacion":-1});
 db.grupos.createIndex({"claveBase":1});
+
+// ---------------------------------------------------------------------------
+// progreso_tareas: Avance de cada usuario en las tareas diarias, semanales y logros (TTL: las diarias/semanales caducan). usuario → usuarios.
+// ---------------------------------------------------------------------------
+crear("progreso_tareas", {
+  "bsonType": "object",
+  "properties": {
+    "usuario": {"bsonType":"objectId","description":"→ Usuario"},
+    "tarea": {"bsonType":"string","maxLength":40},
+    "periodo": {"bsonType":"string","maxLength":20},
+    "progreso": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+    "reclamada": {"bsonType":["bool","null"]},
+    "reclamadaEn": {"bsonType":["date","null"]},
+    "expiraEn": {"bsonType":["date","null"]},
+    "_id": {"bsonType":["objectId","null"]},
+    "createdAt": {"bsonType":["date","null"]},
+    "updatedAt": {"bsonType":["date","null"]}
+  },
+  "required": ["usuario","tarea","periodo"]
+});
+db.progreso_tareas.createIndex({"usuario":1,"tarea":1,"periodo":1}, {"unique":true});
+db.progreso_tareas.createIndex({"expiraEn":1}, {"expireAfterSeconds":0});
+
+// ---------------------------------------------------------------------------
+// marcadores: Mejor puntaje y partidas de cada usuario en cada minijuego (ranking). usuario → usuarios.
+// ---------------------------------------------------------------------------
+crear("marcadores", {
+  "bsonType": "object",
+  "properties": {
+    "usuario": {"bsonType":"objectId","description":"→ Usuario"},
+    "juego": {"bsonType":"string","enum":["snake","tiendita","memorama"]},
+    "mejor": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+    "partidas": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+    "ultimaPartida": {"bsonType":["date","null"]},
+    "_id": {"bsonType":["objectId","null"]},
+    "createdAt": {"bsonType":["date","null"]},
+    "updatedAt": {"bsonType":["date","null"]}
+  },
+  "required": ["usuario","juego"]
+});
+db.marcadores.createIndex({"usuario":1,"juego":1}, {"unique":true});
+db.marcadores.createIndex({"juego":1,"mejor":-1});
 
 print("Listo: " + db.getCollectionNames().length + " colecciones en " + nombreBase);

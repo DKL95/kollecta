@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Navigate, Outlet, useLocation, useMatches } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import BottomNav from "./BottomNav";
@@ -30,7 +30,9 @@ export default function AppLayout() {
       <Sidebar mensajesNoLeidos={mensajesNoLeidos} />
       <div className="main-col">
         <Topbar title={handle.title} subtitle={handle.subtitle} />
-        <Outlet />
+        <Suspense fallback={<main className="page"><p className="avatar-hint">Cargando…</p></main>}>
+          <Outlet />
+        </Suspense>
         <InstallBanner />
         <BottomNav mensajesNoLeidos={mensajesNoLeidos} />
       </div>

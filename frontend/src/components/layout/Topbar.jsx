@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useNotificacionesNoLeidas from "../../hooks/useNotificacionesNoLeidas";
 import { useAuth } from "../../context/AuthContext";
 import useDenunciasPendientes from "../../hooks/useDenunciasPendientes";
+import useTareasPendientes from "../../hooks/useTareasPendientes";
 import { esModerador } from "../../utils/roles";
 import { UserAvatar } from "../Avatar";
 import Icon from "../Icon";
@@ -14,6 +15,7 @@ export default function Topbar({ title, subtitle }) {
   const [query, setQuery] = useState("");
   const noLeidas = useNotificacionesNoLeidas();
   const pendientes = useDenunciasPendientes();
+  const tareas = useTareasPendientes();
 
   function handleSearch(event) {
     event.preventDefault();
@@ -40,6 +42,16 @@ export default function Topbar({ title, subtitle }) {
       </form>
 
       <div className="topbar-actions">
+        <Link
+          className="icon-btn topbar-mobile-only"
+          to="/juegos"
+          title={tareas > 0 ? `Diversión: ${tareas} tareas por reclamar` : "Tareas, álbum y minijuegos"}
+          style={{ position: "relative" }}
+        >
+          <Icon name="gamepad" size={18} />
+          {tareas > 0 && <span className="badge-dot">{tareas > 9 ? "9+" : tareas}</span>}
+        </Link>
+
         <Link className="icon-btn topbar-mobile-only" to="/reportes" title="Reportes">
           <Icon name="chart" size={18} />
         </Link>

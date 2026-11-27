@@ -26,6 +26,14 @@ export const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Diversión",
+    items: [
+      { label: "Tareas", icon: "target", to: "/tareas" },
+      { label: "Álbum de estampitas", icon: "card", to: "/estampitas" },
+      { label: "Minijuegos", icon: "gamepad", to: "/juegos" },
+    ],
+  },
+  {
     // minRol: solo se muestra a ese rol o superior (el backend valida igual)
     label: "Gestión",
     items: [
