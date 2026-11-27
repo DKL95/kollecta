@@ -318,6 +318,12 @@ export default function GroupChatDialog({ grupo, usuarioActual, onCerrar, onGuar
               )
             )}
 
+            {!soyAdmin && (
+              <p className="messages-search-status">
+                Solo los administradores del grupo pueden agregar o quitar personas.
+              </p>
+            )}
+
             {error && <p className="form-error">{error}</p>}
 
             <button type="button" className="group-leave-btn" onClick={salir} disabled={guardando}>

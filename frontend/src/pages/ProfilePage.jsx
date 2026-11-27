@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import Avatar, { UserAvatar } from "../components/Avatar";
 import BannerDialog from "../components/BannerDialog";
@@ -24,6 +24,8 @@ export default function ProfilePage() {
   const params = useParams();
   const username = params.username || user.username;
   const isOwnProfile = username === user.username;
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -101,6 +103,14 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, [profileId]);
+
+  // Desde Ajustes → "Editar perfil": abrir el formulario en cuanto cargue el perfil
+  // y limpiar el aviso para que no se vuelva a abrir al recargar.
+  useEffect(() => {
+    if (!profile || !isOwnProfile || !location.state?.editar) return;
+    setEditing(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [profile, isOwnProfile, location.state, location.pathname, navigate]);
 
   // Consultar el estado de la amistad al entrar en un perfil
   useEffect(() => {
@@ -365,6 +375,10 @@ export default function ProfilePage() {
 
             <Link to="/vender" className="btn btn-primary">
               <Icon name="plus" size={14} /> Publicar
+            </Link>
+
+            <Link to="/ajustes" className="btn btn-secondary profile-settings-btn" title="Ajustes" aria-label="Ajustes">
+              <Icon name="settings" size={16} />
             </Link>
           </div>
         ) : (
