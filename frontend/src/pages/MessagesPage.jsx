@@ -9,6 +9,8 @@ import Icon from "../components/Icon";
 import EmojiPicker from "../components/EmojiPicker";
 import GifPicker from "../components/GifPicker";
 import GifView from "../components/GifView";
+import StickerPicker from "../components/StickerPicker";
+import StickerView from "../components/StickerView";
 import { etiquetaDia, fechaCortaChat, fechaHoraCompleta, horaCorta, mismoDia } from "../utils/format";
 
 function esGrupo(conversacion) {
@@ -590,13 +592,23 @@ export default function MessagesPage() {
 
     if ((!texto && !draftGif) || !activeId || sending) return;
 
+    await enviar({ texto, gif: draftGif, respondeA: respondiendo?._id || null });
+  }
+
+  // Un sticker se manda en cuanto se elige (no toca lo que estés escribiendo).
+  async function enviarSticker(sticker) {
+    if (!activeId || sending) return;
+    await enviar({ sticker, respondeA: respondiendo?._id || null }, { conservarBorrador: true });
+  }
+
+  async function enviar(cuerpo, { conservarBorrador = false } = {}) {
     setSending(true);
     setError("");
 
     try {
       const nuevoMensaje = await apiRequest(`/mensajes/${activeId}`, {
         method: "POST",
-        body: { texto, gif: draftGif, respondeA: respondiendo?._id || null },
+        body: cuerpo,
       });
 
       setMessages((anteriores) => {
@@ -608,8 +620,10 @@ export default function MessagesPage() {
           ? anteriores
           : [...anteriores, nuevoMensaje];
       });
-      setDraft("");
-      setDraftGif(null);
+      if (!conservarBorrador) {
+        setDraft("");
+        setDraftGif(null);
+      }
       setRespondiendo(null);
 
       // Actualizar la vista previa de la conversación.
@@ -826,11 +840,13 @@ export default function MessagesPage() {
                   <div className="bottom-line">
                   <div className="preview">
                     {ultimoEsMio && <span className="preview-tu">{autorUltimo}</span>}
-                    {ultimoEsMio ? (ultimoMensaje?.texto || (ultimoMensaje?.gif ? "GIF" : "")) : null}
+                    {ultimoEsMio ? (ultimoMensaje?.texto || (ultimoMensaje?.gif ? "GIF" : ultimoMensaje?.sticker ? "Sticker" : "")) : null}
                     {!ultimoEsMio && (ultimoMensaje?.texto
                       ? `${autorUltimo}${ultimoMensaje.texto}`
                       : ultimoMensaje?.gif
                         ? `${autorUltimo}GIF`
+                        : ultimoMensaje?.sticker
+                        ? `${autorUltimo}Sticker`
                         : esGrupo(thread)
                         ? "Grupo creado. ¡Saluda!"
                         : "Inicia la conversación")}
@@ -1074,7 +1090,7 @@ export default function MessagesPage() {
                         />
                       )}
 
-                      <div className="bubble">
+                      <div className={`bubble ${message.sticker && !message.texto && !message.gif && !message.respondeA ? "solo-sticker" : ""}`}>
                         {esGrupo(activeThread) && !esMio && (
                           <span className="bubble-author">
                             {obtenerNombre(message.remitente)}
@@ -1083,7 +1099,7 @@ export default function MessagesPage() {
                         {message.respondeA && (
                           <button type="button" className="msg-cita" onClick={() => irAlMensaje(message.respondeA._id)}>
                             <span className="msg-cita-autor">{obtenerNombre(message.respondeA.remitente)}</span>
-                            <span className="msg-cita-texto">{message.respondeA.texto || (message.respondeA.gif ? "GIF" : "Mensaje")}</span>
+                            <span className="msg-cita-texto">{message.respondeA.texto || (message.respondeA.gif ? "GIF" : message.respondeA.sticker ? "Sticker" : "Mensaje")}</span>
                           </button>
                         )}
                         {editando?.id === message._id ? (
@@ -1104,6 +1120,7 @@ export default function MessagesPage() {
                           message.texto
                         )}
                         <GifView gif={message.gif} size="sm" />
+                        <StickerView sticker={message.sticker} size={128} />
                         {message.editadoEn && <span className="msg-edited">(editado)</span>}
 
                         <time className="msg-time" dateTime={message.createdAt} title={fechaHoraCompleta(message.createdAt)}>
@@ -1145,7 +1162,7 @@ export default function MessagesPage() {
               <div className="chat-reply-preview">
                 <div className="chat-reply-info">
                   <span className="msg-cita-autor">Respondiendo a {obtenerNombre(respondiendo.remitente)}</span>
-                  <span className="msg-cita-texto">{respondiendo.texto || (respondiendo.gif ? "GIF" : "Mensaje")}</span>
+                  <span className="msg-cita-texto">{respondiendo.texto || (respondiendo.gif ? "GIF" : respondiendo.sticker ? "Sticker" : "Mensaje")}</span>
                 </div>
                 <button type="button" className="icon-btn" aria-label="Cancelar respuesta" onClick={() => setRespondiendo(null)}>
                   <Icon name="close" size={16} />
@@ -1162,6 +1179,7 @@ export default function MessagesPage() {
             <form className="chat-input-row" onSubmit={handleSend}>
               <EmojiPicker onSelect={(emoji) => setDraft((actual) => actual + emoji)} disabled={sending} />
               <GifPicker onSelect={setDraftGif} disabled={sending} />
+              <StickerPicker onSelect={enviarSticker} disabled={sending} />
 
               <input
                 type="text"

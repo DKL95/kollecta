@@ -1,6 +1,9 @@
 const express = require("express");
 
 const {
+    actualizarAvatar,
+    crearSticker,
+    eliminarSticker,
     actualizarBanner,
     listarMisAmigos,
     buscarUsuarios,
@@ -65,6 +68,9 @@ router.delete("/:id/amigo", eliminarAmigo);
 
 router.get("/", buscarUsuarios);
 router.put("/me", registrarOperacion("editar perfil"), upload.single("fotoPerfil"), validarFotoPerfil, actualizarPerfil);
+router.put("/me/avatar", registrarOperacion("editar avatar"), actualizarAvatar);
+router.post("/me/stickers", registrarOperacion("crear sticker"), crearSticker);
+router.delete("/me/stickers/:id", registrarOperacion("borrar sticker"), eliminarSticker);
 router.put("/me/banner", registrarOperacion("editar banner"), upload.fields([{ name: "portada", maxCount: 1 }]), validarArchivos, actualizarBanner);
 router.get("/:username", obtenerPerfil);
 router.get("/:username/publicaciones", obtenerPublicacionesDeUsuario);

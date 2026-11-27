@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { campoOculto } = require("./oculto");
 const { campoGif } = require("./gif");
+const { campoSticker } = require("./avatar");
 
 // Esquema principal de publicaciones.
 const publicacionSchema = new mongoose.Schema(
@@ -41,6 +42,8 @@ const publicacionSchema = new mongoose.Schema(
 
     // Ocultada por moderación (null = visible). Ver docs/PLAN-roles.md
     gif: campoGif,
+    // Sticker hecho con el avatar del autor (null = sin sticker)
+    sticker: campoSticker,
     oculto: campoOculto
   },
   {

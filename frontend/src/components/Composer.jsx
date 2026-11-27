@@ -6,6 +6,8 @@ import Icon from "./Icon";
 import EmojiPicker from "./EmojiPicker";
 import GifPicker from "./GifPicker";
 import GifView from "./GifView";
+import StickerPicker from "./StickerPicker";
+import StickerView from "./StickerView";
 import useGrupos from "../hooks/useGrupos";
 
 const MAX_IMAGES = 10;
@@ -20,6 +22,7 @@ export default function Composer({ onCreated }) {
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
   const [gif, setGif] = useState(null);
+  const [sticker, setSticker] = useState(null);
   const [sending, setSending] = useState(false);
 
   const fileInput = useRef(null);
@@ -147,12 +150,13 @@ export default function Composer({ onCreated }) {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if ((!text.trim() && !gif) || sending) return;
+    if ((!text.trim() && !gif && !sticker) || sending) return;
 
     const form = new FormData();
     form.append("texto", text.trim());
     form.append("grupo", group);
     if (gif) form.append("gif", JSON.stringify(gif));
+    if (sticker) form.append("sticker", JSON.stringify(sticker));
 
     images.forEach((image) => {
       form.append("imagenes", image);
@@ -177,6 +181,7 @@ export default function Composer({ onCreated }) {
       setImages([]);
       setVideos([]);
       setGif(null);
+      setSticker(null);
     } catch (error) {
       alert(error.message);
     } finally {
@@ -198,6 +203,9 @@ export default function Composer({ onCreated }) {
         />
 
         {gif && <GifView gif={gif} onRemove={() => setGif(null)} />}
+        {sticker && user?.avatar && (
+          <StickerView sticker={{ ...sticker, avatar: user.avatar }} size={120} onRemove={() => setSticker(null)} />
+        )}
 
         {/* Vista previa de las fotografías */}
         {images.length > 0 && (
@@ -345,6 +353,7 @@ export default function Composer({ onCreated }) {
           {/* Emojis y GIFs */}
           <EmojiPicker onSelect={(emoji) => setText((actual) => (actual + emoji).slice(0, 1000))} disabled={sending} />
           <GifPicker onSelect={setGif} disabled={sending} />
+          <StickerPicker onSelect={setSticker} disabled={sending} />
 
           {/* Etiquetar grupo */}
           <label className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
@@ -370,7 +379,7 @@ export default function Composer({ onCreated }) {
             type="submit"
             className="btn btn-primary btn-sm"
             style={{ marginLeft: "auto" }}
-            disabled={sending || (!text.trim() && !gif)}
+            disabled={sending || (!text.trim() && !gif && !sticker)}
           >
             {sending ? "Publicando…" : "Publicar"}
           </button>

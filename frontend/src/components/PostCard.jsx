@@ -12,6 +12,7 @@ import { esModerador } from "../utils/roles";
 import EmojiPicker from "./EmojiPicker";
 import GifPicker from "./GifPicker";
 import GifView from "./GifView";
+import StickerView from "./StickerView";
 
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 5;
@@ -1873,6 +1874,7 @@ async function handleDeleteReply(comment, reply) {
         <>
           {post.texto && <p className="post-text">{renderTextWithMentions(post.texto)}</p>}
           <GifView gif={post.gif} />
+          <StickerView sticker={post.sticker} size={150} />
 
           {(() => {
             const mediaItems = [

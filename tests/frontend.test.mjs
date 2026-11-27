@@ -8,6 +8,7 @@ import { adaptarGrupo } from "../frontend/src/utils/grupos.js";
 import { COLORES_BANNER, TEXTURAS_BANNER, normalizarBanner } from "../frontend/src/utils/banner.js";
 import { adaptarProducto, modalidad } from "../frontend/src/utils/coleccion.js";
 import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
+import * as avatarFront from "../frontend/src/utils/avatar.js";
 
 describe("Frontend: utilidades de formato", () => {
     it("formatMoney usa formato de México", () => {
@@ -132,5 +133,54 @@ describe("Frontend: compra-venta", () => {
         assert.deepEqual(estados({ estado: "recibida", miRol: "vendedor" }), ["completada"]);
         assert.deepEqual(estados({ estado: "completada", miRol: "comprador" }), []);
         assert.deepEqual(estados({ estado: "pendiente", miRol: null }), [], "moderación solo mira");
+    });
+});
+
+describe("Frontend: avatar y stickers", () => {
+    const cargarBackend = async () => {
+        const { createRequire } = await import("node:module");
+        return createRequire(import.meta.url)("../models/avatar.js");
+    };
+
+    it("las opciones del avatar son las mismas que acepta el backend", async () => {
+        const back = await cargarBackend();
+        assert.deepEqual(Object.keys(avatarFront.OPCIONES_AVATAR).sort(), Object.keys(back.OPCIONES_AVATAR).sort());
+        for (const [clave, valores] of Object.entries(back.OPCIONES_AVATAR)) {
+            assert.deepEqual(Object.keys(avatarFront.OPCIONES_AVATAR[clave]).sort(), [...valores].sort(), clave);
+        }
+        assert.deepEqual(avatarFront.AVATAR_INICIAL, back.AVATAR_INICIAL);
+        assert.deepEqual(Object.keys(avatarFront.EXPRESIONES).sort(), [...back.EXPRESIONES].sort());
+        assert.deepEqual(Object.keys(avatarFront.GESTOS).sort(), [...back.GESTOS].sort());
+        assert.equal(avatarFront.MAX_TEXTO_STICKER, back.MAX_TEXTO_STICKER);
+    });
+
+    it("los stickers básicos usan expresiones y gestos válidos y textos cortos", () => {
+        const ids = new Set();
+        for (const s of avatarFront.STICKERS_BASE) {
+            assert.ok(avatarFront.EXPRESIONES[s.expresion], s.id);
+            assert.ok(avatarFront.GESTOS[s.gesto], s.id);
+            assert.ok(s.texto.length <= avatarFront.MAX_TEXTO_STICKER, s.id);
+            assert.ok(!ids.has(s.id), `id repetido: ${s.id}`);
+            ids.add(s.id);
+        }
+    });
+
+    it("completarAvatar rellena lo que falta o no existe", () => {
+        const a = avatarFront.completarAvatar({ cabello: "bob", piel: "verde-alien" });
+        assert.equal(a.cabello, "bob");
+        assert.equal(a.piel, avatarFront.AVATAR_INICIAL.piel);
+        assert.deepEqual(avatarFront.completarAvatar(null), avatarFront.AVATAR_INICIAL);
+    });
+
+    it("avatarAleatorio siempre da opciones válidas", () => {
+        for (let i = 0; i < 50; i++) {
+            const a = avatarFront.avatarAleatorio();
+            for (const [clave, opciones] of Object.entries(avatarFront.OPCIONES_AVATAR)) assert.ok(opciones[a[clave]], clave);
+        }
+    });
+
+    it("mezclar combina colores hex", () => {
+        assert.equal(avatarFront.mezclar("#000000", "#ffffff", 0.5), "#808080");
+        assert.equal(avatarFront.mezclar("#ff0000", "#0000ff", 0), "#ff0000");
     });
 });

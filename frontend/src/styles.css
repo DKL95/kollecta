@@ -5215,3 +5215,83 @@ button.opt.active { background: rgba(255, 79, 163, 0.08); color: var(--pink); }
 .settings-switch.on span { transform: translateX(18px); }
 .profile-settings-btn { padding-left: 12px; padding-right: 12px; }
 @media (prefers-reduced-motion: reduce) { .settings-switch, .settings-switch span { transition: none; } }
+
+/* ==========================================================================
+   Avatar personalizable y stickers
+   ========================================================================== */
+.avatar-kpop { display: block; flex: none; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.avatar-page { display: flex; flex-direction: column; gap: 28px; }
+.avatar-editor { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
+.avatar-preview { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.avatar-preview-frame { align-self: center; width: 240px; height: 240px; border-radius: 50%; overflow: hidden; box-shadow: var(--shadow-glow); }
+.avatar-preview-frame .avatar-kpop { width: 100%; height: 100%; }
+.avatar-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.avatar-aviso { margin: 0; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; }
+.avatar-aviso.ok { background: rgba(61, 220, 151, 0.12); color: var(--green); }
+.avatar-aviso.error { background: rgba(255, 92, 114, 0.12); color: var(--red); }
+
+.avatar-options { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.avatar-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.avatar-tabs button { flex: none; padding: 9px 16px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: rgba(255, 255, 255, 0.03); color: var(--text-dim); font-weight: 700; font-size: 13.5px; }
+.avatar-tabs button.active { background: var(--gradient-brand); color: #100a1e; border-color: transparent; }
+.avatar-group { margin: 0; padding: 0; border: 0; min-width: 0; }
+.avatar-group legend, .avatar-group > span { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); }
+.avatar-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.avatar-choices.color, .avatar-choices.fondo { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+.avatar-choice { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px; border-radius: var(--radius-md); border: 2px solid transparent; background: var(--card); color: var(--text-dim); font: inherit; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.avatar-choice:hover { background: var(--card-hover); }
+.avatar-choice.active { border-color: var(--pink); color: var(--text); background: rgba(255, 79, 163, 0.08); }
+.avatar-choice:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.avatar-choice-label { font-size: 11.5px; font-weight: 700; text-align: center; line-height: 1.2; }
+.avatar-choice-art { display: block; width: 64px; height: 64px; overflow: hidden; border-radius: 12px; background: rgba(255, 255, 255, 0.04); }
+.avatar-choice-art.zoom .avatar-kpop { width: 120px; height: 120px; margin: -38px 0 0 -28px; }
+.avatar-swatch { display: block; width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.2); }
+.avatar-swatch.fondo { border-radius: 12px; width: 48px; }
+
+.avatar-stickers .page-header { margin-bottom: 14px; }
+.avatar-hint { color: var(--text-dim); font-size: 14px; }
+.sticker-maker { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.sticker-maker-form { display: flex; flex-direction: column; gap: 14px; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.sticker-maker-preview { align-self: center; padding: 10px; border-radius: var(--radius-md); background: repeating-conic-gradient(rgba(255, 255, 255, 0.04) 0 25%, transparent 0 50%) 0 0 / 20px 20px; }
+.sticker-text { display: flex; flex-direction: column; gap: 6px; }
+.sticker-text input { padding: 10px 14px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--bg-elevated); color: var(--text); font: inherit; }
+.sticker-text small { align-self: flex-end; color: var(--text-faint); font-size: 11.5px; }
+.sticker-collection h3 { margin: 0 0 10px; font-size: 15px; }
+.sticker-collection h3:not(:first-child) { margin-top: 22px; }
+.sticker-saved { position: relative; display: flex; justify-content: center; padding: 4px; border-radius: var(--radius-md); background: var(--card); }
+
+/* Selector de stickers (chat y publicaciones) */
+.sticker-toggle { padding: 0 5px; overflow: hidden; }
+.sticker-toggle .avatar-kpop { border-radius: 50%; }
+.sticker-panel { width: 320px; }
+.sticker-tabs { display: flex; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.sticker-tabs button { flex: 1; padding: 6px 4px; background: none; border: 0; border-radius: var(--radius-sm); color: var(--text-dim); font-weight: 700; font-size: 12.5px; }
+.sticker-tabs button.active { background: var(--card-hover); color: var(--text); box-shadow: inset 0 -2px 0 var(--pink); }
+.sticker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 280px; overflow-y: auto; }
+.sticker-grid.grande { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); max-height: none; overflow: visible; }
+.sticker-grid button { display: flex; justify-content: center; padding: 4px; border: 0; border-radius: var(--radius-sm); background: var(--card); cursor: pointer; }
+.sticker-grid button:hover, .sticker-grid button:focus-visible { background: var(--card-hover); outline: 2px solid var(--pink); }
+.sticker-create { display: block; margin-top: 8px; padding: 8px; text-align: center; font-size: 13px; font-weight: 700; color: var(--pink); border-radius: var(--radius-sm); }
+.sticker-create:hover { background: var(--card-hover); }
+.sticker-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px; text-align: center; font-size: 13.5px; color: var(--text-dim); }
+.sticker-empty p { margin: 0; }
+
+/* Sticker dentro de un mensaje o publicación */
+.sticker-view { position: relative; display: inline-block; margin-top: 4px; vertical-align: top; }
+.msg-row .bubble.solo-sticker { background: none; border: 0; padding: 0; box-shadow: none; }
+.msg-row.mine .bubble.solo-sticker { background: none; color: var(--text); font-weight: 500; }
+.msg-row .bubble.solo-sticker .msg-time, .msg-row .bubble.solo-sticker .msg-status { color: var(--text-dim); }
+.chat-sticker-preview { padding: 6px 16px 0; }
+
+@media (max-width: 860px) {
+  .avatar-editor { grid-template-columns: 1fr; }
+  .avatar-preview { position: static; }
+  .sticker-maker { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .avatar-preview-frame { width: 180px; height: 180px; }
+  .avatar-choices { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+  .sticker-panel { width: min(320px, calc(100vw - 32px)); }
+}

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { campoGif } = require("./gif");
+const { campoSticker } = require("./avatar");
 
 const mensajeSchema = new mongoose.Schema(
     {
@@ -23,6 +24,9 @@ const mensajeSchema = new mongoose.Schema(
         },
 
         gif: campoGif,
+
+        // Sticker hecho con el avatar de quien lo manda (null = sin sticker)
+        sticker: campoSticker,
 
         // Mensaje de la misma conversación al que responde (null si no responde a ninguno)
         respondeA: {
