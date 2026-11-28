@@ -29,6 +29,8 @@ const TareasPage = lazy(() => import("./pages/TareasPage"));
 const AlbumPage = lazy(() => import("./pages/AlbumPage"));
 const JuegosPage = lazy(() => import("./pages/JuegosPage"));
 const KlipsPage = lazy(() => import("./pages/KlipsPage"));
+// three.js (3D) solo se descarga al abrir la galería.
+const GaleriaPage = lazy(() => import("./pages/GaleriaPage"));
 
 // Todas las pantallas de la app y su ruta. `handle` define el título de la barra superior.
 const router = createBrowserRouter([
@@ -57,6 +59,8 @@ const router = createBrowserRouter([
       { path: "/estampitas/:username", element: <AlbumPage />, handle: { title: "Álbum", subtitle: "Estampitas coleccionables" } },
       { path: "/juegos", element: <JuegosPage />, handle: { title: "Minijuegos", subtitle: "Juega y rompe tu récord" } },
       { path: "/juegos/:juego", element: <JuegosPage />, handle: { title: "Minijuegos", subtitle: "Juega y rompe tu récord" } },
+      { path: "/galeria", element: <GaleriaPage />, handle: { title: "Galería 3D", subtitle: "Tu colección en una sala que puedes recorrer" } },
+      { path: "/galeria/:username", element: <GaleriaPage />, handle: { title: "Galería 3D", subtitle: "Recorre la colección" } },
       { path: "/klips", element: <KlipsPage />, handle: { title: "Klips", subtitle: "Videos cortos de la comunidad" } },
       { path: "/klips/:id", element: <KlipsPage />, handle: { title: "Klips", subtitle: "Videos cortos de la comunidad" } },
       { path: "/avatar", element: <AvatarPage />, handle: { title: "Mi avatar", subtitle: "Arma tu avatar y tus stickers" } },

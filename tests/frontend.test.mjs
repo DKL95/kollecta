@@ -12,6 +12,7 @@ import * as avatarFront from "../frontend/src/utils/avatar.js";
 import { ESTAMPITAS as ESTAMPITAS_FRONT, SERIES as SERIES_FRONT, RAREZAS as RAREZAS_FRONT, numeroDe } from "../frontend/src/utils/estampitas.js";
 import { JUEGOS as JUEGOS_FRONT, formatearPuntaje } from "../frontend/src/utils/juegos.js";
 import * as historiasFront from "../frontend/src/utils/historias.js";
+import * as galeriaFront from "../frontend/src/utils/galeria.js";
 
 describe("Frontend: utilidades de formato", () => {
     it("formatMoney usa formato de México", () => {
@@ -240,5 +241,36 @@ describe("Frontend: estampitas y minijuegos", () => {
         assert.equal(historiasFront.formatoConteo(999), "999");
         assert.equal(historiasFront.formatoConteo(1500), "1.5 mil");
         assert.equal(historiasFront.formatoConteo(2_000_000), "2 M");
+    });
+
+    it("galería 3D: mismas opciones que el backend", async () => {
+        const back = await requerir("../models/galeria.js");
+        assert.deepEqual(galeriaFront.TEMAS_GALERIA.map((t) => t.id), back.TEMAS_GALERIA);
+        assert.deepEqual(galeriaFront.MARCOS_GALERIA.map((m) => m.id), back.MARCOS_GALERIA);
+        assert.deepEqual(galeriaFront.LUCES_GALERIA.map((l) => l.id), back.LUCES_GALERIA);
+        assert.deepEqual(galeriaFront.PARTICULAS_GALERIA.map((p) => p.id), back.PARTICULAS_GALERIA);
+        assert.equal(galeriaFront.MAX_TITULO_GALERIA, back.MAX_TITULO_GALERIA);
+        assert.equal(galeriaFront.temaGaleria("no-existe").id, "museo");
+        assert.equal(galeriaFront.hexCss(0x0a0b0c), "#0a0b0c");
+    });
+
+    it("galería 3D: las piezas quedan dentro de la sala, sin encimarse", () => {
+        for (const total of [0, 1, 3, 7, 20, 48]) {
+            const { lado, lugares } = galeriaFront.distribuirPiezas(total);
+            assert.equal(lugares.length, total);
+            const mitad = lado / 2;
+            for (const l of lugares) {
+                assert.ok(Math.abs(l.x) <= mitad && Math.abs(l.z) <= mitad, `fuera de la sala con ${total}`);
+                // Cada cuadro mira hacia el centro de la sala.
+                const haciaCentro = -(Math.sin(l.angulo) * l.x + Math.cos(l.angulo) * l.z);
+                assert.ok(haciaCentro > 0, `cuadro mirando a la pared con ${total}`);
+            }
+            for (let i = 0; i < lugares.length; i++) {
+                for (let j = i + 1; j < lugares.length; j++) {
+                    const d = Math.hypot(lugares[i].x - lugares[j].x, lugares[i].z - lugares[j].z);
+                    assert.ok(d >= 2.5, `piezas ${i} y ${j} encimadas con ${total} (d=${d.toFixed(2)})`);
+                }
+            }
+        }
     });
 });

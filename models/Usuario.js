@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { avatarSchema, stickerPropioSchema } = require("./avatar");
 const { IDS_ESTAMPITAS } = require("./estampitas");
+const { galeriaSchema } = require("./galeria");
 
 // Opciones del banner del perfil (deben coincidir con frontend/src/utils/banner.js).
 const BANNER_COLORES = ["kollecta", "atardecer", "oceano", "menta", "noche", "dorado", "cereza"];
@@ -66,6 +67,12 @@ const usuarioSchema = new mongoose.Schema(
                 },
                 { _id: false }
             ),
+            default: () => ({})
+        },
+
+        // Cómo se ve la galería 3D de su colección (tema, marcos, luz...). Ver models/galeria.js
+        galeria: {
+            type: galeriaSchema,
             default: () => ({})
         },
 

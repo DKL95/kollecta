@@ -21,6 +21,7 @@ export const NAV_SECTIONS = [
     label: "Comunidad",
     items: [
       { label: "Mi colección", icon: "folder", to: "/coleccion" },
+      { label: "Galería 3D", icon: "frame", to: "/galeria", end: true },
       { label: "Grupos", icon: "star", to: "/grupos" },
       { label: "Mi perfil", icon: "user", to: "/perfil", end: true },
       { label: "Ajustes", icon: "settings", to: "/ajustes" },

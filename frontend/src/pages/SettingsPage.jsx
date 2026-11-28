@@ -102,6 +102,7 @@ export default function SettingsPage() {
 
       <section className="settings-section" aria-labelledby="ajustes-diversion">
         <h3 id="ajustes-diversion">Diversión</h3>
+        <Opcion icono="frame" titulo="Galería 3D" detalle="Recorre y decora tu colección en 3D" to="/galeria" />
         <Opcion icono="klip" titulo="Klips" detalle="Mira y sube videos cortos" to="/klips" />
         <Opcion icono="target" titulo="Tareas" detalle="Completa tareas y gana sobres de estampitas" to="/tareas" />
         <Opcion icono="card" titulo="Álbum de estampitas" to="/estampitas" />
