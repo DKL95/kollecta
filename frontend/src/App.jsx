@@ -28,6 +28,7 @@ const AvatarPage = lazy(() => import("./pages/AvatarPage"));
 const TareasPage = lazy(() => import("./pages/TareasPage"));
 const AlbumPage = lazy(() => import("./pages/AlbumPage"));
 const JuegosPage = lazy(() => import("./pages/JuegosPage"));
+const KlipsPage = lazy(() => import("./pages/KlipsPage"));
 
 // Todas las pantallas de la app y su ruta. `handle` define el título de la barra superior.
 const router = createBrowserRouter([
@@ -56,6 +57,8 @@ const router = createBrowserRouter([
       { path: "/estampitas/:username", element: <AlbumPage />, handle: { title: "Álbum", subtitle: "Estampitas coleccionables" } },
       { path: "/juegos", element: <JuegosPage />, handle: { title: "Minijuegos", subtitle: "Juega y rompe tu récord" } },
       { path: "/juegos/:juego", element: <JuegosPage />, handle: { title: "Minijuegos", subtitle: "Juega y rompe tu récord" } },
+      { path: "/klips", element: <KlipsPage />, handle: { title: "Klips", subtitle: "Videos cortos de la comunidad" } },
+      { path: "/klips/:id", element: <KlipsPage />, handle: { title: "Klips", subtitle: "Videos cortos de la comunidad" } },
       { path: "/avatar", element: <AvatarPage />, handle: { title: "Mi avatar", subtitle: "Arma tu avatar y tus stickers" } },
       { path: "/ajustes", element: <SettingsPage />, handle: { title: "Ajustes", subtitle: "Tu cuenta, preferencias y sesión" } },
       { path: "/perfil/:username", element: <ProfilePage />, handle: { title: "Perfil" } },

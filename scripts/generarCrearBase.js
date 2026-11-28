@@ -30,7 +30,9 @@ const DESCRIPCIONES = {
     moderaciones: "Bitácora de acciones de moderación. moderador/usuarioAfectado → usuarios, denuncia → denuncias.",
     grupos: "Grupos K-pop que agrega la comunidad (pendiente → aprobado | rechazado). solicitante/revisadoPor → usuarios.",
     progreso_tareas: "Avance de cada usuario en las tareas diarias, semanales y logros (TTL: las diarias/semanales caducan). usuario → usuarios.",
-    marcadores: "Mejor puntaje y partidas de cada usuario en cada minijuego (ranking). usuario → usuarios."
+    marcadores: "Mejor puntaje y partidas de cada usuario en cada minijuego (ranking). usuario → usuarios.",
+    historias: "Historias de 24 h (foto, video ≤ 15 s o texto) con quién las vio; se borran con su archivo al vencer. autor/vistas.usuario → usuarios.",
+    klips: "Videos verticales cortos (≤ 60 s, video en GridFS) con likes, comentarios embebidos y reproducciones. autor/likes/comentarios.autor → usuarios."
 };
 
 const ORDEN = Object.keys(DESCRIPCIONES);

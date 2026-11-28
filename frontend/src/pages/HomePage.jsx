@@ -5,6 +5,7 @@ import Avatar, { UserAvatar } from "../components/Avatar";
 import Composer from "../components/Composer";
 import EmptyState from "../components/EmptyState";
 import FilterChips from "../components/FilterChips";
+import HistoriasBar from "../components/historias/HistoriasBar";
 import Icon from "../components/Icon";
 import PostCard from "../components/PostCard";
 import useGrupos from "../hooks/useGrupos";
@@ -63,6 +64,7 @@ export default function HomePage() {
     <main className="page">
       <div className="layout-2col">
         <div>
+          <HistoriasBar />
           <Composer onCreated={handleCreated} />
           <FilterChips options={GROUP_NAMES} active={filter} onChange={setFilter} />
 

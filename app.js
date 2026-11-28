@@ -22,6 +22,8 @@ const grupoRoutes = require("./routes/grupoRoutes");
 const tareaRoutes = require("./routes/tareaRoutes");
 const estampitaRoutes = require("./routes/estampitaRoutes");
 const juegoRoutes = require("./routes/juegoRoutes");
+const historiaRoutes = require("./routes/historiaRoutes");
+const klipRoutes = require("./routes/klipRoutes");
 const logger = require("./config/logger");
 const { requiereAuthMedios } = require("./middleware/auth");
 
@@ -57,6 +59,8 @@ app.use("/api/grupos", grupoRoutes);
 app.use("/api/tareas", tareaRoutes);
 app.use("/api/estampitas", estampitaRoutes);
 app.use("/api/juegos", juegoRoutes);
+app.use("/api/historias", historiaRoutes);
+app.use("/api/klips", klipRoutes);
 
 
 app.use("/api", (req, res) => {
@@ -68,7 +72,8 @@ app.use((error, req, res, next) => {
     const esErrorDeSubida =
         error.name === "MulterError" ||
         error.message === "Solo se permiten imágenes" ||
-        error.message === "Solo se permiten videos";
+        error.message === "Solo se permiten videos" ||
+        error.message === "Solo se permiten imágenes o videos";
 
     const contexto = { metodo: req.method, ruta: req.originalUrl.split("?")[0], usuario: req.usuario?.id || null };
 
@@ -80,7 +85,11 @@ app.use((error, req, res, next) => {
     if (error.code === "LIMIT_FILE_SIZE") {
         const campo = error.field;
 
-        if (campo === "videos") {
+        if (campo === "video") {
+            mensaje = "Un Klip puede pesar como máximo 15 MB";
+        } else if (campo === "medio") {
+            mensaje = "El video de una historia puede pesar como máximo 10 MB";
+        } else if (campo === "videos") {
             mensaje = "Cada video puede pesar como máximo 100 MB";
         } else if (campo === "imagenes" || campo === "fotoPerfil") {
             mensaje = campo === "fotoPerfil"

@@ -23,7 +23,7 @@ import {
   esModerador,
 } from "../utils/roles";
 
-const OCULTABLES = ["publicacion", "comentario", "producto"];
+const OCULTABLES = ["publicacion", "comentario", "producto", "klip"];
 
 const FILTROS_ESTADO = [
   { valor: "pendientes", etiqueta: "Pendientes" },

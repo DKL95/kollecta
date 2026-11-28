@@ -10,6 +10,7 @@ const conectarDB = require("./config/db");
 const Conversacion = require("./models/Conversacion");
 const Mensaje = require("./models/Mensaje");
 const logger = require("./config/logger");
+const { iniciarLimpiezaHistorias } = require("./services/historias");
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "kollecta-dev-secret";
@@ -191,6 +192,9 @@ io.on("connection", (socket) => {
 async function iniciarServidor() {
     try {
         await conectarDB();
+
+        // Borra las historias de más de 24 h (y sus archivos) cada 10 minutos.
+        iniciarLimpiezaHistorias();
 
         servidor.listen(PORT, () => {
             logger.info(

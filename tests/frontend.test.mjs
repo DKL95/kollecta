@@ -11,6 +11,7 @@ import { accionesDisponibles } from "../frontend/src/utils/ordenes.js";
 import * as avatarFront from "../frontend/src/utils/avatar.js";
 import { ESTAMPITAS as ESTAMPITAS_FRONT, SERIES as SERIES_FRONT, RAREZAS as RAREZAS_FRONT, numeroDe } from "../frontend/src/utils/estampitas.js";
 import { JUEGOS as JUEGOS_FRONT, formatearPuntaje } from "../frontend/src/utils/juegos.js";
+import * as historiasFront from "../frontend/src/utils/historias.js";
 
 describe("Frontend: utilidades de formato", () => {
     it("formatMoney usa formato de México", () => {
@@ -222,5 +223,22 @@ describe("Frontend: estampitas y minijuegos", () => {
         assert.deepEqual(Object.keys(LIMITES).sort(), [...Marcador.JUEGOS].sort());
         assert.equal(formatearPuntaje("tiendita", 1500), "$1,500");
         assert.equal(formatearPuntaje("snake", 12), "12 pts");
+    });
+
+    it("historias y Klips: mismos fondos y límites que el backend", async () => {
+        const Historia = await requerir("../models/Historia.js");
+        const Klip = await requerir("../models/Klip.js");
+        const corto = await requerir("../middleware/uploadCorto.js");
+        assert.deepEqual(historiasFront.FONDOS_HISTORIA.map((f) => f.id), Historia.FONDOS_HISTORIA);
+        assert.equal(historiasFront.MAX_TEXTO_HISTORIA, Historia.MAX_TEXTO_HISTORIA);
+        assert.equal(historiasFront.MAX_TEXTO_KLIP, Klip.MAX_TEXTO_KLIP);
+        assert.equal(historiasFront.MAX_SEGUNDOS_HISTORIA, corto.MAX_SEGUNDOS_HISTORIA);
+        assert.equal(historiasFront.MAX_SEGUNDOS_KLIP, corto.MAX_SEGUNDOS_KLIP);
+        assert.equal(historiasFront.MAX_MB_KLIP * 1024 * 1024, corto.MAX_TAMANO_KLIP);
+        assert.equal(historiasFront.MAX_MB_VIDEO_HISTORIA * 1024 * 1024, corto.MAX_TAMANO_VIDEO_HISTORIA);
+        assert.equal(historiasFront.fondoCss("nada"), historiasFront.FONDOS_HISTORIA[0].css);
+        assert.equal(historiasFront.formatoConteo(999), "999");
+        assert.equal(historiasFront.formatoConteo(1500), "1.5 mil");
+        assert.equal(historiasFront.formatoConteo(2_000_000), "2 M");
     });
 });

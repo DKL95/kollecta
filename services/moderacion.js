@@ -14,6 +14,7 @@ const Publicacion = require("../models/Publicacion");
 const Comentario = require("../models/Comentario");
 const Producto = require("../models/Producto");
 const Mensaje = require("../models/Mensaje");
+const Klip = require("../models/Klip");
 const Moderacion = require("../models/Moderacion");
 const { crearNotificacion } = require("../controllers/notificacionController");
 const logger = require("../config/logger");
@@ -24,7 +25,8 @@ const DIAS_SUSPENSION = { min: 1, max: 30 };
 const OCULTABLES = {
     publicacion: { Modelo: Publicacion, autor: "autor", nombre: "publicación" },
     comentario: { Modelo: Comentario, autor: "autor", nombre: "comentario" },
-    producto: { Modelo: Producto, autor: "vendedor", nombre: "artículo del marketplace" }
+    producto: { Modelo: Producto, autor: "vendedor", nombre: "artículo del marketplace" },
+    klip: { Modelo: Klip, autor: "autor", nombre: "Klip" }
 };
 
 class ErrorModeracion extends Error {
@@ -61,7 +63,10 @@ async function cargarObjetivo(tipo, id) {
     const doc = await config.Modelo.findById(id);
     if (!doc) return null;
 
-    const resumen = tipo === "producto" ? recortar(doc.titulo) : recortar(doc.texto);
+    const resumen =
+        tipo === "producto" ? recortar(doc.titulo)
+            : tipo === "klip" ? recortar(doc.texto) || "(Klip sin descripción)"
+                : recortar(doc.texto);
     return { doc, autorId: doc[config.autor], resumen };
 }
 
@@ -161,7 +166,8 @@ async function cambiarVisibilidad({ actor, tipo, id, ocultar, motivo = "", denun
             tipo === "publicacion" ? `/publicaciones/${doc._id}`
                 : tipo === "producto" ? `/marketplace/${doc._id}`
                     : tipo === "comentario" ? `/publicaciones/${doc.publicacion}`
-                        : "";
+                        : tipo === "klip" ? `/klips/${doc._id}`
+                            : "";
         await avisar(
             autorId,
             `Tu ${config.nombre} fue ocultado por moderación${motivo ? `: ${recortar(motivo, 120)}` : ""}`,
