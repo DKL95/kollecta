@@ -1,7 +1,7 @@
 /* ==========================================================================
    KollectA — creación de la base de datos (equivalente al script SQL de tablas).
 
-   Crea las 17 colecciones con su validador $jsonSchema (tipos, campos
+   Crea las 19 colecciones con su validador $jsonSchema (tipos, campos
    obligatorios, enums y límites) y sus índices, incluidos los únicos.
 
    Uso:   mongosh "<MONGODB_URI>" scripts/crear-base.mongodb.js
@@ -704,7 +704,7 @@ crear("denuncias", {
   "bsonType": "object",
   "properties": {
     "reportante": {"bsonType":"objectId","description":"→ Usuario"},
-    "tipo": {"bsonType":"string","enum":["publicacion","comentario","usuario","producto","mensaje"]},
+    "tipo": {"bsonType":"string","enum":["publicacion","comentario","usuario","producto","mensaje","klip"]},
     "objetivo": {"bsonType":"objectId"},
     "usuarioDenunciado": {"bsonType":"objectId","description":"→ Usuario"},
     "resumen": {"bsonType":["string","null"],"maxLength":300},
@@ -850,5 +850,81 @@ crear("marcadores", {
 });
 db.marcadores.createIndex({"usuario":1,"juego":1}, {"unique":true});
 db.marcadores.createIndex({"juego":1,"mejor":-1});
+
+// ---------------------------------------------------------------------------
+// historias: Historias de 24 h (foto, video ≤ 15 s o texto) con quién las vio; se borran con su archivo al vencer. autor/vistas.usuario → usuarios.
+// ---------------------------------------------------------------------------
+crear("historias", {
+  "bsonType": "object",
+  "properties": {
+    "autor": {"bsonType":"objectId","description":"→ Usuario"},
+    "tipo": {"bsonType":"string","enum":["imagen","video","texto"]},
+    "medio": {"bsonType":["string","null"]},
+    "texto": {"bsonType":["string","null"],"maxLength":200},
+    "fondo": {
+      "bsonType": ["string","null"],
+      "enum": ["kollecta","atardecer","oceano","menta","noche","chicle",null]
+    },
+    "duracion": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+    "vistas": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": ["object","null"],
+        "properties": {"usuario":{"bsonType":"objectId","description":"→ Usuario"},"fecha":{"bsonType":["date","null"]}},
+        "required": ["usuario"]
+      }
+    },
+    "expiraEn": {"bsonType":"date"},
+    "_id": {"bsonType":["objectId","null"]},
+    "fecha": {"bsonType":["date","null"]}
+  },
+  "required": ["autor","tipo","expiraEn"]
+});
+db.historias.createIndex({"expiraEn":1});
+db.historias.createIndex({"autor":1,"fecha":-1});
+
+// ---------------------------------------------------------------------------
+// klips: Videos verticales cortos (≤ 60 s, video en GridFS) con likes, comentarios embebidos y reproducciones. autor/likes/comentarios.autor → usuarios.
+// ---------------------------------------------------------------------------
+crear("klips", {
+  "bsonType": "object",
+  "properties": {
+    "autor": {"bsonType":"objectId","description":"→ Usuario"},
+    "video": {"bsonType":"string"},
+    "texto": {"bsonType":["string","null"],"maxLength":300},
+    "grupo": {"bsonType":["string","null"],"maxLength":60},
+    "duracion": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+    "likes": {"bsonType":"array"},
+    "comentarios": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": ["object","null"],
+        "properties": {
+          "autor": {"bsonType":"objectId","description":"→ Usuario"},
+          "texto": {"bsonType":"string","maxLength":300},
+          "fecha": {"bsonType":["date","null"]},
+          "_id": {"bsonType":["objectId","null"]}
+        },
+        "required": ["autor","texto"]
+      }
+    },
+    "reproducciones": {"bsonType":["int","long","double","decimal","null"],"minimum":0},
+    "oculto": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "por": {"bsonType":"objectId","description":"→ Usuario"},
+        "motivo": {"bsonType":["string","null"],"maxLength":300},
+        "fecha": {"bsonType":["date","null"]}
+      },
+      "required": ["por"]
+    },
+    "_id": {"bsonType":["objectId","null"]},
+    "fecha": {"bsonType":["date","null"]},
+    "editadoEn": {"bsonType":["date","null"]}
+  },
+  "required": ["autor","video"]
+});
+db.klips.createIndex({"fecha":-1});
+db.klips.createIndex({"autor":1,"fecha":-1});
 
 print("Listo: " + db.getCollectionNames().length + " colecciones en " + nombreBase);

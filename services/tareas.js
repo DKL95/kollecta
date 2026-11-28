@@ -23,12 +23,14 @@ const TAREAS = [
     { id: "d_comentar", tipo: "diaria", evento: "comentar", meta: 2, titulo: "Echa porras", descripcion: "Comenta o responde 2 veces.", recompensa: { cantidad: 1 } },
     { id: "d_like", tipo: "diaria", evento: "like", meta: 5, titulo: "Reparte amor", descripcion: "Da 5 me gusta.", recompensa: { cantidad: 1 } },
     { id: "d_sticker", tipo: "diaria", evento: "sticker", meta: 1, titulo: "Habla con stickers", descripcion: "Manda un sticker de tu avatar en el chat.", recompensa: { cantidad: 1 } },
+    { id: "d_historia", tipo: "diaria", evento: "historia", meta: 1, titulo: "Cuenta tu día", descripcion: "Sube una historia.", recompensa: { cantidad: 1 } },
     { id: "d_jugar", tipo: "diaria", evento: "partida", meta: 2, titulo: "Hora de jugar", descripcion: "Juega 2 partidas de cualquier minijuego.", recompensa: { cantidad: 2 } },
 
     { id: "s_snake", tipo: "semanal", evento: "puntos_snake", modo: "maximo", meta: 30, titulo: "Fila de fans", descripcion: "Consigue 30 puntos en Lightstick Snake.", recompensa: { cantidad: 3, minRareza: "rara" } },
     { id: "s_tiendita", tipo: "semanal", evento: "puntos_tiendita", modo: "maximo", meta: 600, titulo: "Tiendita exitosa", descripcion: "Gana $600 en un día de K-Style Boutique.", recompensa: { cantidad: 3, minRareza: "rara" } },
     { id: "s_memorama", tipo: "semanal", evento: "memorama", meta: 3, titulo: "Memoria de fan", descripcion: "Completa el memorama 3 veces.", recompensa: { cantidad: 3 } },
     { id: "s_mensajes", tipo: "semanal", evento: "mensaje", meta: 20, titulo: "Buena plática", descripcion: "Manda 20 mensajes.", recompensa: { cantidad: 2 } },
+    { id: "s_klip", tipo: "semanal", evento: "klip", meta: 1, titulo: "Director de Klips", descripcion: "Sube un Klip.", recompensa: { cantidad: 3, minRareza: "rara" } },
     { id: "s_coleccion", tipo: "semanal", evento: "coleccion", meta: 1, titulo: "Vitrina creciente", descripcion: "Agrega una pieza a tu colección.", recompensa: { cantidad: 2 } },
 
     { id: "l_avatar", tipo: "logro", evento: "avatar", meta: 1, titulo: "Nueva imagen", descripcion: "Crea tu avatar.", recompensa: { cantidad: 3, minRareza: "rara" } },

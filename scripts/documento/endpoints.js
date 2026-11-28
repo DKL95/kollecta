@@ -190,7 +190,7 @@ module.exports = [
         base: "/api/denuncias",
         archivo: "denunciaRoutes.js",
         endpoints: [
-            E("POST", "/", "token", "Denuncia una publicación, comentario, respuesta, mensaje, producto o cuenta.",
+            E("POST", "/", "token", "Denuncia una publicación, comentario, respuesta, mensaje, producto, Klip o cuenta.",
                 "{ tipo, objetivo, motivo, detalle? }", "201 { mensaje, denuncia }"),
             E("GET", "/mias", "token", "Mis denuncias y su estado.", "—", "{ denuncias }"),
             E("GET", "/", "moderador", "Cola de denuncias.", "query: estado?, tipo?, motivo?", "{ denuncias, pendientes }"),
@@ -239,6 +239,39 @@ module.exports = [
             E("POST", "/:juego/partidas", "token", "Guarda una partida (snake, tiendita o memorama): actualiza el récord y avanza las tareas. Rechaza puntajes imposibles y partidas seguidas en menos de 3 s.",
                 "{ puntos (entero) }", "201 { mensaje, puntos, mejor, nuevoRecord, partidas } · 400 · 429"),
             E("GET", "/:juego/ranking", "token", "Los 10 mejores puntajes del juego y mi lugar.", "—", "{ ranking: [{ usuario, mejor }], mio: { mejor, partidas, lugar } }")
+        ]
+    },
+    {
+        grupo: "Historias",
+        base: "/api/historias",
+        archivo: "historiaRoutes.js",
+        endpoints: [
+            E("GET", "/", "token", "Historias vigentes agrupadas por persona: las mías primero, luego las no vistas y las de amigos.", "query: autor? (username)",
+                "{ grupos: [{ autor, historias: [{ id, tipo, medio, texto, fondo, duracion, fecha, expiraEn, vista, totalVistas? }], todasVistas, esAmigo }] }"),
+            E("POST", "/", "token", "Sube una historia de 24 h: foto (≤ 5 MB), video (≤ 15 s y 10 MB) o texto sobre un fondo. Máx. 10 a la vez.",
+                "multipart: medio? (imagen o video), texto? (≤ 200), fondo?, duracion? (s, si el video no la trae)", "201 { historia } · 400 · 507 sin espacio"),
+            E("POST", "/:id/vista", "token", "Marca la historia como vista (una vez por persona; no cuenta al autor).", "—", "{ ok } · 404 vencida"),
+            E("GET", "/:id/vistas", "token", "Quién vio mi historia (solo su autor).", "—", "{ vistas: [{ usuario, fecha }] } · 403"),
+            E("DELETE", "/:id", "token", "Borra una historia y su archivo (su autor o moderador+).", "—", "{ mensaje } · 403")
+        ]
+    },
+    {
+        grupo: "Klips",
+        base: "/api/klips",
+        archivo: "klipRoutes.js",
+        endpoints: [
+            E("GET", "/", "token", "Feed de Klips del más nuevo al más viejo, de 8 en 8.", "query: antes? (cursor), autor? (username), grupo?",
+                "{ klips: [{ id, video, texto, grupo, duracion, fecha, autor, totalLikes, meGusta, totalComentarios, reproducciones, esMio }], siguiente }"),
+            E("POST", "/", "token", "Sube un Klip (video ≤ 60 s y 15 MB; la duración se lee del archivo). Máx. 20 por persona.",
+                "multipart: video, texto? (≤ 300), grupo?, duracion?", "201 { klip } · 400 · 507 sin espacio"),
+            E("GET", "/:id", "token", "Un Klip.", "—", "{ klip } · 404"),
+            E("PUT", "/:id", "token", "Edita la descripción y el grupo (solo su autor).", "{ texto?, grupo? }", "{ klip } · 403"),
+            E("DELETE", "/:id", "token", "Borra el Klip y su video de GridFS (su autor o moderador+).", "—", "{ mensaje } · 403"),
+            E("POST", "/:id/like", "token", "Da o quita me gusta (avisa al autor).", "—", "{ meGusta, totalLikes }"),
+            E("POST", "/:id/reproduccion", "token", "Suma una reproducción (no cuenta las del autor).", "—", "{ ok }"),
+            E("GET", "/:id/comentarios", "token", "Comentarios del Klip.", "—", "{ comentarios: [{ id, texto, fecha, autor, esMio }] }"),
+            E("POST", "/:id/comentarios", "token", "Comenta un Klip (avisa al autor).", "{ texto (≤ 300) }", "201 { comentario, totalComentarios }"),
+            E("DELETE", "/:id/comentarios/:comentarioId", "token", "Borra un comentario (quien lo escribió, el dueño del Klip o moderador+).", "—", "{ mensaje, totalComentarios } · 403")
         ]
     },
     {

@@ -123,7 +123,8 @@ const POSICIONES = {
     colecciones: [0, 2], usuarios: [1.5, 2], conversaciones: [3, 2],
     denuncias: [0, 3], mensajes: [3, 3],
     moderaciones: [0, 4], productos: [1, 4], ordenes: [2, 4], grupos: [3, 4],
-    progreso_tareas: [1, 5], marcadores: [2, 5]
+    progreso_tareas: [1, 5], marcadores: [2, 5],
+    historias: [0, 5], klips: [3, 5]
 };
 const FILAS_ER = 6;
 
@@ -336,6 +337,8 @@ const DESCRIPCION_PANTALLA = {
     "/estampitas/:username": "Álbum de estampitas de otra persona (solo lectura).",
     "/juegos": "Lista de minijuegos con tu récord.",
     "/juegos/:juego": "Un minijuego (Lightstick Snake, K-Style Boutique o Memorama) con su ranking.",
+    "/klips": "Feed vertical de Klips (videos cortos) que se reproducen solos al deslizar, con me gusta, comentarios y subir el tuyo.",
+    "/klips/:id": "Un Klip abierto desde una notificación, un perfil o la moderación.",
     "*": "Página no encontrada."
 };
 
@@ -435,6 +438,8 @@ const MATRIZ_CRUD = [
     ["ordenes", "POST /ordenes", "GET /ordenes, /:id", "PATCH /ordenes/:id/estado, …/disputa", "DELETE /ordenes/:id (retirar solicitud)"],
     ["denuncias", "POST /denuncias", "GET /denuncias, /mias", "PATCH /denuncias/:id", "Se conservan como historial"],
     ["moderaciones", "La crea cada acción de moderación", "GET /moderacion/bitacora", "— (bitácora inmutable)", "— (bitácora inmutable)"],
+    ["historias", "POST /historias", "GET /historias, /:id/vistas", "POST /historias/:id/vista", "DELETE /historias/:id (y solas a las 24 h)"],
+    ["klips", "POST /klips, …/comentarios", "GET /klips, /:id, …/comentarios", "PUT /klips/:id; POST …/like, …/reproduccion", "DELETE /klips/:id, …/comentarios/:id"],
     ["grupos", "POST /grupos", "GET /grupos, /grupos/solicitudes, …/mias", "PUT /grupos/:id; PATCH /grupos/solicitudes/:id (aprobar o rechazar)", "DELETE /grupos/solicitudes/:id (cancelar pendiente)"]
 ];
 

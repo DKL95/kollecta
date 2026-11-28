@@ -42,6 +42,10 @@ export default function Topbar({ title, subtitle }) {
       </form>
 
       <div className="topbar-actions">
+        <Link className="icon-btn topbar-mobile-only" to="/klips" title="Klips">
+          <Icon name="klip" size={18} />
+        </Link>
+
         <Link
           className="icon-btn topbar-mobile-only"
           to="/juegos"

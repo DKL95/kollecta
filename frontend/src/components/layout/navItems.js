@@ -3,6 +3,7 @@ export const NAV_SECTIONS = [
     label: "Menú",
     items: [
       { label: "Inicio", icon: "home", to: "/inicio" },
+      { label: "Klips", icon: "klip", to: "/klips" },
       { label: "Buscar", icon: "search", to: "/buscar" },
       { label: "Notificaciones", icon: "bell", to: "/notificaciones", count: 3 },
       { label: "Mensajes", icon: "chat", to: "/mensajes", count: 3 },

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 // Denuncia que hace cualquier persona sobre contenido o una cuenta.
 // La revisa la moderación desde /moderacion. (Se llama "denuncia" para no
 // confundirla con la sección "Reportes" de métricas.)
-const TIPOS_DENUNCIA = ["publicacion", "comentario", "usuario", "producto", "mensaje"];
+const TIPOS_DENUNCIA = ["publicacion", "comentario", "usuario", "producto", "mensaje", "klip"];
 const MOTIVOS_DENUNCIA = ["spam", "acoso", "falsificacion", "estafa", "contenido_inapropiado", "otro"];
 const ESTADOS_DENUNCIA = ["abierta", "en_revision", "resuelta", "descartada"];
 const ACCIONES_RESOLUCION = ["ninguna", "ocultar", "suspender", "banear"];

@@ -32,6 +32,7 @@ export const ETIQUETA_TIPO_DENUNCIA = {
   usuario: "Cuenta",
   producto: "Artículo del marketplace",
   mensaje: "Mensaje",
+  klip: "Klip",
 };
 
 export const ETIQUETA_ACCION = {

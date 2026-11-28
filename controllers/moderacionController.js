@@ -130,6 +130,7 @@ async function marcarContenidoOculto(denuncias) {
         denuncia.enlace =
             denuncia.tipo === "publicacion" ? `/publicaciones/${denuncia.objetivo}`
                 : denuncia.tipo === "producto" ? `/marketplace/${denuncia.objetivo}`
+                : denuncia.tipo === "klip" ? `/klips/${denuncia.objetivo}`
                     : denuncia.tipo === "usuario" && denuncia.usuarioDenunciado ? `/perfil/${denuncia.usuarioDenunciado.username}`
                         : null;
     }

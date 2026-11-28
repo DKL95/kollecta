@@ -15,9 +15,10 @@ import { adaptarArticulo } from "../utils/coleccion";
 import RoleBadge from "../components/RoleBadge";
 import ReportDialog from "../components/ReportDialog";
 import ModActionDialog from "../components/ModActionDialog";
+import KlipsDePerfil from "../components/klips/KlipsDePerfil";
 import { esAdmin, esModerador } from "../utils/roles";
 
-const TABS = ["Publicaciones", "Colección", "Reseñas", "Grupos que sigo"];
+const TABS = ["Publicaciones", "Klips", "Colección", "Reseñas", "Grupos que sigo"];
 
 export default function ProfilePage() {
   const { user, saveUser } = useAuth();
@@ -646,6 +647,8 @@ export default function ProfilePage() {
             ))}
           </div>
         ))}
+
+      {activeTab === "Klips" && <KlipsDePerfil username={shown.username} propio={isOwnProfile} />}
 
       {activeTab === "Reseñas" && (
         <SellerReviews reputacion={reputacion} username={shown.username} propio={isOwnProfile} />
