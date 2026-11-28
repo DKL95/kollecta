@@ -338,6 +338,8 @@ const DESCRIPCION_PANTALLA = {
     "/juegos": "Lista de minijuegos con tu récord.",
     "/juegos/:juego": "Un minijuego (Lightstick Snake, K-Style Boutique o Memorama) con su ranking.",
     "/klips": "Feed vertical de Klips (videos cortos) que se reproducen solos al deslizar, con me gusta, comentarios y subir el tuyo.",
+    "/galeria": "Mi galería 3D: recorre tu colección en una sala con marcos y un pedestal, y decórala (tema, marcos, luz, efectos y nombre).",
+    "/galeria/:username": "Galería 3D de otra persona (solo para verla).",
     "/klips/:id": "Un Klip abierto desde una notificación, un perfil o la moderación.",
     "*": "Página no encontrada."
 };

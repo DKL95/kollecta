@@ -97,6 +97,10 @@ export default function CollectionPage() {
             <Icon name="package" size={14} /> Ver estadísticas
           </button>
 
+          <Link to="/galeria" className="btn btn-secondary btn-sm">
+            <Icon name="frame" size={14} /> Galería 3D
+          </Link>
+
           <Link to="/coleccion/agregar" className="btn btn-primary btn-sm">
             <Icon name="plus" size={14} /> Agregar pieza
           </Link>

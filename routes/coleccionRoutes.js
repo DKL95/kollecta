@@ -12,6 +12,7 @@ const {
     actualizarArticulo,
     eliminarArticulo
 } = require("../controllers/coleccionController");
+const { obtenerGaleria, actualizarGaleria } = require("../controllers/galeriaController");
 
 const router = express.Router();
 const subirImagenes = upload.fields([{ name: "imagenes", maxCount: 10 }]);
@@ -20,6 +21,10 @@ router.use(requiereAuth);
 
 // Obtener la colección del usuario autenticado.
 router.get("/", listarMiColeccion);
+
+// Galería 3D: ver la de cualquier persona y decorar la mía.
+router.get("/galeria/:username", obtenerGaleria);
+router.put("/galeria", registrarOperacion("decorar galería"), actualizarGaleria);
 
 // Consultar la colección de otro usuario mediante su ID.
 router.get("/usuario/:usuarioId", listarColeccionDeUsuario);

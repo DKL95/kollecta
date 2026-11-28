@@ -90,6 +90,10 @@ module.exports = [
         endpoints: [
             E("GET", "/", "token", "Mi colección.", "—", "documento coleccion { usuario, articulos[] }"),
             E("GET", "/usuario/:usuarioId", "token", "Colección de otro usuario.", "—", "{ usuario, articulos }"),
+            E("GET", "/galeria/:username", "token", "Galería 3D de una persona: su decoración, la pieza del pedestal y hasta 48 piezas (lo más nuevo primero).", "—",
+                "{ usuario, esMia, galeria: { tema, marco, luz, particulas, titulo, destacada }, destacada, piezas: [{ id, titulo, grupo, categoria, imagen, estado, valorEstimado, descripcion }], totalPiezas, maxPiezas }"),
+            E("PUT", "/galeria", "token", "Decora mi galería 3D (solo cambia lo que se manda; la destacada debe ser de mi colección).",
+                "{ tema?, marco?, luz?, particulas?, titulo? (≤ 40), destacada? (id o null) }", "{ mensaje, galeria } · 400"),
             E("GET", "/articulos/:articuloId", "token", "Una pieza de colección y su dueño.", "—", "{ articulo, esMio, propietario }"),
             E("POST", "/articulos", "token", "Agrega una pieza a mi colección.",
                 "multipart: titulo, grupo, categoria, descripcion?, valorEstimado?, estado?, imagenes[] (≤10)", "201 { mensaje, coleccion, articulo }"),

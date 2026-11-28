@@ -38,6 +38,7 @@ const TAREAS = [
     { id: "l_publicaciones", tipo: "logro", evento: "publicar", meta: 10, titulo: "Voz del fandom", descripcion: "Haz 10 publicaciones.", recompensa: { cantidad: 4, minRareza: "epica" } },
     { id: "l_snake", tipo: "logro", evento: "puntos_snake", modo: "maximo", meta: 100, titulo: "Maestro del lightstick", descripcion: "Llega a 100 puntos en Lightstick Snake.", recompensa: { cantidad: 3, minRareza: "epica" } },
     { id: "l_tiendita", tipo: "logro", evento: "puntos_tiendita", modo: "maximo", meta: 2000, titulo: "Magnate de la moda", descripcion: "Gana $2000 en un día de K-Style Boutique.", recompensa: { cantidad: 3, minRareza: "epica" } },
+    { id: "l_galeria", tipo: "logro", evento: "galeria", meta: 1, titulo: "Curador de museo", descripcion: "Personaliza tu galería 3D.", recompensa: { cantidad: 2, minRareza: "rara" } },
     { id: "l_serie", tipo: "logro", evento: "serie_completa", meta: 1, titulo: "Serie completa", descripcion: "Completa una serie de tu álbum.", recompensa: { cantidad: 1, minRareza: "legendaria" } }
 ];
 

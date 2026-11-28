@@ -58,6 +58,20 @@ crear("usuarios", {
         "animado": {"bsonType":["bool","null"]}
       }
     },
+    "galeria": {
+      "bsonType": ["object","null"],
+      "properties": {
+        "tema": {
+          "bsonType": ["string","null"],
+          "enum": ["museo","neon","concierto","pastel","estrellas","madera",null]
+        },
+        "marco": {"bsonType":["string","null"],"enum":["dorado","negro","neon","madera","ninguno",null]},
+        "luz": {"bsonType":["string","null"],"enum":["calida","fria","escenario",null]},
+        "particulas": {"bsonType":["string","null"],"enum":["ninguna","estrellas","corazones","confeti",null]},
+        "titulo": {"bsonType":["string","null"],"maxLength":40},
+        "destacada": {"bsonType":["objectId","null"]}
+      }
+    },
     "avatar": {
       "bsonType": ["object","null"],
       "properties": {

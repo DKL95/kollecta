@@ -5681,3 +5681,62 @@ button.estampita:focus-visible { outline: 3px solid var(--cyan); outline-offset:
   .klip-corazon, .historia-burbuja.esqueleto .historia-aro, .historia-cargando { animation: none; }
   .klips-perfil-celda, .historia-aro { transition: none; }
 }
+
+/* ==========================================================================
+   Galería 3D de la colección
+   ========================================================================== */
+.galeria-page { display: flex; flex-direction: column; gap: 12px; }
+.galeria-cabeza { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.galeria-cabeza h2 { margin: 0 0 4px; font-size: 22px; overflow-wrap: anywhere; }
+.galeria-cabeza .sub { color: var(--text-dim); font-size: 13px; }
+.galeria-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.galeria-aviso { margin: 0; color: var(--gold); font-size: 13px; }
+.galeria-marco { position: relative; height: calc(100dvh - var(--header-h) - 150px); min-height: 380px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-strong); background: #000; box-shadow: var(--shadow-2); }
+.galeria-lienzo { position: absolute; inset: 0; background: var(--galeria-fondo, #0b0817); }
+.galeria-lienzo canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab; }
+.galeria-lienzo canvas:active { cursor: grabbing; }
+.galeria-ayuda { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); margin: 0; padding: 6px 12px; border-radius: var(--radius-pill); background: rgba(10, 7, 22, 0.6); color: #fff; font-size: 12px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; pointer-events: none; backdrop-filter: blur(4px); }
+.galeria-recorrido { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: var(--radius-pill); background: rgba(10, 7, 22, 0.72); border: 1px solid rgba(255, 255, 255, 0.14); color: #fff; backdrop-filter: blur(6px); }
+.galeria-recorrido span { min-width: 78px; text-align: center; font-size: 13px; font-weight: 700; }
+.galeria-recorrido .icon-btn { color: #fff; }
+.galeria-caminar { position: absolute; left: 14px; bottom: 14px; display: none; flex-direction: column; gap: 6px; }
+.galeria-caminar button { width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(10, 7, 22, 0.72); color: #fff; display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.galeria-caminar .adelante .icon { transform: rotate(90deg); }
+.galeria-caminar .atras .icon { transform: rotate(-90deg); }
+.galeria-ficha { position: absolute; right: 14px; top: 14px; width: min(300px, calc(100% - 28px)); display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: rgba(21, 15, 40, 0.92); border: 1px solid var(--border-strong); box-shadow: var(--shadow-2); color: var(--text); backdrop-filter: blur(8px); }
+.galeria-ficha strong { font-size: 15px; padding-right: 26px; overflow-wrap: anywhere; }
+.galeria-ficha p { margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.45; overflow-wrap: anywhere; }
+.galeria-ficha-sub { font-size: 12px; color: var(--text-faint); }
+.galeria-ficha-cerrar { position: absolute; top: 8px; right: 8px; }
+.galeria-ficha-etiqueta { align-self: flex-start; padding: 2px 8px; border-radius: var(--radius-pill); background: rgba(255, 209, 102, 0.16); color: var(--gold); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.galeria-ficha-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.galeria-ficha-valor { font-weight: 800; color: var(--gold); }
+
+.galeria-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.galeria-lista-pieza { display: flex; align-items: center; gap: 12px; padding: 10px; color: var(--text); }
+.galeria-lista-pieza:hover { background: var(--card-hover); }
+.galeria-lista-foto { position: relative; flex: 0 0 56px; height: 72px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: var(--gradient-card); color: var(--text-faint); }
+.galeria-lista-texto { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.galeria-lista-texto strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.galeria-lista-texto small { color: var(--text-faint); font-size: 12px; }
+
+.galeria-decorar { position: fixed; top: calc(var(--header-h) + 12px); right: 16px; bottom: 16px; z-index: 120; width: min(360px, calc(100vw - 32px)); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-2); border-color: var(--border-strong); }
+.galeria-decorar header { display: flex; align-items: center; justify-content: space-between; }
+.galeria-decorar .field { margin: 0; }
+.galeria-opciones { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.galeria-opciones legend { padding: 0; margin-bottom: 8px; font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
+.galeria-opciones .chip { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.galeria-punto { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.4); }
+.galeria-temas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.galeria-tema { display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.03); color: var(--text); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.galeria-tema.activo { border-color: var(--pink); box-shadow: 0 0 0 1px var(--pink); }
+.galeria-tema-muestra { display: block; height: 44px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.galeria-decorar-pie { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 4px; }
+
+@media (max-width: 900px) {
+  .galeria-marco { height: calc(100dvh - var(--header-h) - 210px); min-height: 340px; border-radius: 16px; }
+  .galeria-caminar { display: flex; }
+  .galeria-ayuda { font-size: 11px; max-width: calc(100% - 24px); white-space: normal; text-align: center; }
+  .galeria-ficha { top: auto; bottom: 66px; right: 12px; left: 72px; width: auto; }
+  .galeria-decorar { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 72dvh; border-radius: 20px 20px 0 0; }
+}

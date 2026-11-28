@@ -622,6 +622,12 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {activeTab === "Colección" && (
+        <Link to={isOwnProfile ? "/galeria" : `/galeria/${encodeURIComponent(shown.username)}`} className="btn btn-secondary btn-sm" style={{ marginBottom: 14 }}>
+          <Icon name="frame" size={14} /> {isOwnProfile ? "Ver mi galería 3D" : "Ver su galería 3D"}
+        </Link>
+      )}
+
       {activeTab === "Colección" &&
         (collection === null ? (
           <div className="card side-card">
